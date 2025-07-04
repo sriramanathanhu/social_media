@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const SocialAccount = require('../models/SocialAccount');
+const OAuthState = require('../models/OAuthState');
 const mastodonService = require('../services/mastodon');
 const crypto = require('crypto');
 
@@ -115,19 +116,19 @@ const connectMastodon = async (req, res) => {
       state
     );
 
-    // Store OAuth data with the random part as key
-    req.session = req.session || {};
-    const sessionKey = `mastodon_${stateData.random}`;
-    req.session[sessionKey] = {
-      instanceUrl: normalizedUrl,
-      clientId: appCredentials.client_id,
-      clientSecret: appCredentials.client_secret,
-      userId: req.user.id
-    };
+    // Store OAuth data in database instead of session
+    const stateKey = `mastodon_${stateData.random}`;
+    await OAuthState.create(
+      stateKey,
+      req.user.id,
+      'mastodon',
+      normalizedUrl,
+      appCredentials.client_id,
+      appCredentials.client_secret
+    );
 
-    console.log('Storing session data with key:', sessionKey);
-    console.log('Session data:', req.session[sessionKey]);
-    console.log('Session ID:', req.sessionID);
+    console.log('Storing OAuth state in database with key:', stateKey);
+    console.log('User ID:', req.user.id);
 
     res.json({
       authUrl,
@@ -168,17 +169,16 @@ const mastodonCallback = async (req, res) => {
       return res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?error=state_expired`);
     }
 
-    const sessionKey = `mastodon_${stateData.random}`;
-    console.log('Looking for session key:', sessionKey);
-    const sessionData = req.session?.[sessionKey];
+    const stateKey = `mastodon_${stateData.random}`;
+    console.log('Looking for OAuth state with key:', stateKey);
+    const oauthState = await OAuthState.findByStateKey(stateKey);
     
-    if (!sessionData) {
-      console.log('Session not found. Available keys:', Object.keys(req.session || {}));
-      console.log('Full session object:', req.session);
+    if (!oauthState) {
+      console.log('OAuth state not found in database');
       return res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?error=session_expired`);
     }
 
-    console.log('Session data found:', sessionData);
+    console.log('OAuth state found:', oauthState);
 
     // Get user from state data
     const userId = stateData.userId;
@@ -188,30 +188,30 @@ const mastodonCallback = async (req, res) => {
     }
 
     const accessToken = await mastodonService.getAccessToken(
-      sessionData.instanceUrl,
-      sessionData.clientId,
-      sessionData.clientSecret,
+      oauthState.instance_url,
+      oauthState.client_id,
+      oauthState.client_secret,
       code
     );
 
     const userInfo = await mastodonService.verifyCredentials(
-      sessionData.instanceUrl,
+      oauthState.instance_url,
       accessToken
     );
 
     const existingAccount = await SocialAccount.findByPlatformAndUser(
-      userId,
+      oauthState.user_id,
       'mastodon',
-      sessionData.instanceUrl
+      oauthState.instance_url
     );
 
     if (existingAccount.length > 0) {
       await SocialAccount.updateTokens(existingAccount[0].id, accessToken);
     } else {
       await SocialAccount.create({
-        userId: userId,
+        userId: oauthState.user_id,
         platform: 'mastodon',
-        instanceUrl: sessionData.instanceUrl,
+        instanceUrl: oauthState.instance_url,
         username: userInfo.username,
         displayName: userInfo.display_name,
         avatarUrl: userInfo.avatar,
@@ -221,8 +221,8 @@ const mastodonCallback = async (req, res) => {
       });
     }
 
-    // Clean up session data
-    delete req.session[sessionKey];
+    // Clean up OAuth state data
+    await OAuthState.deleteByStateKey(stateKey);
 
     // Redirect to frontend with success message
     res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?connected=mastodon`);

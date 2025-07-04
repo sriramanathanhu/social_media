@@ -42,10 +42,25 @@ const initializeDatabase = async () => {
     `);
 
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS oauth_states (
+        id SERIAL PRIMARY KEY,
+        state_key VARCHAR(255) UNIQUE NOT NULL,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        platform VARCHAR(50) NOT NULL,
+        instance_url VARCHAR(255),
+        client_id VARCHAR(255),
+        client_secret VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '1 hour')
+      );
+    `);
+
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS posts (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         content TEXT NOT NULL,
+        media_urls JSONB DEFAULT '[]',
         status VARCHAR(20) DEFAULT 'draft',
         target_accounts JSONB,
         published_at TIMESTAMP,
@@ -55,6 +70,16 @@ const initializeDatabase = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Add missing columns to existing tables
+    try {
+      await pool.query(`
+        ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_urls JSONB DEFAULT '[]'
+      `);
+    } catch (error) {
+      // Column might already exist, ignore error
+      console.log('Column media_urls already exists or error adding:', error.message);
+    }
 
     console.log('Database tables initialized successfully');
   } catch (error) {
