@@ -228,6 +228,18 @@ const mastodonCallback = async (req, res) => {
     res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?connected=mastodon`);
   } catch (error) {
     console.error('Mastodon callback error:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+    
+    // Clean up OAuth state on error
+    if (stateData?.random) {
+      try {
+        await OAuthState.deleteByStateKey(`mastodon_${stateData.random}`);
+      } catch (cleanupError) {
+        console.error('Error cleaning up OAuth state:', cleanupError);
+      }
+    }
+    
     // Redirect to frontend with error
     res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?error=connection_failed`);
   }
