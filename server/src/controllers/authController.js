@@ -44,25 +44,34 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
+    console.log('Login request body:', req.body);
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { email, password } = req.body;
+    console.log('Login attempt for email:', email);
     
     const user = await User.findByEmail(email);
     if (!user) {
+      console.log('User not found for email:', email);
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
+    console.log('User found, verifying password...');
     const isValidPassword = await User.verifyPassword(password, user.password_hash);
     if (!isValidPassword) {
+      console.log('Invalid password for user:', email);
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
+    console.log('Password valid, generating token...');
     const token = generateToken(user.id);
 
+    console.log('Login successful for user:', email);
     res.json({
       token,
       user: {
