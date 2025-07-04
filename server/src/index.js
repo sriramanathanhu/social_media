@@ -13,16 +13,29 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.'
 });
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://hinduismnow.github.io', 'https://socialmedia-p3ln.onrender.com'] 
     : 'http://localhost:3000',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Social Media Scheduler API',
+    status: 'running',
+    endpoints: ['/health', '/api/auth', '/api/accounts', '/api/posts']
+  });
+});
 
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
