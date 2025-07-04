@@ -127,46 +127,40 @@ const connectMastodon = async (req, res) => {
 
 const mastodonCallback = async (req, res) => {
   try {
-    console.log('OAuth callback received:', req.query);
-    console.log('Session keys:', Object.keys(req.session || {}));
-    
     const { code, state } = req.query;
     
     if (!code || !state) {
-      return res.status(400).json({ error: 'Missing authorization code or state' });
+      console.log('Missing code or state in callback');
+      return res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?error=missing_parameters`);
     }
 
     let stateData;
     try {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString());
     } catch (error) {
-      return res.status(400).json({ error: 'Invalid state parameter format' });
+      console.log('Invalid state format:', error);
+      return res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?error=invalid_state`);
     }
 
-    // Check if state is too old (30 minutes)
-    if (Date.now() - stateData.timestamp > 30 * 60 * 1000) {
-      return res.status(400).json({ error: 'OAuth state expired' });
+    // Check if state is too old (1 hour)
+    if (Date.now() - stateData.timestamp > 60 * 60 * 1000) {
+      console.log('State expired');
+      return res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?error=state_expired`);
     }
 
     const sessionKey = `mastodon_${stateData.random}`;
     const sessionData = req.session?.[sessionKey];
-    console.log('Looking for session key:', sessionKey);
-    console.log('Session mastodon data:', sessionData);
     
     if (!sessionData) {
-      return res.status(400).json({ 
-        error: 'OAuth session not found or expired',
-        debug: {
-          sessionKey: sessionKey,
-          availableKeys: Object.keys(req.session || {})
-        }
-      });
+      console.log('Session not found. Available keys:', Object.keys(req.session || {}));
+      return res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?error=session_expired`);
     }
 
     // Get user from state data
     const userId = stateData.userId;
     if (!userId) {
-      return res.status(400).json({ error: 'User information missing from state' });
+      console.log('User ID missing from state');
+      return res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?error=user_missing`);
     }
 
     const accessToken = await mastodonService.getAccessToken(

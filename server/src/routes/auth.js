@@ -8,12 +8,13 @@ const router = express.Router();
 router.use(session({
   secret: process.env.JWT_SECRET,
   resave: false,
-  saveUninitialized: true, // Set to true to ensure session is created
+  saveUninitialized: true,
+  name: 'socialmedia.sid', // Custom session name
   cookie: {
-    secure: false, // Set to false for debugging - OAuth callbacks may have issues with secure cookies
-    httpOnly: true,
-    maxAge: 1000 * 60 * 30, // Increase to 30 minutes for OAuth flow
-    sameSite: 'lax' // Allow cross-site requests for OAuth
+    secure: false, // Keep false for OAuth compatibility
+    httpOnly: false, // Set to false for OAuth debugging
+    maxAge: 1000 * 60 * 60, // 1 hour for OAuth flow
+    sameSite: 'none' // More permissive for cross-domain OAuth
   }
 }));
 
