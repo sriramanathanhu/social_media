@@ -4,14 +4,26 @@ const Post = require('../models/Post');
 
 const createPost = async (req, res) => {
   try {
+    console.log('Create post request body:', req.body);
+    console.log('User:', req.user);
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { content, targetAccountIds, mediaFiles = [] } = req.body;
     
+    console.log('Post data:', { content, targetAccountIds, mediaFiles });
+    
+    if (!content || !content.trim()) {
+      console.log('Content is empty');
+      return res.status(400).json({ error: 'Content is required' });
+    }
+    
     if (!targetAccountIds || targetAccountIds.length === 0) {
+      console.log('No target accounts selected');
       return res.status(400).json({ error: 'At least one target account must be selected' });
     }
 
@@ -21,12 +33,15 @@ const createPost = async (req, res) => {
       mediaFiles
     });
 
+    console.log('Post created successfully:', result);
     res.json({
       success: true,
       post: result
     });
   } catch (error) {
     console.error('Create post error:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ 
       error: error.message || 'Failed to create post' 
     });
