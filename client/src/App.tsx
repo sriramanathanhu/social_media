@@ -1,0 +1,69 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { Provider } from 'react-redux';
+import { store } from './store';
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import AccountsPage from './pages/AccountsPage';
+import ComposePage from './pages/ComposePage';
+import PostsPage from './pages/PostsPage';
+import { Box } from '@mui/material';
+import { useSelector } from 'react-redux';
+import { RootState } from './store';
+import Navigation from './components/Navigation';
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+  },
+});
+
+const AppContent: React.FC = () => {
+  const { token } = useSelector((state: RootState) => state.auth);
+
+  if (!token) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <Box sx={{ display: 'flex' }}>
+      <Navigation />
+      <Box component="main" sx={{ flexGrow: 1 }}>
+        <Routes>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/accounts" element={<AccountsPage />} />
+          <Route path="/compose" element={<ComposePage />} />
+          <Route path="/posts" element={<PostsPage />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </Box>
+    </Box>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <Provider store={store}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Router>
+          <AppContent />
+        </Router>
+      </ThemeProvider>
+    </Provider>
+  );
+};
+
+export default App;
