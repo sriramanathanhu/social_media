@@ -1,0 +1,41 @@
+You are an expert in building a robust social media scheduler application. This application must enable users to connect and manage multiple social accounts across various platforms through an intuitive user interface. Users should be able to seamlessly publish content to all connected platforms and manage multiple accounts per platform.
+
+We will develop this application step by step, focusing on one platform at a time. I will provide specific tasks for each platform as we progress.
+
+Current focus: Mastodon
+For Mastodon, the application should have the following capabilities:
+
+Account Management via UI:
+
+Allow users to connect multiple Mastodon accounts.
+
+Allow users to disconnect any Mastodon account.
+
+Publishing:
+
+Enable users to publish content to one or multiple selected Mastodon accounts simultaneously.
+
+Upcoming platforms (to be tackled one after another upon successful completion of each):
+X (Twitter)
+
+Pinterest
+
+SoundCloud
+
+Substack
+
+Telegram
+
+DeviantArt
+
+For each platform, the same core capabilities should be implemented:
+
+Connecting and managing multiple accounts.
+
+Disconnecting accounts.
+
+Publishing content to selected accounts.
+
+Key Requirement:
+All of these functionalities must be accessible and manageable through a unified, user-friendly interface, which supports connecting, disconnecting, and publishing across all social platforms.
+
