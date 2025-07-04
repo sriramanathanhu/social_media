@@ -28,12 +28,17 @@ const theme = createTheme({
 
 const AppContent: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { token } = useSelector((state: RootState) => state.auth);
+  const { token, initialized } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     // Validate token on app startup
     dispatch(validateToken());
   }, [dispatch]);
+
+  // Show loading or nothing while initializing
+  if (!initialized) {
+    return null; // or a loading spinner
+  }
 
   if (!token) {
     return (

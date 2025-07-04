@@ -30,7 +30,7 @@ const LoginPage: React.FC = () => {
     const action = showRegister ? register : login;
     const result = await dispatch(action({ email, password }));
     if (result.meta.requestStatus === 'fulfilled') {
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     }
   };
 
