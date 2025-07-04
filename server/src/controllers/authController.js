@@ -104,7 +104,8 @@ const connectMastodon = async (req, res) => {
       instanceUrl: normalizedUrl,
       clientId: appCredentials.client_id,
       clientSecret: appCredentials.client_secret,
-      state: state
+      state: state,
+      userId: req.user.id // Store user ID in session
     };
 
     res.json({
@@ -130,6 +131,12 @@ const mastodonCallback = async (req, res) => {
       return res.status(400).json({ error: 'Invalid state parameter' });
     }
 
+    // Get user from session data instead of req.user
+    const userId = sessionData.userId;
+    if (!userId) {
+      return res.status(400).json({ error: 'User session expired' });
+    }
+
     const accessToken = await mastodonService.getAccessToken(
       sessionData.instanceUrl,
       sessionData.clientId,
@@ -143,7 +150,7 @@ const mastodonCallback = async (req, res) => {
     );
 
     const existingAccount = await SocialAccount.findByPlatformAndUser(
-      req.user.id,
+      userId,
       'mastodon',
       sessionData.instanceUrl
     );
@@ -152,7 +159,7 @@ const mastodonCallback = async (req, res) => {
       await SocialAccount.updateTokens(existingAccount[0].id, accessToken);
     } else {
       await SocialAccount.create({
-        userId: req.user.id,
+        userId: userId,
         platform: 'mastodon',
         instanceUrl: sessionData.instanceUrl,
         username: userInfo.username,
@@ -166,19 +173,12 @@ const mastodonCallback = async (req, res) => {
 
     delete req.session.mastodon;
 
-    res.json({
-      success: true,
-      account: {
-        platform: 'mastodon',
-        instanceUrl: sessionData.instanceUrl,
-        username: userInfo.username,
-        displayName: userInfo.display_name,
-        avatar: userInfo.avatar
-      }
-    });
+    // Redirect to frontend with success message
+    res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?connected=mastodon`);
   } catch (error) {
     console.error('Mastodon callback error:', error);
-    res.status(500).json({ error: 'Failed to complete Mastodon authentication' });
+    // Redirect to frontend with error
+    res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?error=connection_failed`);
   }
 };
 
