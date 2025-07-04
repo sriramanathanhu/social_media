@@ -32,6 +32,24 @@ export const register = createAsyncThunk(
   }
 );
 
+export const validateToken = createAsyncThunk(
+  'auth/validateToken',
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        return rejectWithValue('No token found');
+      }
+      // You could add a validate endpoint here, but for now just return success
+      // The API interceptor will handle invalid tokens automatically
+      return { token };
+    } catch (error) {
+      localStorage.removeItem('token');
+      return rejectWithValue('Token validation failed');
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -74,6 +92,13 @@ const authSlice = createSlice({
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Registration failed';
+      })
+      .addCase(validateToken.fulfilled, (state, action) => {
+        state.token = action.payload.token;
+      })
+      .addCase(validateToken.rejected, (state) => {
+        state.token = null;
+        state.user = null;
       });
   },
 });

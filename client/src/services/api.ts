@@ -23,7 +23,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      window.location.hash = '#/login'; // Use hash routing
     }
     return Promise.reject(error);
   }

@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { Provider } from 'react-redux';
+import { Provider, useDispatch } from 'react-redux';
 import { store } from './store';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
@@ -11,8 +11,9 @@ import ComposePage from './pages/ComposePage';
 import PostsPage from './pages/PostsPage';
 import { Box } from '@mui/material';
 import { useSelector } from 'react-redux';
-import { RootState } from './store';
+import { RootState, AppDispatch } from './store';
 import Navigation from './components/Navigation';
+import { validateToken } from './store/slices/authSlice';
 
 const theme = createTheme({
   palette: {
@@ -26,7 +27,13 @@ const theme = createTheme({
 });
 
 const AppContent: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
   const { token } = useSelector((state: RootState) => state.auth);
+
+  useEffect(() => {
+    // Validate token on app startup
+    dispatch(validateToken());
+  }, [dispatch]);
 
   if (!token) {
     return (

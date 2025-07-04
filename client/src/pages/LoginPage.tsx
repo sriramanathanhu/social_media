@@ -39,7 +39,6 @@ const LoginPage: React.FC = () => {
   };
 
   const handleToggleMode = () => {
-    console.log('Toggling mode from', showRegister ? 'register' : 'login', 'to', !showRegister ? 'register' : 'login');
     setShowRegister(!showRegister);
     setEmail('');
     setPassword('');
@@ -64,10 +63,6 @@ const LoginPage: React.FC = () => {
             {showRegister ? 'Create your account to get started' : 'Sign in to manage your social media accounts'}
           </Typography>
           
-          {/* Debug indicator */}
-          <Typography variant="caption" align="center" sx={{ mb: 2, display: 'block', bgcolor: 'info.light', p: 1, borderRadius: 1 }}>
-            Current Mode: {showRegister ? 'REGISTRATION' : 'LOGIN'}
-          </Typography>
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }} onClose={handleErrorDismiss}>
