@@ -19,7 +19,7 @@ app.use(helmet({
 }));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://hinduismnow.github.io', 'https://socialmedia-p3ln.onrender.com'] 
+    ? ['https://sriramanathanhu.github.io', 'https://socialmedia-p3ln.onrender.com'] 
     : 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

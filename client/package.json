@@ -31,7 +31,7 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
   },
-  "homepage": "https://hinduismnow.github.io/social_media",
+  "homepage": "https://sriramanathanhu.github.io/social_media",
   "eslintConfig": {
     "extends": [
       "react-app",
