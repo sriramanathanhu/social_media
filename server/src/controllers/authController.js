@@ -117,12 +117,17 @@ const connectMastodon = async (req, res) => {
 
     // Store OAuth data with the random part as key
     req.session = req.session || {};
-    req.session[`mastodon_${stateData.random}`] = {
+    const sessionKey = `mastodon_${stateData.random}`;
+    req.session[sessionKey] = {
       instanceUrl: normalizedUrl,
       clientId: appCredentials.client_id,
       clientSecret: appCredentials.client_secret,
       userId: req.user.id
     };
+
+    console.log('Storing session data with key:', sessionKey);
+    console.log('Session data:', req.session[sessionKey]);
+    console.log('Session ID:', req.sessionID);
 
     res.json({
       authUrl,
@@ -136,6 +141,11 @@ const connectMastodon = async (req, res) => {
 
 const mastodonCallback = async (req, res) => {
   try {
+    console.log('Mastodon callback received');
+    console.log('Query params:', req.query);
+    console.log('Session ID:', req.sessionID);
+    console.log('Session data:', req.session);
+    
     const { code, state } = req.query;
     
     if (!code || !state) {
@@ -146,6 +156,7 @@ const mastodonCallback = async (req, res) => {
     let stateData;
     try {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+      console.log('Parsed state data:', stateData);
     } catch (error) {
       console.log('Invalid state format:', error);
       return res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?error=invalid_state`);
@@ -158,12 +169,16 @@ const mastodonCallback = async (req, res) => {
     }
 
     const sessionKey = `mastodon_${stateData.random}`;
+    console.log('Looking for session key:', sessionKey);
     const sessionData = req.session?.[sessionKey];
     
     if (!sessionData) {
       console.log('Session not found. Available keys:', Object.keys(req.session || {}));
+      console.log('Full session object:', req.session);
       return res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?error=session_expired`);
     }
+
+    console.log('Session data found:', sessionData);
 
     // Get user from state data
     const userId = stateData.userId;

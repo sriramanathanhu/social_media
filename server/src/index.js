@@ -36,11 +36,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key-here',
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true, // Changed to true to ensure session is created
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    secure: false, // Set to false for now to debug, should be true in production with proper HTTPS
+    httpOnly: false, // Set to false for cross-origin issues
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'none' // Allow cross-site cookies
   }
 }));
 
