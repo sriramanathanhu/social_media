@@ -24,12 +24,15 @@ const DashboardPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { accounts } = useSelector((state: RootState) => state.accounts);
   const { posts } = useSelector((state: RootState) => state.posts);
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user, token, initialized } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
-    dispatch(fetchAccounts());
-    dispatch(fetchPosts());
-  }, [dispatch]);
+    // Only fetch data if user is authenticated and app is initialized
+    if (initialized && token) {
+      dispatch(fetchAccounts());
+      dispatch(fetchPosts());
+    }
+  }, [dispatch, initialized, token]);
 
   const activeAccounts = accounts.filter(account => account.status === 'active');
   const mastodonAccounts = accounts.filter(account => account.platform === 'mastodon');

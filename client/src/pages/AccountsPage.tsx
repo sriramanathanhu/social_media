@@ -28,12 +28,15 @@ import ConnectMastodonDialog from '../components/ConnectMastodonDialog';
 const AccountsPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { accounts, loading, error } = useSelector((state: RootState) => state.accounts);
+  const { token, initialized } = useSelector((state: RootState) => state.auth);
   const [connectDialogOpen, setConnectDialogOpen] = useState(false);
   const [fabMenuAnchor, setFabMenuAnchor] = useState<null | HTMLElement>(null);
 
   useEffect(() => {
-    dispatch(fetchAccounts());
-  }, [dispatch]);
+    if (initialized && token) {
+      dispatch(fetchAccounts());
+    }
+  }, [dispatch, initialized, token]);
 
   const handleDeleteAccount = (accountId: string) => {
     if (window.confirm('Are you sure you want to disconnect this account?')) {

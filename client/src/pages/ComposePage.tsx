@@ -17,10 +17,13 @@ import PostCard from '../components/PostCard';
 const ComposePage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { posts, loading } = useSelector((state: RootState) => state.posts);
+  const { token, initialized } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
-    dispatch(fetchPosts());
-  }, [dispatch]);
+    if (initialized && token) {
+      dispatch(fetchPosts());
+    }
+  }, [dispatch, initialized, token]);
 
   const recentPosts = posts.slice(0, 5);
 

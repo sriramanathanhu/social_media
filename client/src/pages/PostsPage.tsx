@@ -21,10 +21,13 @@ const PostsPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { posts, loading, error } = useSelector((state: RootState) => state.posts);
+  const { token, initialized } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
-    dispatch(fetchPosts());
-  }, [dispatch]);
+    if (initialized && token) {
+      dispatch(fetchPosts());
+    }
+  }, [dispatch, initialized, token]);
 
   const handleDeletePost = (postId: string) => {
     console.log('Delete post:', postId);
