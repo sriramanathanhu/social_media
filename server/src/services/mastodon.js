@@ -4,7 +4,7 @@ const crypto = require('crypto');
 class MastodonService {
   constructor() {
     this.algorithm = 'aes-256-cbc';
-    this.secretKey = process.env.ENCRYPTION_KEY;
+    this.secretKey = process.env.ENCRYPTION_KEY || 'default-secret-key-change-in-production';
   }
 
   encrypt(text) {
@@ -28,11 +28,18 @@ class MastodonService {
 
   async createApp(instanceUrl) {
     try {
+      const redirectUri = process.env.MASTODON_REDIRECT_URI || 
+        (process.env.NODE_ENV === 'production' 
+          ? 'https://socialmedia-p3ln.onrender.com/api/auth/mastodon/callback'
+          : 'http://localhost:5000/api/auth/mastodon/callback');
+      
       const response = await axios.post(`${instanceUrl}/api/v1/apps`, {
         client_name: 'Social Media Scheduler',
-        redirect_uris: process.env.MASTODON_REDIRECT_URI,
+        redirect_uris: redirectUri,
         scopes: 'read write:statuses',
-        website: 'http://localhost:3000'
+        website: process.env.NODE_ENV === 'production' 
+          ? 'https://sriramanathanhu.github.io/social_media'
+          : 'http://localhost:3000'
       });
 
       return {
@@ -58,17 +65,29 @@ class MastodonService {
 
   async getAccessToken(instanceUrl, clientId, clientSecret, code) {
     try {
-      const response = await axios.post(`${instanceUrl}/oauth/token`, {
+      const redirectUri = process.env.MASTODON_REDIRECT_URI || 
+        (process.env.NODE_ENV === 'production' 
+          ? 'https://socialmedia-p3ln.onrender.com/api/auth/mastodon/callback'
+          : 'http://localhost:5000/api/auth/mastodon/callback');
+      
+      console.log('Getting access token with redirect URI:', redirectUri);
+      
+      const tokenData = {
         client_id: clientId,
         client_secret: clientSecret,
-        redirect_uri: process.env.MASTODON_REDIRECT_URI,
+        redirect_uri: redirectUri,
         grant_type: 'authorization_code',
         code: code,
         scope: 'read write:statuses'
-      });
+      };
+      
+      console.log('Token request data:', tokenData);
+      
+      const response = await axios.post(`${instanceUrl}/oauth/token`, tokenData);
 
       return response.data.access_token;
     } catch (error) {
+      console.error('Access token error response:', error.response?.data);
       throw new Error(`Failed to get access token: ${error.message}`);
     }
   }

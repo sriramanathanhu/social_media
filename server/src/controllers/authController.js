@@ -232,12 +232,16 @@ const mastodonCallback = async (req, res) => {
     console.error('Stack trace:', error.stack);
     
     // Clean up OAuth state on error
-    if (stateData?.random) {
-      try {
-        await OAuthState.deleteByStateKey(`mastodon_${stateData.random}`);
-      } catch (cleanupError) {
-        console.error('Error cleaning up OAuth state:', cleanupError);
+    try {
+      const { state } = req.query;
+      if (state) {
+        const parsedState = JSON.parse(Buffer.from(state, 'base64').toString());
+        if (parsedState?.random) {
+          await OAuthState.deleteByStateKey(`mastodon_${parsedState.random}`);
+        }
       }
+    } catch (cleanupError) {
+      console.error('Error cleaning up OAuth state:', cleanupError);
     }
     
     // Redirect to frontend with error
