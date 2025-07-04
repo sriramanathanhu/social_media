@@ -8,11 +8,12 @@ const router = express.Router();
 router.use(session({
   secret: process.env.JWT_SECRET,
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true, // Set to true to ensure session is created
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to false for debugging - OAuth callbacks may have issues with secure cookies
     httpOnly: true,
-    maxAge: 1000 * 60 * 15
+    maxAge: 1000 * 60 * 30, // Increase to 30 minutes for OAuth flow
+    sameSite: 'lax' // Allow cross-site requests for OAuth
   }
 }));
 

@@ -92,20 +92,27 @@ const connectMastodon = async (req, res) => {
     const instanceInfo = await mastodonService.getInstance(normalizedUrl);
     const appCredentials = await mastodonService.createApp(normalizedUrl);
     
-    const state = crypto.randomBytes(32).toString('hex');
+    // Create a state that includes both random data and user info
+    const stateData = {
+      random: crypto.randomBytes(16).toString('hex'),
+      userId: req.user.id,
+      timestamp: Date.now()
+    };
+    const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
+    
     const authUrl = mastodonService.getAuthUrl(
       normalizedUrl, 
       appCredentials.client_id, 
       state
     );
 
+    // Store OAuth data with the random part as key
     req.session = req.session || {};
-    req.session.mastodon = {
+    req.session[`mastodon_${stateData.random}`] = {
       instanceUrl: normalizedUrl,
       clientId: appCredentials.client_id,
       clientSecret: appCredentials.client_secret,
-      state: state,
-      userId: req.user.id // Store user ID in session
+      userId: req.user.id
     };
 
     res.json({
@@ -120,21 +127,46 @@ const connectMastodon = async (req, res) => {
 
 const mastodonCallback = async (req, res) => {
   try {
+    console.log('OAuth callback received:', req.query);
+    console.log('Session keys:', Object.keys(req.session || {}));
+    
     const { code, state } = req.query;
     
     if (!code || !state) {
       return res.status(400).json({ error: 'Missing authorization code or state' });
     }
 
-    const sessionData = req.session?.mastodon;
-    if (!sessionData || sessionData.state !== state) {
-      return res.status(400).json({ error: 'Invalid state parameter' });
+    let stateData;
+    try {
+      stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+    } catch (error) {
+      return res.status(400).json({ error: 'Invalid state parameter format' });
     }
 
-    // Get user from session data instead of req.user
-    const userId = sessionData.userId;
+    // Check if state is too old (30 minutes)
+    if (Date.now() - stateData.timestamp > 30 * 60 * 1000) {
+      return res.status(400).json({ error: 'OAuth state expired' });
+    }
+
+    const sessionKey = `mastodon_${stateData.random}`;
+    const sessionData = req.session?.[sessionKey];
+    console.log('Looking for session key:', sessionKey);
+    console.log('Session mastodon data:', sessionData);
+    
+    if (!sessionData) {
+      return res.status(400).json({ 
+        error: 'OAuth session not found or expired',
+        debug: {
+          sessionKey: sessionKey,
+          availableKeys: Object.keys(req.session || {})
+        }
+      });
+    }
+
+    // Get user from state data
+    const userId = stateData.userId;
     if (!userId) {
-      return res.status(400).json({ error: 'User session expired' });
+      return res.status(400).json({ error: 'User information missing from state' });
     }
 
     const accessToken = await mastodonService.getAccessToken(
@@ -171,7 +203,8 @@ const mastodonCallback = async (req, res) => {
       });
     }
 
-    delete req.session.mastodon;
+    // Clean up session data
+    delete req.session[sessionKey];
 
     // Redirect to frontend with success message
     res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://sriramanathanhu.github.io/social_media' : 'http://localhost:3000'}/#/accounts?connected=mastodon`);
