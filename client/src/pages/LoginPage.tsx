@@ -13,7 +13,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { RootState, AppDispatch } from '../store';
-import { login, clearError } from '../store/slices/authSlice';
+import { login, register, clearError } from '../store/slices/authSlice';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -27,13 +27,21 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     if (!email || !password) return;
 
-    const result = await dispatch(login({ email, password }));
+    const action = showRegister ? register : login;
+    const result = await dispatch(action({ email, password }));
     if (result.meta.requestStatus === 'fulfilled') {
       navigate('/dashboard');
     }
   };
 
   const handleErrorDismiss = () => {
+    dispatch(clearError());
+  };
+
+  const handleToggleMode = () => {
+    setShowRegister(!showRegister);
+    setEmail('');
+    setPassword('');
     dispatch(clearError());
   };
 
@@ -52,7 +60,7 @@ const LoginPage: React.FC = () => {
             Social Media Scheduler
           </Typography>
           <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 3 }}>
-            Sign in to manage your social media accounts
+            {showRegister ? 'Create your account to get started' : 'Sign in to manage your social media accounts'}
           </Typography>
 
           {error && (
@@ -83,27 +91,30 @@ const LoginPage: React.FC = () => {
               label="Password"
               type="password"
               id="password"
-              autoComplete="current-password"
+              autoComplete={showRegister ? "new-password" : "current-password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
+              helperText={showRegister ? "Password must be at least 8 characters" : ""}
             />
             <Button
               type="submit"
               fullWidth
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
-              disabled={loading || !email || !password}
+              disabled={loading || !email || !password || (showRegister && password.length < 8)}
               startIcon={loading ? <CircularProgress size={20} /> : null}
             >
-              {loading ? 'Signing In...' : 'Sign In'}
+              {loading 
+                ? (showRegister ? 'Creating Account...' : 'Signing In...') 
+                : (showRegister ? 'Create Account' : 'Sign In')}
             </Button>
             <Box sx={{ textAlign: 'center' }}>
               <Link
                 component="button"
                 type="button"
                 variant="body2"
-                onClick={() => setShowRegister(!showRegister)}
+                onClick={handleToggleMode}
               >
                 {showRegister ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
               </Link>
