@@ -32,8 +32,10 @@ const auth = async (req, res, next) => {
     }
 
     req.user = user;
-    // Store user ID in session for OAuth callbacks
-    req.session.userId = user.id;
+    // Store user ID in session for OAuth callbacks (only if session exists)
+    if (req.session) {
+      req.session.userId = user.id;
+    }
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
