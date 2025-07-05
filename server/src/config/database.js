@@ -17,6 +17,8 @@ const initializeDatabase = async () => {
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
+        role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -103,6 +105,40 @@ const initializeDatabase = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Add missing columns to existing tables
+    try {
+      await pool.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('admin', 'user'))
+      `);
+    } catch (error) {
+      console.log('Column role already exists or error adding:', error.message);
+    }
+
+    try {
+      await pool.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected'))
+      `);
+    } catch (error) {
+      console.log('Column status already exists or error adding:', error.message);
+    }
+
+    // Create first admin user if no users exist
+    const userCount = await pool.query('SELECT COUNT(*) FROM users');
+    if (parseInt(userCount.rows[0].count) === 0) {
+      console.log('Creating first admin user...');
+      const bcrypt = require('bcryptjs');
+      const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
+      const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+      const hashedPassword = await bcrypt.hash(adminPassword, 12);
+      
+      await pool.query(`
+        INSERT INTO users (email, password_hash, role, status) 
+        VALUES ($1, $2, 'admin', 'approved')
+      `, [adminEmail, hashedPassword]);
+      
+      console.log(`First admin user created: ${adminEmail}`);
+    }
 
     console.log('Database tables initialized successfully');
   } catch (error) {

@@ -31,10 +31,12 @@ const register = async (req, res) => {
     const token = generateToken(user.id);
 
     res.status(201).json({
-      token,
+      message: 'Account created successfully. Please wait for admin approval.',
       user: {
         id: user.id,
         email: user.email,
+        role: user.role,
+        status: user.status,
         createdAt: user.created_at
       }
     });
@@ -63,6 +65,16 @@ const login = async (req, res) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
+    // Check if user is approved
+    if (user.status !== 'approved') {
+      console.log('User not approved:', email, 'Status:', user.status);
+      if (user.status === 'pending') {
+        return res.status(403).json({ error: 'Account pending approval. Please contact an administrator.' });
+      } else if (user.status === 'rejected') {
+        return res.status(403).json({ error: 'Account access denied. Please contact an administrator.' });
+      }
+    }
+
     console.log('User found, verifying password...');
     const isValidPassword = await User.verifyPassword(password, user.password_hash);
     if (!isValidPassword) {
@@ -79,6 +91,8 @@ const login = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        role: user.role,
+        status: user.status,
         createdAt: user.created_at
       }
     });

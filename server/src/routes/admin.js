@@ -15,4 +15,9 @@ router.put('/api-credentials/:id', adminController.updateApiCredentials);
 router.delete('/api-credentials/:id', adminController.deleteApiCredentials);
 router.post('/api-credentials/test', adminController.testApiCredentials);
 
+// User management
+router.get('/users', adminController.getAllUsers);
+router.put('/users/:userId/status', adminController.updateUserStatus);
+router.put('/users/:userId/make-admin', adminController.makeAdmin);
+
 module.exports = router;

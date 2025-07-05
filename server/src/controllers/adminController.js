@@ -1,14 +1,23 @@
 const ApiCredentials = require('../models/ApiCredentials');
+const User = require('../models/User');
 const { body, validationResult } = require('express-validator');
 
-// Middleware to check if user is admin (you can implement your own logic)
-const isAdmin = (req, res, next) => {
-  // For now, let's allow all authenticated users to manage API credentials
-  // In production, you might want to add a proper admin role system
+// Middleware to check if user is admin
+const isAdmin = async (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Authentication required' });
   }
-  next();
+
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    next();
+  } catch (error) {
+    console.error('Admin check error:', error);
+    return res.status(500).json({ error: 'Failed to verify admin status' });
+  }
 };
 
 const getApiCredentials = async (req, res) => {
@@ -120,6 +129,54 @@ const testApiCredentials = async (req, res) => {
   }
 };
 
+// User Management Functions
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.getAllUsers();
+    res.json(users);
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+};
+
+const updateUserStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { status } = req.body;
+
+    if (!['approved', 'rejected', 'pending'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    const user = await User.updateUserStatus(userId, status);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ message: `User ${status} successfully`, user });
+  } catch (error) {
+    console.error('Update user status error:', error);
+    res.status(500).json({ error: 'Failed to update user status' });
+  }
+};
+
+const makeAdmin = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.makeAdmin(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ message: 'User promoted to admin successfully', user });
+  } catch (error) {
+    console.error('Make admin error:', error);
+    res.status(500).json({ error: 'Failed to promote user to admin' });
+  }
+};
+
 const addApiCredentialsValidation = [
   body('platform')
     .isIn(['x', 'twitter'])
@@ -139,5 +196,8 @@ module.exports = {
   updateApiCredentials,
   deleteApiCredentials,
   testApiCredentials,
+  getAllUsers,
+  updateUserStatus,
+  makeAdmin,
   addApiCredentialsValidation
 };

@@ -2,12 +2,12 @@ const pool = require('../config/database');
 const bcrypt = require('bcryptjs');
 
 class User {
-  static async create(email, password) {
+  static async create(email, password, role = 'user', status = 'pending') {
     const hashedPassword = await bcrypt.hash(password, 12);
     
     const result = await pool.query(
-      'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email, created_at',
-      [email, hashedPassword]
+      'INSERT INTO users (email, password_hash, role, status) VALUES ($1, $2, $3, $4) RETURNING id, email, role, status, created_at',
+      [email, hashedPassword, role, status]
     );
     
     return result.rows[0];
@@ -15,7 +15,7 @@ class User {
 
   static async findByEmail(email) {
     const result = await pool.query(
-      'SELECT id, email, password_hash, created_at FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, role, status, created_at FROM users WHERE email = $1',
       [email]
     );
     
@@ -24,8 +24,34 @@ class User {
 
   static async findById(id) {
     const result = await pool.query(
-      'SELECT id, email, created_at FROM users WHERE id = $1',
+      'SELECT id, email, role, status, created_at FROM users WHERE id = $1',
       [id]
+    );
+    
+    return result.rows[0];
+  }
+
+  static async getAllUsers() {
+    const result = await pool.query(
+      'SELECT id, email, role, status, created_at FROM users ORDER BY created_at DESC'
+    );
+    
+    return result.rows;
+  }
+
+  static async updateUserStatus(userId, status) {
+    const result = await pool.query(
+      'UPDATE users SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, email, role, status',
+      [status, userId]
+    );
+    
+    return result.rows[0];
+  }
+
+  static async makeAdmin(userId) {
+    const result = await pool.query(
+      'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, email, role, status',
+      ['admin', userId]
     );
     
     return result.rows[0];
