@@ -199,10 +199,11 @@ const mastodonCallback = async (req, res) => {
       accessToken
     );
 
-    const existingAccount = await SocialAccount.findByPlatformAndUser(
+    const existingAccount = await SocialAccount.findByPlatformUserAndUsername(
       oauthState.user_id,
       'mastodon',
-      oauthState.instance_url
+      oauthState.instance_url,
+      userInfo.username
     );
 
     console.log('Existing account check:', existingAccount);

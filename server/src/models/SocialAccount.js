@@ -72,6 +72,19 @@ class SocialAccount {
     return result.rows;
   }
 
+  static async findByPlatformUserAndUsername(userId, platform, instanceUrl, username) {
+    const query = `
+      SELECT id, user_id, platform, instance_url, username, display_name, 
+             avatar_url, status, last_used, created_at 
+      FROM social_accounts 
+      WHERE user_id = $1 AND platform = $2 AND instance_url = $3 AND username = $4
+    `;
+    const params = [userId, platform, instanceUrl, username];
+
+    const result = await pool.query(query, params);
+    return result.rows;
+  }
+
   static async updateStatus(id, status) {
     const result = await pool.query(
       `UPDATE social_accounts 
