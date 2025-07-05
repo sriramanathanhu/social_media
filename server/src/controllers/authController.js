@@ -205,10 +205,15 @@ const mastodonCallback = async (req, res) => {
       oauthState.instance_url
     );
 
+    console.log('Existing account check:', existingAccount);
+    console.log('User info from Mastodon:', userInfo);
+
     if (existingAccount.length > 0) {
+      console.log('Updating existing account with ID:', existingAccount[0].id);
       await SocialAccount.updateTokens(existingAccount[0].id, accessToken);
     } else {
-      await SocialAccount.create({
+      console.log('Creating new account for user:', oauthState.user_id);
+      const newAccount = await SocialAccount.create({
         userId: oauthState.user_id,
         platform: 'mastodon',
         instanceUrl: oauthState.instance_url,
@@ -219,6 +224,7 @@ const mastodonCallback = async (req, res) => {
         refreshToken: null,
         tokenExpiresAt: null
       });
+      console.log('New account created:', newAccount);
     }
 
     // Clean up OAuth state data
