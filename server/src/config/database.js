@@ -123,21 +123,39 @@ const initializeDatabase = async () => {
       console.log('Column status already exists or error adding:', error.message);
     }
 
-    // Create first admin user if no users exist
-    const userCount = await pool.query('SELECT COUNT(*) FROM users');
-    if (parseInt(userCount.rows[0].count) === 0) {
-      console.log('Creating first admin user...');
-      const bcrypt = require('bcryptjs');
-      const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
-      const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-      const hashedPassword = await bcrypt.hash(adminPassword, 12);
+    // Ensure at least one admin user exists
+    const adminCount = await pool.query('SELECT COUNT(*) FROM users WHERE role = $1', ['admin']);
+    if (parseInt(adminCount.rows[0].count) === 0) {
+      console.log('No admin users found. Creating/promoting admin user...');
       
-      await pool.query(`
-        INSERT INTO users (email, password_hash, role, status) 
-        VALUES ($1, $2, 'admin', 'approved')
-      `, [adminEmail, hashedPassword]);
-      
-      console.log(`First admin user created: ${adminEmail}`);
+      // Check if any users exist
+      const userCount = await pool.query('SELECT COUNT(*) FROM users');
+      if (parseInt(userCount.rows[0].count) === 0) {
+        // Create first admin user
+        const bcrypt = require('bcryptjs');
+        const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
+        const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+        const hashedPassword = await bcrypt.hash(adminPassword, 12);
+        
+        await pool.query(`
+          INSERT INTO users (email, password_hash, role, status) 
+          VALUES ($1, $2, 'admin', 'approved')
+        `, [adminEmail, hashedPassword]);
+        
+        console.log(`First admin user created: ${adminEmail}`);
+      } else {
+        // Promote first existing user to admin
+        const firstUser = await pool.query('SELECT id, email FROM users ORDER BY created_at ASC LIMIT 1');
+        if (firstUser.rows.length > 0) {
+          await pool.query(`
+            UPDATE users 
+            SET role = 'admin', status = 'approved', updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $1
+          `, [firstUser.rows[0].id]);
+          
+          console.log(`Promoted existing user to admin: ${firstUser.rows[0].email}`);
+        }
+      }
     }
 
     console.log('Database tables initialized successfully');

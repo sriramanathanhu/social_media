@@ -8,6 +8,7 @@ interface AuthState {
   loading: boolean;
   error: string | null;
   initialized: boolean;
+  registrationMessage: string | null;
 }
 
 const initialState: AuthState = {
@@ -16,6 +17,7 @@ const initialState: AuthState = {
   loading: false,
   error: null,
   initialized: false,
+  registrationMessage: null,
 };
 
 export const login = createAsyncThunk(
@@ -64,6 +66,9 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    clearRegistrationMessage: (state) => {
+      state.registrationMessage = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -85,13 +90,21 @@ const authSlice = createSlice({
       .addCase(register.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.registrationMessage = null;
       })
       .addCase(register.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.initialized = true;
-        localStorage.setItem('token', action.payload.token);
+        // Check if user needs approval (no token provided)
+        if (action.payload.token) {
+          // User is approved, can login immediately
+          state.user = action.payload.user;
+          state.token = action.payload.token;
+          state.initialized = true;
+          localStorage.setItem('token', action.payload.token);
+        } else {
+          // User needs approval, show message
+          state.registrationMessage = action.payload.message || 'Account created successfully. Please wait for admin approval.';
+        }
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
@@ -109,5 +122,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError } = authSlice.actions;
+export const { logout, clearError, clearRegistrationMessage } = authSlice.actions;
 export default authSlice.reducer;

@@ -151,7 +151,52 @@ const ComposePost: React.FC = () => {
   };
 
   const getCharacterLimit = () => {
-    return 5000;
+    // If specific platforms are selected, use the most restrictive limit
+    const selectedPlatforms = selectedAccounts.map(id => {
+      const account = allSupportedAccounts.find(acc => acc.id === id);
+      return account?.platform;
+    }).filter(Boolean);
+
+    if (selectedPlatforms.length === 0) {
+      return 5000; // Default when no accounts selected
+    }
+
+    // Platform-specific limits
+    const platformLimits = {
+      'mastodon': 500,
+      'x': 280,
+      'twitter': 280  // legacy support
+    };
+
+    // Use the most restrictive limit among selected platforms
+    const limits = selectedPlatforms.map(platform => platformLimits[platform] || 5000);
+    return Math.min(...limits);
+  };
+
+  const getPlatformLimitInfo = () => {
+    const selectedPlatforms = selectedAccounts.map(id => {
+      const account = allSupportedAccounts.find(acc => acc.id === id);
+      return account?.platform;
+    }).filter(Boolean);
+
+    if (selectedPlatforms.length === 0) {
+      return 'Select accounts to see character limits';
+    }
+
+    const uniquePlatforms = [...new Set(selectedPlatforms)];
+    const platformLimits = {
+      'mastodon': 500,
+      'x': 280,
+      'twitter': 280
+    };
+
+    const limitTexts = uniquePlatforms.map(platform => {
+      const limit = platformLimits[platform] || 5000;
+      const platformName = platform === 'x' ? 'X' : platform.charAt(0).toUpperCase() + platform.slice(1);
+      return `${platformName}: ${limit}`;
+    });
+
+    return `Character limits: ${limitTexts.join(', ')}`;
   };
 
   const isOverLimit = getCharacterCount() > getCharacterLimit();
@@ -176,7 +221,7 @@ const ComposePost: React.FC = () => {
           helperText={
             isOverLimit
               ? `Character limit exceeded (${getCharacterCount()}/${getCharacterLimit()})`
-              : `${getCharacterCount()}/${getCharacterLimit()}`
+              : `${getCharacterCount()}/${getCharacterLimit()} - ${getPlatformLimitInfo()}`
           }
         />
 

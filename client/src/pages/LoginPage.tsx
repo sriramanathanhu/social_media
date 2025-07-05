@@ -13,7 +13,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { RootState, AppDispatch } from '../store';
-import { login, register, clearError } from '../store/slices/authSlice';
+import { login, register, clearError, clearRegistrationMessage } from '../store/slices/authSlice';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
   const [showRegister, setShowRegister] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state: RootState) => state.auth);
+  const { loading, error, registrationMessage } = useSelector((state: RootState) => state.auth);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +30,14 @@ const LoginPage: React.FC = () => {
     const action = showRegister ? register : login;
     const result = await dispatch(action({ email, password }));
     if (result.meta.requestStatus === 'fulfilled') {
-      navigate('/dashboard', { replace: true });
+      // For registration, only navigate if user is immediately approved (has token)
+      if (!showRegister || result.payload.token) {
+        navigate('/dashboard', { replace: true });
+      } else {
+        // For pending registration, clear form but stay on page
+        setEmail('');
+        setPassword('');
+      }
     }
   };
 
@@ -43,6 +50,11 @@ const LoginPage: React.FC = () => {
     setEmail('');
     setPassword('');
     dispatch(clearError());
+    dispatch(clearRegistrationMessage());
+  };
+
+  const handleRegistrationMessageDismiss = () => {
+    dispatch(clearRegistrationMessage());
   };
 
   return (
@@ -67,6 +79,12 @@ const LoginPage: React.FC = () => {
           {error && (
             <Alert severity="error" sx={{ mb: 2 }} onClose={handleErrorDismiss}>
               {error}
+            </Alert>
+          )}
+
+          {registrationMessage && (
+            <Alert severity="success" sx={{ mb: 2 }} onClose={handleRegistrationMessageDismiss}>
+              {registrationMessage}
             </Alert>
           )}
 
