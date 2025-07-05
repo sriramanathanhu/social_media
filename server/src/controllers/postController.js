@@ -177,11 +177,16 @@ const createPostValidation = [
         throw new Error('At least one target account must be selected');
       }
       
-      // For now, accept numeric IDs (since we saw the account ID is 1)
-      // Skip UUID validation and just check if they're valid IDs
+      // Accept both numeric IDs and string IDs (our accounts use numeric IDs)
       for (const id of accountIds) {
-        if (!id || (typeof id !== 'string' && typeof id !== 'number')) {
-          console.log('Invalid account ID:', id);
+        if (id === null || id === undefined || id === '') {
+          console.log('Invalid account ID (null/undefined/empty):', id);
+          throw new Error(`Invalid account ID format: ${id}`);
+        }
+        // Accept numbers or strings that can be converted to numbers
+        const numericId = Number(id);
+        if (isNaN(numericId) || numericId <= 0) {
+          console.log('Invalid account ID (not a positive number):', id);
           throw new Error(`Invalid account ID format: ${id}`);
         }
       }
