@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import AccountsPage from './pages/AccountsPage';
 import ComposePage from './pages/ComposePage';
 import PostsPage from './pages/PostsPage';
+import SettingsPage from './pages/SettingsPage';
 import { Box } from '@mui/material';
 import { useSelector } from 'react-redux';
 import { RootState, AppDispatch } from './store';
@@ -58,6 +59,7 @@ const AppContent: React.FC = () => {
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/compose" element={<ComposePage />} />
           <Route path="/posts" element={<PostsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Box>

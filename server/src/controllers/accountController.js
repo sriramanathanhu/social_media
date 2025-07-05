@@ -1,5 +1,6 @@
 const SocialAccount = require('../models/SocialAccount');
 const mastodonService = require('../services/mastodon');
+const xService = require('../services/x');
 
 const getAccounts = async (req, res) => {
   try {
@@ -65,7 +66,7 @@ const verifyAccount = async (req, res) => {
 
     if (account.platform === 'mastodon') {
       try {
-        console.log('Verifying account:', id, 'for user:', req.user.id);
+        console.log('Verifying Mastodon account:', id, 'for user:', req.user.id);
         const decryptedToken = mastodonService.decrypt(account.access_token);
         const userInfo = await mastodonService.verifyCredentials(
           account.instance_url,
@@ -85,7 +86,33 @@ const verifyAccount = async (req, res) => {
           }
         });
       } catch (error) {
-        console.error('Account verification failed for account:', id, 'Error:', error.message);
+        console.error('Mastodon account verification failed for account:', id, 'Error:', error.message);
+        await SocialAccount.updateStatus(id, 'error');
+        res.status(400).json({ 
+          verified: false, 
+          error: 'Account verification failed: ' + error.message 
+        });
+      }
+    } else if (account.platform === 'x') {
+      try {
+        console.log('Verifying X account:', id, 'for user:', req.user.id);
+        const decryptedToken = xService.decrypt(account.access_token);
+        const userInfo = await xService.verifyCredentials(decryptedToken);
+        
+        await SocialAccount.updateStatus(id, 'active');
+        await SocialAccount.updateLastUsed(id);
+        
+        res.json({ 
+          verified: true, 
+          account: {
+            ...account,
+            username: userInfo.username,
+            display_name: userInfo.name,
+            avatar: userInfo.profile_image_url
+          }
+        });
+      } catch (error) {
+        console.error('X account verification failed for account:', id, 'Error:', error.message);
         await SocialAccount.updateStatus(id, 'error');
         res.status(400).json({ 
           verified: false, 

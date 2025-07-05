@@ -80,6 +80,8 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, onDelete, onVerify }
     switch (platform) {
       case 'mastodon':
         return 'Mastodon';
+      case 'x':
+        return 'X (Twitter)';
       default:
         return platform.charAt(0).toUpperCase() + platform.slice(1);
     }

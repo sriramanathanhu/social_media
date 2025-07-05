@@ -1,14 +1,14 @@
 const db = require('../config/database');
 
 class OAuthState {
-  static async create(stateKey, userId, platform, instanceUrl, clientId, clientSecret) {
+  static async create(stateKey, userId, platform, instanceUrl, clientId, clientSecret, extraData = null) {
     const query = `
-      INSERT INTO oauth_states (state_key, user_id, platform, instance_url, client_id, client_secret)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO oauth_states (state_key, user_id, platform, instance_url, client_id, client_secret, extra_data)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
     
-    const result = await db.query(query, [stateKey, userId, platform, instanceUrl, clientId, clientSecret]);
+    const result = await db.query(query, [stateKey, userId, platform, instanceUrl, clientId, clientSecret, extraData]);
     return result.rows[0];
   }
 

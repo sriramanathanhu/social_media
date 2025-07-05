@@ -1,6 +1,7 @@
 const SocialAccount = require('../models/SocialAccount');
 const Post = require('../models/Post');
 const mastodonService = require('./mastodon');
+const xService = require('./x');
 
 class PublishingService {
   async publishPost(userId, postData) {
@@ -86,6 +87,8 @@ class PublishingService {
     switch (account.platform) {
       case 'mastodon':
         return await this.publishToMastodon(account, content, mediaFiles);
+      case 'x':
+        return await this.publishToX(account, content, mediaFiles);
       default:
         throw new Error(`Platform ${account.platform} not supported`);
     }
@@ -108,6 +111,29 @@ class PublishingService {
 
     const result = await mastodonService.publishStatus(
       account.instance_url,
+      decryptedToken,
+      content,
+      mediaIds
+    );
+
+    return result;
+  }
+
+  async publishToX(account, content, mediaFiles = []) {
+    const decryptedToken = xService.decrypt(account.access_token);
+    
+    let mediaIds = [];
+    if (mediaFiles.length > 0) {
+      for (const mediaFile of mediaFiles) {
+        const mediaId = await xService.uploadMedia(
+          decryptedToken,
+          mediaFile
+        );
+        mediaIds.push(mediaId);
+      }
+    }
+
+    const result = await xService.postTweet(
       decryptedToken,
       content,
       mediaIds

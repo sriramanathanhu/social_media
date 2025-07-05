@@ -60,6 +60,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/accounts', require('./routes/accounts'));
 app.use('/api/posts', require('./routes/posts'));
+app.use('/api/admin', require('./routes/admin'));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

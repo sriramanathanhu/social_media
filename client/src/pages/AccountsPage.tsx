@@ -18,18 +18,21 @@ import {
 import {
   Add as AddIcon,
   AccountCircle as MastodonIcon,
+  Twitter as XIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { fetchAccounts, deleteAccount, verifyAccount } from '../store/slices/accountsSlice';
 import AccountCard from '../components/AccountCard';
 import ConnectMastodonDialog from '../components/ConnectMastodonDialog';
+import ConnectXDialog from '../components/ConnectXDialog';
 
 const AccountsPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { accounts, loading, error } = useSelector((state: RootState) => state.accounts);
   const { token, initialized } = useSelector((state: RootState) => state.auth);
-  const [connectDialogOpen, setConnectDialogOpen] = useState(false);
+  const [connectMastodonDialogOpen, setConnectMastodonDialogOpen] = useState(false);
+  const [connectXDialogOpen, setConnectXDialogOpen] = useState(false);
   const [fabMenuAnchor, setFabMenuAnchor] = useState<null | HTMLElement>(null);
 
   useEffect(() => {
@@ -57,11 +60,17 @@ const AccountsPage: React.FC = () => {
   };
 
   const handleConnectMastodon = () => {
-    setConnectDialogOpen(true);
+    setConnectMastodonDialogOpen(true);
+    handleFabMenuClose();
+  };
+
+  const handleConnectX = () => {
+    setConnectXDialogOpen(true);
     handleFabMenuClose();
   };
 
   const mastodonAccounts = accounts.filter(account => account.platform === 'mastodon');
+  const xAccounts = accounts.filter(account => account.platform === 'x');
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -124,6 +133,42 @@ const AccountsPage: React.FC = () => {
             </Paper>
           </Grid>
 
+          {/* X (Twitter) Accounts */}
+          <Grid item xs={12}>
+            <Paper sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <XIcon sx={{ mr: 1 }} />
+                <Typography variant="h6">X (Twitter) Accounts</Typography>
+              </Box>
+              
+              {xAccounts.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    No X accounts connected
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    startIcon={<AddIcon />}
+                    onClick={handleConnectX}
+                  >
+                    Connect X Account
+                  </Button>
+                </Box>
+              ) : (
+                <Box>
+                  {xAccounts.map((account) => (
+                    <AccountCard
+                      key={account.id}
+                      account={account}
+                      onDelete={handleDeleteAccount}
+                      onVerify={handleVerifyAccount}
+                    />
+                  ))}
+                </Box>
+              )}
+            </Paper>
+          </Grid>
+
           {/* Other Platforms (Coming Soon) */}
           <Grid item xs={12}>
             <Paper sx={{ p: 3 }}>
@@ -131,7 +176,7 @@ const AccountsPage: React.FC = () => {
                 More Platforms Coming Soon
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                We're working on adding support for Twitter, Pinterest, SoundCloud, Substack, Telegram, and DeviantArt.
+                We're working on adding support for Pinterest, SoundCloud, Substack, Telegram, and DeviantArt.
               </Typography>
             </Paper>
           </Grid>
@@ -168,12 +213,24 @@ const AccountsPage: React.FC = () => {
           </ListItemIcon>
           <ListItemText>Connect Mastodon</ListItemText>
         </MenuItem>
+        <MenuItem onClick={handleConnectX}>
+          <ListItemIcon>
+            <XIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Connect X (Twitter)</ListItemText>
+        </MenuItem>
       </Menu>
 
       {/* Connect Mastodon Dialog */}
       <ConnectMastodonDialog
-        open={connectDialogOpen}
-        onClose={() => setConnectDialogOpen(false)}
+        open={connectMastodonDialogOpen}
+        onClose={() => setConnectMastodonDialogOpen(false)}
+      />
+
+      {/* Connect X Dialog */}
+      <ConnectXDialog
+        open={connectXDialogOpen}
+        onClose={() => setConnectXDialogOpen(false)}
       />
       </Container>
     </Box>

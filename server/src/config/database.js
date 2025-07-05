@@ -50,6 +50,7 @@ const initializeDatabase = async () => {
         instance_url VARCHAR(255),
         client_id VARCHAR(255),
         client_secret VARCHAR(255),
+        extra_data TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '1 hour')
       );
@@ -81,6 +82,28 @@ const initializeDatabase = async () => {
       console.log('Column media_urls already exists or error adding:', error.message);
     }
 
+    try {
+      await pool.query(`
+        ALTER TABLE oauth_states ADD COLUMN IF NOT EXISTS extra_data TEXT
+      `);
+    } catch (error) {
+      // Column might already exist, ignore error
+      console.log('Column extra_data already exists or error adding:', error.message);
+    }
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS api_credentials (
+        id SERIAL PRIMARY KEY,
+        platform VARCHAR(50) NOT NULL,
+        client_id VARCHAR(255) NOT NULL,
+        client_secret VARCHAR(255) NOT NULL,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     console.log('Database tables initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);
@@ -88,8 +111,6 @@ const initializeDatabase = async () => {
 };
 
 // Initialize database on startup
-if (process.env.NODE_ENV === 'production') {
-  initializeDatabase();
-}
+initializeDatabase();
 
 module.exports = pool;

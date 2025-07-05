@@ -22,5 +22,7 @@ router.post('/register', authController.registerValidation, authController.regis
 router.post('/login', authController.loginValidation, authController.login);
 router.post('/mastodon/connect', auth, authController.connectMastodon);
 router.get('/mastodon/callback', authController.mastodonCallback); // No auth middleware for OAuth callback
+router.post('/x/connect', auth, authController.connectX);
+router.get('/x/callback', authController.xCallback); // No auth middleware for OAuth callback
 
 module.exports = router;

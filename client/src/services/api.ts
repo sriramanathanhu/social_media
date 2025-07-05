@@ -42,6 +42,12 @@ export const authAPI = {
   
   mastodonCallback: (code: string, state: string) =>
     api.get(`/auth/mastodon/callback?code=${code}&state=${state}`),
+  
+  connectX: () =>
+    api.post('/auth/x/connect'),
+  
+  xCallback: (code: string, state: string) =>
+    api.get(`/auth/x/callback?code=${code}&state=${state}`),
 };
 
 export const accountsAPI = {

@@ -25,6 +25,7 @@ import {
   Article as PostsIcon,
   Logout as LogoutIcon,
   Person as PersonIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -46,6 +47,7 @@ const Navigation: React.FC = () => {
     { label: 'Accounts', path: '/accounts', icon: <AccountIcon /> },
     { label: 'Compose', path: '/compose', icon: <CreateIcon /> },
     { label: 'Posts', path: '/posts', icon: <PostsIcon /> },
+    { label: 'Settings', path: '/settings', icon: <SettingsIcon /> },
   ];
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {

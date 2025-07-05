@@ -7,6 +7,7 @@ interface AccountsState {
   loading: boolean;
   error: string | null;
   connectingMastodon: boolean;
+  connectingX: boolean;
 }
 
 const initialState: AccountsState = {
@@ -14,6 +15,7 @@ const initialState: AccountsState = {
   loading: false,
   error: null,
   connectingMastodon: false,
+  connectingX: false,
 };
 
 export const fetchAccounts = createAsyncThunk(
@@ -28,6 +30,14 @@ export const connectMastodon = createAsyncThunk(
   'accounts/connectMastodon',
   async (instanceUrl: string) => {
     const response = await authAPI.connectMastodon(instanceUrl);
+    return response.data;
+  }
+);
+
+export const connectX = createAsyncThunk(
+  'accounts/connectX',
+  async () => {
+    const response = await authAPI.connectX();
     return response.data;
   }
 );
@@ -90,6 +100,17 @@ const accountsSlice = createSlice({
       .addCase(connectMastodon.rejected, (state, action) => {
         state.connectingMastodon = false;
         state.error = action.error.message || 'Failed to connect Mastodon account';
+      })
+      .addCase(connectX.pending, (state) => {
+        state.connectingX = true;
+        state.error = null;
+      })
+      .addCase(connectX.fulfilled, (state, action) => {
+        state.connectingX = false;
+      })
+      .addCase(connectX.rejected, (state, action) => {
+        state.connectingX = false;
+        state.error = action.error.message || 'Failed to connect X account';
       })
       .addCase(deleteAccount.pending, (state) => {
         state.loading = true;
