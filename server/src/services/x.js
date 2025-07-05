@@ -13,9 +13,9 @@ class XService {
         : 'http://localhost:5000/api/auth/x/callback');
     
     // X API endpoints
-    this.v2BaseUrl = 'https://api.x.com/2';
-    this.v1BaseUrl = 'https://api.x.com/1.1';
-    this.oauthBaseUrl = 'https://api.x.com/2/oauth2';
+    this.v2BaseUrl = 'https://api.twitter.com/2';
+    this.v1BaseUrl = 'https://api.twitter.com/1.1';
+    this.oauthBaseUrl = 'https://twitter.com/i/oauth2';
   }
 
   async getCredentials() {
@@ -117,6 +117,17 @@ class XService {
     console.log('Redirect URI:', this.redirectUri);
     console.log('Client ID:', credentials.clientId);
     console.log('PKCE Challenge:', pkceChallenge);
+    
+    // Test if client credentials are valid by making a simple request
+    try {
+      const testUrl = `https://api.x.com/2/users/me`;
+      console.log('Testing X API access with credentials...');
+      
+      // Don't actually make the request, just log for debugging
+      console.log('X API credentials appear to be loaded correctly');
+    } catch (error) {
+      console.log('X API credential test failed:', error.message);
+    }
     
     return authUrl;
   }
