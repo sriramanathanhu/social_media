@@ -3,10 +3,19 @@ const mastodonService = require('../services/mastodon');
 
 const getAccounts = async (req, res) => {
   try {
+    console.log('Fetching accounts for user:', req.user.id);
     const accounts = await SocialAccount.findByUserId(req.user.id);
+    console.log('Found accounts:', accounts.length);
+    console.log('Account details:', accounts.map(acc => ({
+      id: acc.id,
+      platform: acc.platform,
+      username: acc.username,
+      status: acc.status
+    })));
     res.json({ accounts });
   } catch (error) {
     console.error('Get accounts error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ error: 'Failed to fetch accounts' });
   }
 };

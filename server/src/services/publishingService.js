@@ -6,14 +6,33 @@ class PublishingService {
   async publishPost(userId, postData) {
     const { content, targetAccountIds, mediaFiles = [] } = postData;
     
+    console.log('Publishing post for user:', userId);
+    console.log('Target account IDs:', targetAccountIds);
+    console.log('Media files count:', mediaFiles.length);
+    
     const accounts = await SocialAccount.getActiveAccountsByIds(targetAccountIds);
+    console.log('Found accounts:', accounts.length);
+    console.log('Account details:', accounts.map(acc => ({
+      id: acc.id,
+      platform: acc.platform,
+      username: acc.username,
+      user_id: acc.user_id
+    })));
     
     if (accounts.length === 0) {
+      console.log('No active accounts found for IDs:', targetAccountIds);
       throw new Error('No active accounts found');
     }
 
     const userAccounts = accounts.filter(account => account.user_id === userId);
+    console.log('User accounts after filtering:', userAccounts.length);
+    
     if (userAccounts.length !== accounts.length) {
+      console.log('Account ownership mismatch:', {
+        totalAccounts: accounts.length,
+        userAccounts: userAccounts.length,
+        userId: userId
+      });
       throw new Error('Some accounts do not belong to the user');
     }
 

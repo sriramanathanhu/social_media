@@ -132,6 +132,10 @@ class SocialAccount {
   }
 
   static async getActiveAccountsByIds(accountIds) {
+    console.log('getActiveAccountsByIds called with:', accountIds);
+    console.log('Account IDs type:', typeof accountIds);
+    console.log('Is array:', Array.isArray(accountIds));
+    
     const result = await pool.query(
       `SELECT id, user_id, platform, instance_url, username, display_name, 
               avatar_url, access_token, refresh_token, token_expires_at 
@@ -139,6 +143,15 @@ class SocialAccount {
        WHERE id = ANY($1) AND status = 'active'`,
       [accountIds]
     );
+
+    console.log('Query result:', result.rows.length, 'rows');
+    console.log('Account details from DB:', result.rows.map(row => ({
+      id: row.id,
+      user_id: row.user_id,
+      platform: row.platform,
+      username: row.username,
+      status: row.status || 'active'
+    })));
 
     return result.rows;
   }
