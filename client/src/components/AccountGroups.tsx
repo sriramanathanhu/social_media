@@ -361,12 +361,12 @@ const AccountGroups: React.FC<AccountGroupsProps> = ({ onGroupSelect, selectedGr
                 {selectedGroup?.accounts?.map((account) => (
                   <ListItem key={account.id}>
                     <ListItemAvatar>
-                      <Avatar src={account.avatar_url}>
+                      <Avatar src={account.avatar}>
                         <AccountCircle />
                       </Avatar>
                     </ListItemAvatar>
                     <ListItemText
-                      primary={account.display_name || account.username}
+                      primary={account.displayName || account.username}
                       secondary={`${account.platform} • @${account.username}`}
                     />
                     <ListItemSecondaryAction>
@@ -393,12 +393,12 @@ const AccountGroups: React.FC<AccountGroupsProps> = ({ onGroupSelect, selectedGr
                 {getUnassignedAccounts().map((account) => (
                   <ListItem key={account.id}>
                     <ListItemAvatar>
-                      <Avatar src={account.avatar_url}>
+                      <Avatar src={account.avatar}>
                         <AccountCircle />
                       </Avatar>
                     </ListItemAvatar>
                     <ListItemText
-                      primary={account.display_name || account.username}
+                      primary={account.displayName || account.username}
                       secondary={`${account.platform} • @${account.username}`}
                     />
                     <ListItemSecondaryAction>

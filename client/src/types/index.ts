@@ -3,7 +3,7 @@ export interface User {
   email: string;
   role?: 'admin' | 'user';
   status?: 'pending' | 'approved' | 'rejected';
-  createdAt: string;
+  created_at: string;
 }
 
 export interface SocialAccount {

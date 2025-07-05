@@ -33,14 +33,7 @@ import {
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { adminApi } from '../services/api';
-
-interface User {
-  id: number;
-  email: string;
-  role: 'admin' | 'user';
-  status: 'pending' | 'approved' | 'rejected';
-  created_at: string;
-}
+import { User } from '../types';
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -106,7 +99,7 @@ const UserManagement: React.FC = () => {
     setAnchorEl(null);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status?: string) => {
     switch (status) {
       case 'approved': return 'success';
       case 'rejected': return 'error';
@@ -115,7 +108,7 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const getRoleColor = (role: string) => {
+  const getRoleColor = (role?: string) => {
     return role === 'admin' ? 'primary' : 'default';
   };
 
@@ -176,7 +169,7 @@ const UserManagement: React.FC = () => {
                 <TableCell>{userData.email}</TableCell>
                 <TableCell>
                   <Chip
-                    label={userData.role}
+                    label={userData.role || 'user'}
                     color={getRoleColor(userData.role) as any}
                     size="small"
                     icon={userData.role === 'admin' ? <AdminPanelSettings /> : undefined}
@@ -184,7 +177,7 @@ const UserManagement: React.FC = () => {
                 </TableCell>
                 <TableCell>
                   <Chip
-                    label={userData.status}
+                    label={userData.status || 'pending'}
                     color={getStatusColor(userData.status) as any}
                     size="small"
                   />

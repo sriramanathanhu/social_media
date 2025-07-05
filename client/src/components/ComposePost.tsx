@@ -42,9 +42,6 @@ import {
   ExpandMore as ExpandMoreIcon,
   AccessTime as AccessTimeIcon,
 } from '@mui/icons-material';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { fetchAccounts } from '../store/slices/accountsSlice';
@@ -290,8 +287,7 @@ const ComposePost: React.FC = () => {
   const isOverLimit = getCharacterCount() > getCharacterLimit();
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Paper sx={{ p: 3, mb: 3 }}>
+    <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
           Compose Post
         </Typography>
@@ -393,16 +389,18 @@ const ComposePost: React.FC = () => {
                   
                   {isScheduled && (
                     <Box sx={{ mt: 2 }}>
-                      <DateTimePicker
+                      <TextField
                         label="Schedule Date & Time"
-                        value={scheduledDate}
-                        onChange={(newValue) => setScheduledDate(newValue)}
-                        minDateTime={new Date()}
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                            required: isScheduled,
-                          },
+                        type="datetime-local"
+                        value={scheduledDate ? scheduledDate.toISOString().slice(0, 16) : ''}
+                        onChange={(e) => setScheduledDate(e.target.value ? new Date(e.target.value) : null)}
+                        fullWidth
+                        required={isScheduled}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        inputProps={{
+                          min: new Date().toISOString().slice(0, 16)
                         }}
                       />
                     </Box>
@@ -576,8 +574,8 @@ const ComposePost: React.FC = () => {
                   {groupAccounts.map((account) => (
                     <Chip
                       key={account.id}
-                      avatar={<Avatar src={account.avatar_url} sx={{ width: 20, height: 20 }} />}
-                      label={`${account.display_name || account.username} (${account.platform})`}
+                      avatar={<Avatar src={account.avatar} sx={{ width: 20, height: 20 }} />}
+                      label={`${account.displayName || account.username} (${account.platform})`}
                       size="small"
                       variant="outlined"
                     />
@@ -705,7 +703,6 @@ const ComposePost: React.FC = () => {
         </Box>
       </Box>
     </Paper>
-    </LocalizationProvider>
   );
 };
 

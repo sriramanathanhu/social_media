@@ -108,10 +108,10 @@ export const adminApi = {
   getAllUsers: (): Promise<{ data: User[] }> =>
     api.get('/admin/users'),
   
-  updateUserStatus: (userId: number, status: string) =>
+  updateUserStatus: (userId: string, status: string) =>
     api.put(`/admin/users/${userId}/status`, { status }),
   
-  makeAdmin: (userId: number) =>
+  makeAdmin: (userId: string) =>
     api.put(`/admin/users/${userId}/make-admin`),
 };
 
