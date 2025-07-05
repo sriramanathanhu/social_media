@@ -27,6 +27,7 @@ const createPost = async (req, res) => {
     if (!errors.isEmpty()) {
       console.log('Validation errors:', errors.array());
       console.log('Detailed validation errors:', JSON.stringify(errors.array(), null, 2));
+      console.log('Request body that failed validation:', req.body);
       return res.status(400).json({ 
         error: 'Validation failed',
         details: errors.array() 
@@ -149,34 +150,43 @@ const createPostValidation = [
   // Custom validation for targetAccountIds to handle both array and JSON string
   body('targetAccountIds')
     .custom((value) => {
+      console.log('Validating targetAccountIds:', value, 'Type:', typeof value);
+      
       let accountIds;
       
       // If it's a string, try to parse as JSON
       if (typeof value === 'string') {
         try {
           accountIds = JSON.parse(value);
+          console.log('Parsed JSON:', accountIds);
         } catch (error) {
+          console.log('JSON parse error:', error.message);
           throw new Error('Invalid targetAccountIds format');
         }
       } else if (Array.isArray(value)) {
         accountIds = value;
+        console.log('Already an array:', accountIds);
       } else {
+        console.log('Invalid type for targetAccountIds');
         throw new Error('targetAccountIds must be an array or JSON string');
       }
       
       // Check if it's an array with at least one element
       if (!Array.isArray(accountIds) || accountIds.length === 0) {
+        console.log('Empty or invalid array');
         throw new Error('At least one target account must be selected');
       }
       
-      // Check if all elements are valid UUIDs (basic format check)
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      // For now, accept numeric IDs (since we saw the account ID is 1)
+      // Skip UUID validation and just check if they're valid IDs
       for (const id of accountIds) {
-        if (!uuidRegex.test(id)) {
+        if (!id || (typeof id !== 'string' && typeof id !== 'number')) {
+          console.log('Invalid account ID:', id);
           throw new Error(`Invalid account ID format: ${id}`);
         }
       }
       
+      console.log('Validation passed for targetAccountIds:', accountIds);
       return true;
     })
 ];
