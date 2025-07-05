@@ -36,7 +36,7 @@ class MastodonService {
       const response = await axios.post(`${instanceUrl}/api/v1/apps`, {
         client_name: 'Social Media Scheduler',
         redirect_uris: redirectUri,
-        scopes: 'read write:statuses',
+        scopes: 'read write:statuses write:media',
         website: process.env.NODE_ENV === 'production' 
           ? 'https://sriramanathanhu.github.io/social_media'
           : 'http://localhost:3000'
@@ -56,7 +56,7 @@ class MastodonService {
       client_id: clientId,
       redirect_uri: process.env.MASTODON_REDIRECT_URI,
       response_type: 'code',
-      scope: 'read write:statuses',
+      scope: 'read write:statuses write:media',
       state: state
     });
 
@@ -136,18 +136,30 @@ class MastodonService {
 
   async uploadMedia(instanceUrl, accessToken, mediaFile) {
     try {
+      console.log('Uploading media to Mastodon:', {
+        instanceUrl,
+        filename: mediaFile.originalname,
+        size: mediaFile.size,
+        mimetype: mediaFile.mimetype
+      });
+
       const formData = new FormData();
-      formData.append('file', mediaFile);
+      formData.append('file', mediaFile.buffer, {
+        filename: mediaFile.originalname,
+        contentType: mediaFile.mimetype
+      });
 
       const response = await axios.post(`${instanceUrl}/api/v2/media`, formData, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'multipart/form-data'
+          ...formData.getHeaders()
         }
       });
 
+      console.log('Media uploaded successfully, ID:', response.data.id);
       return response.data.id;
     } catch (error) {
+      console.error('Media upload error:', error.response?.data || error.message);
       throw new Error(`Failed to upload media: ${error.message}`);
     }
   }
