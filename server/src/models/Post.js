@@ -10,13 +10,25 @@ class Post {
       scheduledFor = null
     } = postData;
 
+    // Ensure targetAccounts is properly JSON stringified
+    const targetAccountsJson = JSON.stringify(targetAccounts);
+    
+    console.log('Creating post with:', {
+      userId,
+      content,
+      mediaUrls,
+      targetAccounts,
+      targetAccountsJson,
+      scheduledFor
+    });
+    
     const result = await pool.query(
       `INSERT INTO posts 
        (user_id, content, media_urls, target_accounts, scheduled_for, status) 
        VALUES ($1, $2, $3, $4, $5, $6) 
        RETURNING id, user_id, content, media_urls, target_accounts, 
                  status, scheduled_for, created_at`,
-      [userId, content, mediaUrls, targetAccounts, scheduledFor, 
+      [userId, content, JSON.stringify(mediaUrls), targetAccountsJson, scheduledFor, 
        scheduledFor ? 'scheduled' : 'draft']
     );
 

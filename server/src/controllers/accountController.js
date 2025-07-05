@@ -4,6 +4,7 @@ const mastodonService = require('../services/mastodon');
 const getAccounts = async (req, res) => {
   try {
     const accounts = await SocialAccount.findByUserId(req.user.id);
+    console.log('Fetched accounts for user', req.user.id, ':', accounts);
     res.json({ accounts });
   } catch (error) {
     console.error('Get accounts error:', error);
