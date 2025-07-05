@@ -373,7 +373,7 @@ const xCallback = async (req, res) => {
       await SocialAccount.updateTokens(
         existingAccount[0].id,
         xService.encrypt(tokenData.accessToken),
-        xService.encrypt(tokenData.refreshToken),
+        tokenData.refreshToken ? xService.encrypt(tokenData.refreshToken) : null,
         tokenData.expiresIn ? new Date(Date.now() + tokenData.expiresIn * 1000) : null
       );
     } else {
@@ -386,7 +386,7 @@ const xCallback = async (req, res) => {
         displayName: userInfo.name,
         avatarUrl: userInfo.profile_image_url,
         accessToken: xService.encrypt(tokenData.accessToken),
-        refreshToken: xService.encrypt(tokenData.refreshToken),
+        refreshToken: tokenData.refreshToken ? xService.encrypt(tokenData.refreshToken) : null,
         tokenExpiresAt: tokenData.expiresIn ? new Date(Date.now() + tokenData.expiresIn * 1000) : null
       });
       console.log('New X account created:', newAccount);
