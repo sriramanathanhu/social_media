@@ -13,8 +13,8 @@ class XService {
         : 'http://localhost:5000/api/auth/x/callback');
     
     // X API endpoints
-    this.v2BaseUrl = 'https://api.twitter.com/2';
-    this.v1BaseUrl = 'https://api.twitter.com/1.1';
+    this.v2BaseUrl = 'https://api.x.com/2';
+    this.v1BaseUrl = 'https://api.x.com/1.1';
     this.oauthBaseUrl = 'https://twitter.com/i/oauth2';
   }
 
@@ -138,18 +138,21 @@ class XService {
       console.log('Getting X access token with code:', code);
       const credentials = await this.getCredentials();
       
-      const tokenData = {
+      const tokenData = new URLSearchParams({
         grant_type: 'authorization_code',
         client_id: credentials.clientId,
         redirect_uri: this.redirectUri,
         code: code,
         code_verifier: codeVerifier
-      };
+      });
 
       // Use Basic auth with client credentials
       const authHeader = Buffer.from(`${credentials.clientId}:${credentials.clientSecret}`).toString('base64');
       
-      const response = await axios.post(`${this.oauthBaseUrl}/token`, tokenData, {
+      const tokenUrl = 'https://api.x.com/2/oauth2/token';
+      console.log('Making token request to:', tokenUrl);
+      
+      const response = await axios.post(tokenUrl, tokenData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Authorization': `Basic ${authHeader}`
@@ -181,7 +184,10 @@ class XService {
 
       const authHeader = Buffer.from(`${credentials.clientId}:${credentials.clientSecret}`).toString('base64');
       
-      const response = await axios.post(`${this.oauthBaseUrl}/token`, tokenData, {
+      const tokenUrl = 'https://api.x.com/2/oauth2/token';
+      console.log('Making refresh token request to:', tokenUrl);
+      
+      const response = await axios.post(tokenUrl, tokenData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Authorization': `Basic ${authHeader}`
