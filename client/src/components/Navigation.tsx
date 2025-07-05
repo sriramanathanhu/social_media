@@ -26,6 +26,7 @@ import {
   Logout as LogoutIcon,
   Person as PersonIcon,
   Settings as SettingsIcon,
+  People as PeopleIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -47,6 +48,7 @@ const Navigation: React.FC = () => {
     { label: 'Accounts', path: '/accounts', icon: <AccountIcon /> },
     { label: 'Compose', path: '/compose', icon: <CreateIcon /> },
     { label: 'Posts', path: '/posts', icon: <PostsIcon /> },
+    ...(user?.role === 'admin' ? [{ label: 'Users', path: '/users', icon: <PeopleIcon /> }] : []),
     { label: 'Settings', path: '/settings', icon: <SettingsIcon /> },
   ];
 

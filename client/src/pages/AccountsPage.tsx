@@ -14,11 +14,14 @@ import {
   ListItemIcon,
   ListItemText,
   Toolbar,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import {
   Add as AddIcon,
   AccountCircle as MastodonIcon,
   Twitter as XIcon,
+  Group as GroupIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
@@ -26,6 +29,7 @@ import { fetchAccounts, deleteAccount, verifyAccount } from '../store/slices/acc
 import AccountCard from '../components/AccountCard';
 import ConnectMastodonDialog from '../components/ConnectMastodonDialog';
 import ConnectXDialog from '../components/ConnectXDialog';
+import AccountGroups from '../components/AccountGroups';
 
 const AccountsPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -34,6 +38,7 @@ const AccountsPage: React.FC = () => {
   const [connectMastodonDialogOpen, setConnectMastodonDialogOpen] = useState(false);
   const [connectXDialogOpen, setConnectXDialogOpen] = useState(false);
   const [fabMenuAnchor, setFabMenuAnchor] = useState<null | HTMLElement>(null);
+  const [currentTab, setCurrentTab] = useState(0);
 
   useEffect(() => {
     if (initialized && token) {
@@ -78,11 +83,18 @@ const AccountsPage: React.FC = () => {
       <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Connected Accounts
+          Social Media Management
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Manage your connected social media accounts
+          Manage your connected accounts and organize them into groups
         </Typography>
+      </Box>
+
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)}>
+          <Tab label="Accounts" />
+          <Tab label="Groups" />
+        </Tabs>
       </Box>
 
       {error && (
@@ -91,96 +103,104 @@ const AccountsPage: React.FC = () => {
         </Alert>
       )}
 
-      {loading && accounts.length === 0 ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <Grid container spacing={3}>
-          {/* Mastodon Accounts */}
-          <Grid item xs={12}>
-            <Paper sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <MastodonIcon sx={{ mr: 1 }} />
-                <Typography variant="h6">Mastodon Accounts</Typography>
-              </Box>
-              
-              {mastodonAccounts.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    No Mastodon accounts connected
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    startIcon={<AddIcon />}
-                    onClick={handleConnectMastodon}
-                  >
-                    Connect Mastodon Account
-                  </Button>
-                </Box>
-              ) : (
-                <Box>
-                  {mastodonAccounts.map((account) => (
-                    <AccountCard
-                      key={account.id}
-                      account={account}
-                      onDelete={handleDeleteAccount}
-                      onVerify={handleVerifyAccount}
-                    />
-                  ))}
-                </Box>
-              )}
-            </Paper>
-          </Grid>
+      {currentTab === 0 && (
+        <>
+          {loading && accounts.length === 0 ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              {/* Mastodon Accounts */}
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <MastodonIcon sx={{ mr: 1 }} />
+                    <Typography variant="h6">Mastodon Accounts</Typography>
+                  </Box>
+                  
+                  {mastodonAccounts.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        No Mastodon accounts connected
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        startIcon={<AddIcon />}
+                        onClick={handleConnectMastodon}
+                      >
+                        Connect Mastodon Account
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box>
+                      {mastodonAccounts.map((account) => (
+                        <AccountCard
+                          key={account.id}
+                          account={account}
+                          onDelete={handleDeleteAccount}
+                          onVerify={handleVerifyAccount}
+                        />
+                      ))}
+                    </Box>
+                  )}
+                </Paper>
+              </Grid>
 
-          {/* X (Twitter) Accounts */}
-          <Grid item xs={12}>
-            <Paper sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <XIcon sx={{ mr: 1 }} />
-                <Typography variant="h6">X (Twitter) Accounts</Typography>
-              </Box>
-              
-              {xAccounts.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    No X accounts connected
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    startIcon={<AddIcon />}
-                    onClick={handleConnectX}
-                  >
-                    Connect X Account
-                  </Button>
-                </Box>
-              ) : (
-                <Box>
-                  {xAccounts.map((account) => (
-                    <AccountCard
-                      key={account.id}
-                      account={account}
-                      onDelete={handleDeleteAccount}
-                      onVerify={handleVerifyAccount}
-                    />
-                  ))}
-                </Box>
-              )}
-            </Paper>
-          </Grid>
+              {/* X (Twitter) Accounts */}
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <XIcon sx={{ mr: 1 }} />
+                    <Typography variant="h6">X (Twitter) Accounts</Typography>
+                  </Box>
+                  
+                  {xAccounts.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        No X accounts connected
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        startIcon={<AddIcon />}
+                        onClick={handleConnectX}
+                      >
+                        Connect X Account
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box>
+                      {xAccounts.map((account) => (
+                        <AccountCard
+                          key={account.id}
+                          account={account}
+                          onDelete={handleDeleteAccount}
+                          onVerify={handleVerifyAccount}
+                        />
+                      ))}
+                    </Box>
+                  )}
+                </Paper>
+              </Grid>
 
-          {/* Other Platforms (Coming Soon) */}
-          <Grid item xs={12}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                More Platforms Coming Soon
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                We're working on adding support for Pinterest, SoundCloud, Substack, Telegram, and DeviantArt.
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
+              {/* Other Platforms (Coming Soon) */}
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    More Platforms Coming Soon
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    We're working on adding support for Pinterest, SoundCloud, Substack, Telegram, and DeviantArt.
+                  </Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+          )}
+        </>
+      )}
+
+      {currentTab === 1 && (
+        <AccountGroups />
       )}
 
       {/* Floating Action Button */}

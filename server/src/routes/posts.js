@@ -7,6 +7,7 @@ const router = express.Router();
 router.use(auth);
 
 router.get('/', postController.getPosts);
+router.get('/scheduled', postController.getScheduledPosts);
 
 router.post('/', postController.uploadMiddleware, postController.createPostValidation, postController.createPost);
 router.get('/stats', postController.getPostStats);

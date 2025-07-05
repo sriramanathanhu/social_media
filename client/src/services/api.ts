@@ -68,10 +68,21 @@ export const postsAPI = {
   getPosts: (): Promise<{ data: { posts: Post[] } }> =>
     api.get('/posts'),
   
-  createPost: (content: string, targetAccountIds: string[], mediaFiles?: File[]) => {
+  getScheduledPosts: (): Promise<{ data: { posts: Post[] } }> =>
+    api.get('/posts/scheduled'),
+  
+  createPost: (content: string, targetAccountIds: string[], mediaFiles?: File[], scheduledFor?: string, postType?: string) => {
     const formData = new FormData();
     formData.append('content', content);
     formData.append('targetAccountIds', JSON.stringify(targetAccountIds));
+    
+    if (scheduledFor) {
+      formData.append('scheduledFor', scheduledFor);
+    }
+    
+    if (postType) {
+      formData.append('postType', postType);
+    }
     
     if (mediaFiles) {
       mediaFiles.forEach((file, index) => {
@@ -91,6 +102,40 @@ export const postsAPI = {
   
   getPostStats: () =>
     api.get('/posts/stats'),
+};
+
+export const adminApi = {
+  getAllUsers: (): Promise<{ data: User[] }> =>
+    api.get('/admin/users'),
+  
+  updateUserStatus: (userId: number, status: string) =>
+    api.put(`/admin/users/${userId}/status`, { status }),
+  
+  makeAdmin: (userId: number) =>
+    api.put(`/admin/users/${userId}/make-admin`),
+};
+
+export const groupsAPI = {
+  getGroups: () =>
+    api.get('/groups'),
+  
+  createGroup: (name: string, description?: string, color?: string) =>
+    api.post('/groups', { name, description, color }),
+  
+  getGroup: (id: string) =>
+    api.get(`/groups/${id}`),
+  
+  updateGroup: (id: string, name: string, description?: string, color?: string) =>
+    api.put(`/groups/${id}`, { name, description, color }),
+  
+  deleteGroup: (id: string) =>
+    api.delete(`/groups/${id}`),
+  
+  addAccountToGroup: (groupId: string, accountId: string) =>
+    api.post(`/groups/${groupId}/accounts/${accountId}`),
+  
+  removeAccountFromGroup: (accountId: string) =>
+    api.delete(`/groups/accounts/${accountId}`),
 };
 
 export default api;

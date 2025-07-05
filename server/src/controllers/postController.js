@@ -10,10 +10,10 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed'));
+      cb(new Error('Only image and video files are allowed'));
     }
   }
 });
@@ -34,7 +34,7 @@ const createPost = async (req, res) => {
       });
     }
 
-    let { content, targetAccountIds } = req.body;
+    let { content, targetAccountIds, scheduledFor, postType } = req.body;
     const mediaFiles = req.files || [];
     
     // Parse targetAccountIds if it's a JSON string
@@ -47,7 +47,7 @@ const createPost = async (req, res) => {
       }
     }
     
-    console.log('Post data:', { content, targetAccountIds, mediaFilesCount: mediaFiles.length });
+    console.log('Post data:', { content, targetAccountIds, mediaFilesCount: mediaFiles.length, scheduledFor, postType });
     
     
     if (!content || !content.trim()) {
@@ -60,10 +60,22 @@ const createPost = async (req, res) => {
       return res.status(400).json({ error: 'At least one target account must be selected' });
     }
 
+    // Validate scheduled time if provided
+    if (scheduledFor) {
+      const scheduledDate = new Date(scheduledFor);
+      const now = new Date();
+      
+      if (scheduledDate <= now) {
+        return res.status(400).json({ error: 'Scheduled time must be in the future' });
+      }
+    }
+
     const result = await publishingService.publishPost(req.user.id, {
       content,
       targetAccountIds,
-      mediaFiles
+      mediaFiles,
+      scheduledFor,
+      postType: postType || 'text'
     });
 
     console.log('Post created successfully:', result);
@@ -132,6 +144,20 @@ const deletePost = async (req, res) => {
   }
 };
 
+const getScheduledPosts = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = parseInt(req.query.offset) || 0;
+    
+    const posts = await publishingService.getScheduledPosts(req.user.id, limit, offset);
+    
+    res.json({ posts });
+  } catch (error) {
+    console.error('Get scheduled posts error:', error);
+    res.status(500).json({ error: 'Failed to fetch scheduled posts' });
+  }
+};
+
 const getPostStats = async (req, res) => {
   try {
     const stats = await publishingService.getPostStats(req.user.id);
@@ -147,6 +173,14 @@ const createPostValidation = [
     .trim()
     .isLength({ min: 1, max: 5000 })
     .withMessage('Content must be between 1 and 5000 characters'),
+  body('postType')
+    .optional()
+    .isIn(['text', 'image', 'video', 'reel'])
+    .withMessage('Post type must be text, image, video, or reel'),
+  body('scheduledFor')
+    .optional()
+    .isISO8601()
+    .withMessage('Scheduled time must be a valid ISO 8601 date'),
   // Custom validation for targetAccountIds to handle both array and JSON string
   body('targetAccountIds')
     .custom((value) => {
@@ -201,6 +235,7 @@ module.exports = {
   getPosts,
   getPost,
   deletePost,
+  getScheduledPosts,
   getPostStats,
   createPostValidation,
   uploadMiddleware: upload.array('mediaFiles', 4) // Allow up to 4 files

@@ -187,6 +187,48 @@ const initializeDatabase = async () => {
       console.log('Admin user(s) already exist');
     }
 
+    // Create account groups table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS account_groups (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        color VARCHAR(7) DEFAULT '#1976D2',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Add group_id to social_accounts table
+    try {
+      await pool.query(`
+        ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS group_id INTEGER REFERENCES account_groups(id) ON DELETE SET NULL
+      `);
+      console.log('Added group_id column to social_accounts table');
+    } catch (error) {
+      console.log('Column group_id already exists or error adding:', error.message);
+    }
+
+    // Add scheduling and media type columns to posts table
+    try {
+      await pool.query(`
+        ALTER TABLE posts ADD COLUMN IF NOT EXISTS post_type VARCHAR(20) DEFAULT 'text' CHECK (post_type IN ('text', 'image', 'video', 'reel'))
+      `);
+      console.log('Added post_type column to posts table');
+    } catch (error) {
+      console.log('Column post_type already exists or error adding:', error.message);
+    }
+
+    try {
+      await pool.query(`
+        ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_scheduled BOOLEAN DEFAULT FALSE
+      `);
+      console.log('Added is_scheduled column to posts table');
+    } catch (error) {
+      console.log('Column is_scheduled already exists or error adding:', error.message);
+    }
+
     console.log('Database tables initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);
