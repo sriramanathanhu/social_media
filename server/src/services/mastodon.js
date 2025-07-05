@@ -1,5 +1,6 @@
 const axios = require('axios');
 const crypto = require('crypto');
+const FormData = require('form-data');
 
 class MastodonService {
   constructor() {
