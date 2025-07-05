@@ -26,12 +26,14 @@ export const fetchPosts = createAsyncThunk(
 
 export const createPost = createAsyncThunk(
   'posts/createPost',
-  async ({ content, targetAccountIds, mediaFiles }: { 
+  async ({ content, targetAccountIds, mediaFiles, scheduledFor, postType }: { 
     content: string; 
     targetAccountIds: string[];
     mediaFiles?: File[];
+    scheduledFor?: string;
+    postType?: string;
   }) => {
-    const response = await postsAPI.createPost(content, targetAccountIds, mediaFiles);
+    const response = await postsAPI.createPost(content, targetAccountIds, mediaFiles, scheduledFor, postType);
     return response.data;
   }
 );

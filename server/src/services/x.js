@@ -229,7 +229,7 @@ class XService {
   }
 
   // Post tweet using v2 API
-  async postTweet(accessToken, content, mediaIds = []) {
+  async postTweet(accessToken, content, mediaIds = [], postType = 'text') {
     try {
       const tweetData = {
         text: content
@@ -260,12 +260,13 @@ class XService {
   }
 
   // Upload media using v1.1 API (chunked upload)
-  async uploadMedia(accessToken, mediaFile) {
+  async uploadMedia(accessToken, mediaFile, isVideo = false) {
     try {
       console.log('Uploading media to X:', {
         filename: mediaFile.originalname,
         size: mediaFile.size,
-        mimetype: mediaFile.mimetype
+        mimetype: mediaFile.mimetype,
+        isVideo
       });
 
       const mediaBuffer = mediaFile.buffer;

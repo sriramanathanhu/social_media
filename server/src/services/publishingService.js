@@ -5,11 +5,13 @@ const xService = require('./x');
 
 class PublishingService {
   async publishPost(userId, postData) {
-    const { content, targetAccountIds, mediaFiles = [] } = postData;
+    const { content, targetAccountIds, mediaFiles = [], scheduledFor, postType = 'text' } = postData;
     
     console.log('Publishing post for user:', userId);
     console.log('Target account IDs:', targetAccountIds);
     console.log('Media files count:', mediaFiles.length);
+    console.log('Scheduled for:', scheduledFor);
+    console.log('Post type:', postType);
     
     const accounts = await SocialAccount.getActiveAccountsByIds(targetAccountIds);
     console.log('Found accounts:', accounts.length);
@@ -41,15 +43,30 @@ class PublishingService {
       userId,
       content,
       targetAccounts: targetAccountIds,
-      mediaUrls: []
+      mediaUrls: [],
+      scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
+      postType,
+      isScheduled: !!scheduledFor
     });
 
     const publishResults = [];
     let hasErrors = false;
+    
+    // If scheduled, don't publish now
+    if (scheduledFor) {
+      console.log('Post scheduled for later, not publishing immediately');
+      return {
+        postId: post.id,
+        status: 'scheduled',
+        scheduledFor: scheduledFor,
+        message: 'Post scheduled successfully'
+      };
+    }
 
+    // Immediate publishing
     for (const account of userAccounts) {
       try {
-        const result = await this.publishToAccount(account, content, mediaFiles);
+        const result = await this.publishToAccount(account, content, mediaFiles, postType);
         publishResults.push({
           accountId: account.id,
           success: true,
@@ -83,18 +100,18 @@ class PublishingService {
     };
   }
 
-  async publishToAccount(account, content, mediaFiles = []) {
+  async publishToAccount(account, content, mediaFiles = [], postType = 'text') {
     switch (account.platform) {
       case 'mastodon':
-        return await this.publishToMastodon(account, content, mediaFiles);
+        return await this.publishToMastodon(account, content, mediaFiles, postType);
       case 'x':
-        return await this.publishToX(account, content, mediaFiles);
+        return await this.publishToX(account, content, mediaFiles, postType);
       default:
         throw new Error(`Platform ${account.platform} not supported`);
     }
   }
 
-  async publishToMastodon(account, content, mediaFiles = []) {
+  async publishToMastodon(account, content, mediaFiles = [], postType = 'text') {
     const decryptedToken = mastodonService.decrypt(account.access_token);
     
     let mediaIds = [];
@@ -119,15 +136,17 @@ class PublishingService {
     return result;
   }
 
-  async publishToX(account, content, mediaFiles = []) {
+  async publishToX(account, content, mediaFiles = [], postType = 'text') {
     const decryptedToken = xService.decrypt(account.access_token);
     
     let mediaIds = [];
     if (mediaFiles.length > 0) {
       for (const mediaFile of mediaFiles) {
+        const isVideo = mediaFile.mimetype?.startsWith('video/') || postType === 'video' || postType === 'reel';
         const mediaId = await xService.uploadMedia(
           decryptedToken,
-          mediaFile
+          mediaFile,
+          isVideo
         );
         mediaIds.push(mediaId);
       }
@@ -136,7 +155,8 @@ class PublishingService {
     const result = await xService.postTweet(
       decryptedToken,
       content,
-      mediaIds
+      mediaIds,
+      postType
     );
 
     return result;
@@ -144,6 +164,27 @@ class PublishingService {
 
   async getPostHistory(userId, limit = 50, offset = 0) {
     const posts = await Post.findByUserId(userId, limit, offset);
+    
+    const postsWithAccounts = await Promise.all(
+      posts.map(async (post) => {
+        const accounts = await SocialAccount.getActiveAccountsByIds(post.target_accounts);
+        return {
+          ...post,
+          targetAccounts: accounts.map(acc => ({
+            id: acc.id,
+            platform: acc.platform,
+            username: acc.username,
+            instanceUrl: acc.instance_url
+          }))
+        };
+      })
+    );
+
+    return postsWithAccounts;
+  }
+
+  async getScheduledPosts(userId, limit = 50, offset = 0) {
+    const posts = await Post.findScheduledByUserId(userId, limit, offset);
     
     const postsWithAccounts = await Promise.all(
       posts.map(async (post) => {

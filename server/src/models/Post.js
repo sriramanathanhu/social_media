@@ -7,7 +7,9 @@ class Post {
       content,
       mediaUrls = [],
       targetAccounts,
-      scheduledFor = null
+      scheduledFor = null,
+      postType = 'text',
+      isScheduled = false
     } = postData;
 
     // Ensure targetAccounts is properly JSON stringified
@@ -16,12 +18,12 @@ class Post {
     
     const result = await pool.query(
       `INSERT INTO posts 
-       (user_id, content, media_urls, target_accounts, scheduled_for, status) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
+       (user_id, content, media_urls, target_accounts, scheduled_for, status, post_type, is_scheduled) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
        RETURNING id, user_id, content, media_urls, target_accounts, 
-                 status, scheduled_for, created_at`,
+                 status, scheduled_for, post_type, is_scheduled, created_at`,
       [userId, content, JSON.stringify(mediaUrls), targetAccountsJson, scheduledFor, 
-       scheduledFor ? 'scheduled' : 'draft']
+       scheduledFor ? 'scheduled' : 'draft', postType, isScheduled]
     );
 
     return result.rows[0];
@@ -34,6 +36,20 @@ class Post {
        FROM posts 
        WHERE user_id = $1 
        ORDER BY created_at DESC 
+       LIMIT $2 OFFSET $3`,
+      [userId, limit, offset]
+    );
+
+    return result.rows;
+  }
+
+  static async findScheduledByUserId(userId, limit = 50, offset = 0) {
+    const result = await pool.query(
+      `SELECT id, user_id, content, media_urls, target_accounts, 
+              status, published_at, scheduled_for, post_type, is_scheduled, error_message, created_at 
+       FROM posts 
+       WHERE user_id = $1 AND status = 'scheduled' AND scheduled_for > NOW()
+       ORDER BY scheduled_for ASC 
        LIMIT $2 OFFSET $3`,
       [userId, limit, offset]
     );

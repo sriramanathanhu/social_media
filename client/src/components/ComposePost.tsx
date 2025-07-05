@@ -19,18 +19,45 @@ import {
   Tabs,
   Tab,
   Divider,
+  MenuItem,
+  Select,
+  InputLabel,
+  Switch,
+  Grid,
+  Card,
+  CardContent,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import { 
   Send as SendIcon, 
   Image as ImageIcon, 
   Close as CloseIcon,
   SelectAll as SelectAllIcon,
-  Clear as DeselectAllIcon
+  Clear as DeselectAllIcon,
+  VideoFile as VideoIcon,
+  Schedule as ScheduleIcon,
+  Group as GroupIcon,
+  ExpandMore as ExpandMoreIcon,
+  AccessTime as AccessTimeIcon,
 } from '@mui/icons-material';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { fetchAccounts } from '../store/slices/accountsSlice';
 import { createPost } from '../store/slices/postsSlice';
+import { groupsAPI } from '../services/api';
+
+interface AccountGroup {
+  id: number;
+  name: string;
+  description: string;
+  color: string;
+  accounts?: any[];
+}
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -65,14 +92,45 @@ const ComposePost: React.FC = () => {
   const [content, setContent] = useState('');
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [selectedVideos, setSelectedVideos] = useState<File[]>([]);
   const [tabValue, setTabValue] = useState(0);
+  const [groups, setGroups] = useState<AccountGroup[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
+  const [postType, setPostType] = useState<'text' | 'image' | 'video' | 'reel'>('text');
+  const [groupAccounts, setGroupAccounts] = useState<any[]>([]);
   const dispatch = useDispatch<AppDispatch>();
   const { accounts, loading: accountsLoading } = useSelector((state: RootState) => state.accounts);
   const { publishing, error } = useSelector((state: RootState) => state.posts);
 
   useEffect(() => {
     dispatch(fetchAccounts());
+    fetchGroups();
   }, [dispatch]);
+
+  const fetchGroups = async () => {
+    try {
+      const response = await groupsAPI.getGroups();
+      setGroups(response.data.groups || []);
+    } catch (error) {
+      console.error('Failed to fetch groups:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedGroupId && groups.length > 0) {
+      const group = groups.find(g => g.id.toString() === selectedGroupId);
+      if (group?.accounts) {
+        setGroupAccounts(group.accounts);
+        // Auto-select all accounts in the group
+        const groupAccountIds = group.accounts.map(acc => acc.id.toString());
+        setSelectedAccounts(groupAccountIds);
+      }
+    } else {
+      setGroupAccounts([]);
+    }
+  }, [selectedGroupId, groups]);
 
   const activeAccounts = accounts.filter(account => account.status === 'active');
   const mastodonAccounts = activeAccounts.filter(account => account.platform === 'mastodon');
@@ -122,27 +180,56 @@ const ComposePost: React.FC = () => {
     if (event.target.files) {
       const files = Array.from(event.target.files);
       setSelectedImages(prev => [...prev, ...files].slice(0, 4)); // Limit to 4 images
+      setPostType('image');
+    }
+  };
+
+  const handleVideoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const files = Array.from(event.target.files);
+      setSelectedVideos(prev => [...prev, ...files].slice(0, 1)); // Limit to 1 video
+      setPostType(postType === 'reel' ? 'reel' : 'video');
     }
   };
 
   const handleImageRemove = (index: number) => {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    if (selectedImages.length === 1) {
+      setPostType('text');
+    }
+  };
+
+  const handleVideoRemove = (index: number) => {
+    setSelectedVideos(prev => prev.filter((_, i) => i !== index));
+    if (selectedVideos.length === 1) {
+      setPostType('text');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim() || selectedAccounts.length === 0) return;
 
+    const mediaFiles = [...selectedImages, ...selectedVideos];
+    const scheduledFor = isScheduled && scheduledDate ? scheduledDate.toISOString() : undefined;
+
     const result = await dispatch(createPost({
       content: content.trim(),
       targetAccountIds: selectedAccounts,
-      mediaFiles: selectedImages
+      mediaFiles,
+      scheduledFor,
+      postType
     }));
 
     if (result.meta.requestStatus === 'fulfilled') {
       setContent('');
       setSelectedAccounts([]);
       setSelectedImages([]);
+      setSelectedVideos([]);
+      setSelectedGroupId('');
+      setIsScheduled(false);
+      setScheduledDate(null);
+      setPostType('text');
     }
   };
 
@@ -203,28 +290,127 @@ const ComposePost: React.FC = () => {
   const isOverLimit = getCharacterCount() > getCharacterLimit();
 
   return (
-    <Paper sx={{ p: 3, mb: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Compose Post
-      </Typography>
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Compose Post
+        </Typography>
 
-      <Box component="form" onSubmit={handleSubmit}>
-        <TextField
-          fullWidth
-          multiline
-          rows={4}
-          variant="outlined"
-          placeholder="What's happening?"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          sx={{ mb: 2 }}
-          error={isOverLimit}
-          helperText={
-            isOverLimit
-              ? `Character limit exceeded (${getCharacterCount()}/${getCharacterLimit()})`
-              : `${getCharacterCount()}/${getCharacterLimit()} - ${getPlatformLimitInfo()}`
-          }
-        />
+        <Box component="form" onSubmit={handleSubmit}>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            variant="outlined"
+            placeholder="What's happening?"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            sx={{ mb: 2 }}
+            error={isOverLimit}
+            helperText={
+              isOverLimit
+                ? `Character limit exceeded (${getCharacterCount()}/${getCharacterLimit()})`
+                : `${getCharacterCount()}/${getCharacterLimit()} - ${getPlatformLimitInfo()}`
+            }
+          />
+
+          {/* Advanced Options */}
+          <Accordion sx={{ mb: 2 }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Box display="flex" alignItems="center" gap={1}>
+                <ScheduleIcon />
+                <Typography>Advanced Options</Typography>
+                {(isScheduled || selectedGroupId) && (
+                  <Chip 
+                    size="small" 
+                    label={`${isScheduled ? 'Scheduled' : ''}${isScheduled && selectedGroupId ? ' + ' : ''}${selectedGroupId ? 'Group' : ''}`}
+                    color="primary"
+                  />
+                )}
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid container spacing={2}>
+                {/* Group Selection */}
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Select Group (Optional)</InputLabel>
+                    <Select
+                      value={selectedGroupId}
+                      onChange={(e) => setSelectedGroupId(e.target.value)}
+                      label="Select Group (Optional)"
+                    >
+                      <MenuItem value="">
+                        <em>No Group - Manual Selection</em>
+                      </MenuItem>
+                      {groups.map((group) => (
+                        <MenuItem key={group.id} value={group.id.toString()}>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Box
+                              sx={{
+                                width: 12,
+                                height: 12,
+                                backgroundColor: group.color,
+                                borderRadius: '50%',
+                              }}
+                            />
+                            {group.name} ({group.accounts?.length || 0} accounts)
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                {/* Post Type Selection */}
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Post Type</InputLabel>
+                    <Select
+                      value={postType}
+                      onChange={(e) => setPostType(e.target.value as any)}
+                      label="Post Type"
+                    >
+                      <MenuItem value="text">Text Post</MenuItem>
+                      <MenuItem value="image">Image Post</MenuItem>
+                      <MenuItem value="video">Video Post</MenuItem>
+                      <MenuItem value="reel">Reel/Short Video</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                {/* Scheduling */}
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={isScheduled}
+                        onChange={(e) => setIsScheduled(e.target.checked)}
+                      />
+                    }
+                    label="Schedule for later"
+                  />
+                  
+                  {isScheduled && (
+                    <Box sx={{ mt: 2 }}>
+                      <DateTimePicker
+                        label="Schedule Date & Time"
+                        value={scheduledDate}
+                        onChange={(newValue) => setScheduledDate(newValue)}
+                        minDateTime={new Date()}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            required: isScheduled,
+                          },
+                        }}
+                      />
+                    </Box>
+                  )}
+                </Grid>
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
 
         {/* Image Upload Section */}
         <Box sx={{ mb: 2 }}>
@@ -294,6 +480,113 @@ const ComposePost: React.FC = () => {
             </Stack>
           )}
         </Box>
+
+        {/* Video Upload Section */}
+        <Box sx={{ mb: 2 }}>
+          <input
+            accept="video/*"
+            style={{ display: 'none' }}
+            id="video-upload"
+            type="file"
+            onChange={handleVideoSelect}
+          />
+          <label htmlFor="video-upload">
+            <Button
+              variant="outlined"
+              component="span"
+              startIcon={<VideoIcon />}
+              disabled={selectedVideos.length >= 1}
+              sx={{ mb: 1 }}
+            >
+              Add Video ({selectedVideos.length}/1)
+            </Button>
+          </label>
+
+          {selectedVideos.length > 0 && (
+            <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
+              {selectedVideos.map((file, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    position: 'relative',
+                    width: 120,
+                    height: 80,
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    mb: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: 'grey.100'
+                  }}
+                >
+                  <VideoIcon sx={{ fontSize: 40, color: 'grey.500' }} />
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      position: 'absolute', 
+                      bottom: 4, 
+                      left: 4, 
+                      right: 4,
+                      bgcolor: 'rgba(0,0,0,0.7)',
+                      color: 'white',
+                      px: 1,
+                      borderRadius: 0.5,
+                      fontSize: '0.7rem'
+                    }}
+                  >
+                    {file.name}
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleVideoRemove(index)}
+                    sx={{
+                      position: 'absolute',
+                      top: 2,
+                      right: 2,
+                      bgcolor: 'rgba(0,0,0,0.6)',
+                      color: 'white',
+                      '&:hover': {
+                        bgcolor: 'rgba(0,0,0,0.8)'
+                      }
+                    }}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+            </Stack>
+          )}
+        </Box>
+
+        {/* Group Accounts Display */}
+        {selectedGroupId && groupAccounts.length > 0 && (
+          <Box sx={{ mb: 2 }}>
+            <Card sx={{ bgcolor: 'primary.50', border: 1, borderColor: 'primary.200' }}>
+              <CardContent sx={{ p: 2 }}>
+                <Box display="flex" alignItems="center" gap={1} mb={1}>
+                  <GroupIcon color="primary" />
+                  <Typography variant="subtitle2" color="primary">
+                    Selected Group: {groups.find(g => g.id.toString() === selectedGroupId)?.name}
+                  </Typography>
+                </Box>
+                <Box display="flex" flexWrap="wrap" gap={1}>
+                  {groupAccounts.map((account) => (
+                    <Chip
+                      key={account.id}
+                      avatar={<Avatar src={account.avatar_url} sx={{ width: 20, height: 20 }} />}
+                      label={`${account.display_name || account.username} (${account.platform})`}
+                      size="small"
+                      variant="outlined"
+                    />
+                  ))}
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+        )}
 
         {activeAccounts.length > 0 && (
           <Box sx={{ mb: 2 }}>
@@ -384,24 +677,35 @@ const ComposePost: React.FC = () => {
           </Alert>
         )}
 
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {isScheduled && scheduledDate && (
+            <Box display="flex" alignItems="center" gap={1}>
+              <AccessTimeIcon color="primary" />
+              <Typography variant="body2" color="primary">
+                Scheduled for: {scheduledDate.toLocaleString()}
+              </Typography>
+            </Box>
+          )}
+          
           <Button
             type="submit"
             variant="contained"
-            startIcon={publishing ? <CircularProgress size={20} /> : <SendIcon />}
+            startIcon={publishing ? <CircularProgress size={20} /> : (isScheduled ? <ScheduleIcon /> : <SendIcon />)}
             disabled={
               !content.trim() || 
               selectedAccounts.length === 0 || 
               publishing || 
               isOverLimit ||
-              activeAccounts.length === 0
+              activeAccounts.length === 0 ||
+              (isScheduled && !scheduledDate)
             }
           >
-            {publishing ? 'Publishing...' : 'Publish'}
+            {publishing ? 'Processing...' : (isScheduled ? 'Schedule Post' : 'Publish Now')}
           </Button>
         </Box>
       </Box>
     </Paper>
+    </LocalizationProvider>
   );
 };
 
