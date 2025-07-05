@@ -141,12 +141,39 @@ const createPostValidation = [
     .trim()
     .isLength({ min: 1, max: 5000 })
     .withMessage('Content must be between 1 and 5000 characters'),
+  // Custom validation for targetAccountIds to handle both array and JSON string
   body('targetAccountIds')
-    .isArray({ min: 1 })
-    .withMessage('At least one target account must be selected'),
-  body('targetAccountIds.*')
-    .isUUID()
-    .withMessage('Invalid account ID format')
+    .custom((value) => {
+      let accountIds;
+      
+      // If it's a string, try to parse as JSON
+      if (typeof value === 'string') {
+        try {
+          accountIds = JSON.parse(value);
+        } catch (error) {
+          throw new Error('Invalid targetAccountIds format');
+        }
+      } else if (Array.isArray(value)) {
+        accountIds = value;
+      } else {
+        throw new Error('targetAccountIds must be an array or JSON string');
+      }
+      
+      // Check if it's an array with at least one element
+      if (!Array.isArray(accountIds) || accountIds.length === 0) {
+        throw new Error('At least one target account must be selected');
+      }
+      
+      // Check if all elements are valid UUIDs (basic format check)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      for (const id of accountIds) {
+        if (!uuidRegex.test(id)) {
+          throw new Error(`Invalid account ID format: ${id}`);
+        }
+      }
+      
+      return true;
+    })
 ];
 
 module.exports = {
