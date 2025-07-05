@@ -1,6 +1,22 @@
 const { body, validationResult } = require('express-validator');
+const multer = require('multer');
 const publishingService = require('../services/publishingService');
 const Post = require('../models/Post');
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
 
 const createPost = async (req, res) => {
   try {
@@ -13,9 +29,20 @@ const createPost = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { content, targetAccountIds, mediaFiles = [] } = req.body;
+    let { content, targetAccountIds } = req.body;
+    const mediaFiles = req.files || [];
     
-    console.log('Post data:', { content, targetAccountIds, mediaFiles });
+    // Parse targetAccountIds if it's a JSON string
+    if (typeof targetAccountIds === 'string') {
+      try {
+        targetAccountIds = JSON.parse(targetAccountIds);
+      } catch (error) {
+        console.log('Error parsing targetAccountIds:', error);
+        targetAccountIds = [];
+      }
+    }
+    
+    console.log('Post data:', { content, targetAccountIds, mediaFilesCount: mediaFiles.length });
     
     if (!content || !content.trim()) {
       console.log('Content is empty');
@@ -128,5 +155,6 @@ module.exports = {
   getPost,
   deletePost,
   getPostStats,
-  createPostValidation
+  createPostValidation,
+  uploadMiddleware: upload.array('mediaFiles', 4) // Allow up to 4 files
 };

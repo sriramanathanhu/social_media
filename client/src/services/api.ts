@@ -62,8 +62,23 @@ export const postsAPI = {
   getPosts: (): Promise<{ data: { posts: Post[] } }> =>
     api.get('/posts'),
   
-  createPost: (content: string, targetAccountIds: string[]) =>
-    api.post('/posts', { content, targetAccountIds }),
+  createPost: (content: string, targetAccountIds: string[], mediaFiles?: File[]) => {
+    const formData = new FormData();
+    formData.append('content', content);
+    formData.append('targetAccountIds', JSON.stringify(targetAccountIds));
+    
+    if (mediaFiles) {
+      mediaFiles.forEach((file, index) => {
+        formData.append(`mediaFiles`, file);
+      });
+    }
+    
+    return api.post('/posts', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
   
   deletePost: (id: string) =>
     api.delete(`/posts/${id}`),

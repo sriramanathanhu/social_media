@@ -14,8 +14,14 @@ import {
   CircularProgress,
   Chip,
   Avatar,
+  IconButton,
+  Stack,
 } from '@mui/material';
-import { Send as SendIcon } from '@mui/icons-material';
+import { 
+  Send as SendIcon, 
+  Image as ImageIcon, 
+  Close as CloseIcon 
+} from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { fetchAccounts } from '../store/slices/accountsSlice';
@@ -24,6 +30,7 @@ import { createPost } from '../store/slices/postsSlice';
 const ComposePost: React.FC = () => {
   const [content, setContent] = useState('');
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const dispatch = useDispatch<AppDispatch>();
   const { accounts, loading: accountsLoading } = useSelector((state: RootState) => state.accounts);
   const { publishing, error } = useSelector((state: RootState) => state.posts);
@@ -43,18 +50,31 @@ const ComposePost: React.FC = () => {
     );
   };
 
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const files = Array.from(event.target.files);
+      setSelectedImages(prev => [...prev, ...files].slice(0, 4)); // Limit to 4 images
+    }
+  };
+
+  const handleImageRemove = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim() || selectedAccounts.length === 0) return;
 
     const result = await dispatch(createPost({
       content: content.trim(),
-      targetAccountIds: selectedAccounts
+      targetAccountIds: selectedAccounts,
+      mediaFiles: selectedImages
     }));
 
     if (result.meta.requestStatus === 'fulfilled') {
       setContent('');
       setSelectedAccounts([]);
+      setSelectedImages([]);
     }
   };
 
@@ -91,6 +111,75 @@ const ComposePost: React.FC = () => {
               : `${getCharacterCount()}/${getCharacterLimit()}`
           }
         />
+
+        {/* Image Upload Section */}
+        <Box sx={{ mb: 2 }}>
+          <input
+            accept="image/*"
+            style={{ display: 'none' }}
+            id="image-upload"
+            multiple
+            type="file"
+            onChange={handleImageSelect}
+          />
+          <label htmlFor="image-upload">
+            <Button
+              variant="outlined"
+              component="span"
+              startIcon={<ImageIcon />}
+              disabled={selectedImages.length >= 4}
+              sx={{ mb: 1 }}
+            >
+              Add Images ({selectedImages.length}/4)
+            </Button>
+          </label>
+
+          {selectedImages.length > 0 && (
+            <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
+              {selectedImages.map((file, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    position: 'relative',
+                    width: 80,
+                    height: 80,
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    mb: 1
+                  }}
+                >
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={`Preview ${index + 1}`}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                  <IconButton
+                    size="small"
+                    onClick={() => handleImageRemove(index)}
+                    sx={{
+                      position: 'absolute',
+                      top: 2,
+                      right: 2,
+                      bgcolor: 'rgba(0,0,0,0.6)',
+                      color: 'white',
+                      '&:hover': {
+                        bgcolor: 'rgba(0,0,0,0.8)'
+                      }
+                    }}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+            </Stack>
+          )}
+        </Box>
 
         {activeAccounts.length > 0 && (
           <FormControl sx={{ mb: 2 }} component="fieldset">
