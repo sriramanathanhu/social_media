@@ -162,14 +162,14 @@ const ComposePost: React.FC = () => {
     }
 
     // Platform-specific limits
-    const platformLimits = {
+    const platformLimits: Record<string, number> = {
       'mastodon': 500,
       'x': 280,
       'twitter': 280  // legacy support
     };
 
     // Use the most restrictive limit among selected platforms
-    const limits = selectedPlatforms.map(platform => platformLimits[platform] || 5000);
+    const limits = selectedPlatforms.map(platform => platformLimits[platform as string] || 5000);
     return Math.min(...limits);
   };
 
@@ -183,18 +183,19 @@ const ComposePost: React.FC = () => {
       return 'Select accounts to see character limits';
     }
 
-    const uniquePlatforms = [...new Set(selectedPlatforms)];
-    const platformLimits = {
+    const uniquePlatforms = Array.from(new Set(selectedPlatforms.filter(Boolean)));
+    const platformLimits: Record<string, number> = {
       'mastodon': 500,
       'x': 280,
       'twitter': 280
     };
 
     const limitTexts = uniquePlatforms.map(platform => {
+      if (!platform) return '';
       const limit = platformLimits[platform] || 5000;
       const platformName = platform === 'x' ? 'X' : platform.charAt(0).toUpperCase() + platform.slice(1);
       return `${platformName}: ${limit}`;
-    });
+    }).filter(Boolean);
 
     return `Character limits: ${limitTexts.join(', ')}`;
   };
