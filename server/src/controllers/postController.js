@@ -53,6 +53,11 @@ const createPost = async (req, res) => {
     
     console.log('Post data:', { content, targetAccountIds, mediaFilesCount: mediaFiles.length });
     
+    // Debug: Check what accounts the user has
+    const SocialAccount = require('../models/SocialAccount');
+    const userAccounts = await SocialAccount.findByUserId(req.user.id);
+    console.log('User accounts:', userAccounts);
+    
     if (!content || !content.trim()) {
       console.log('Content is empty');
       return res.status(400).json({ error: 'Content is required' });
