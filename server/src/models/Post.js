@@ -13,14 +13,6 @@ class Post {
     // Ensure targetAccounts is properly JSON stringified
     const targetAccountsJson = JSON.stringify(targetAccounts);
     
-    console.log('Creating post with:', {
-      userId,
-      content,
-      mediaUrls,
-      targetAccounts,
-      targetAccountsJson,
-      scheduledFor
-    });
     
     const result = await pool.query(
       `INSERT INTO posts 

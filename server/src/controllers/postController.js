@@ -20,13 +20,8 @@ const upload = multer({
 
 const createPost = async (req, res) => {
   try {
-    console.log('=== CREATE POST REQUEST ===');
-    console.log('Request method:', req.method);
-    console.log('Request headers:', req.headers);
+    console.log('Creating post for user:', req.user.id);
     console.log('Request body:', req.body);
-    console.log('Request files:', req.files);
-    console.log('User:', req.user);
-    console.log('Content-Type:', req.get('Content-Type'));
     
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -53,10 +48,6 @@ const createPost = async (req, res) => {
     
     console.log('Post data:', { content, targetAccountIds, mediaFilesCount: mediaFiles.length });
     
-    // Debug: Check what accounts the user has
-    const SocialAccount = require('../models/SocialAccount');
-    const userAccounts = await SocialAccount.findByUserId(req.user.id);
-    console.log('User accounts:', userAccounts);
     
     if (!content || !content.trim()) {
       console.log('Content is empty');
