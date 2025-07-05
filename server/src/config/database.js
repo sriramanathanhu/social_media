@@ -111,25 +111,43 @@ const initializeDatabase = async () => {
       await pool.query(`
         ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('admin', 'user'))
       `);
+      console.log('Added role column to users table');
     } catch (error) {
       console.log('Column role already exists or error adding:', error.message);
     }
 
     try {
       await pool.query(`
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected'))
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected'))
       `);
+      console.log('Added status column to users table');
     } catch (error) {
       console.log('Column status already exists or error adding:', error.message);
     }
 
+    // Update existing users who don't have role/status set
+    try {
+      await pool.query(`
+        UPDATE users 
+        SET role = 'user', status = 'approved', updated_at = CURRENT_TIMESTAMP 
+        WHERE role IS NULL OR status IS NULL
+      `);
+      console.log('Updated existing users with default role and status');
+    } catch (error) {
+      console.log('Error updating existing users:', error.message);
+    }
+
     // Ensure at least one admin user exists
     const adminCount = await pool.query('SELECT COUNT(*) FROM users WHERE role = $1', ['admin']);
+    console.log(`Admin users found: ${adminCount.rows[0].count}`);
+    
     if (parseInt(adminCount.rows[0].count) === 0) {
       console.log('No admin users found. Creating/promoting admin user...');
       
       // Check if any users exist
       const userCount = await pool.query('SELECT COUNT(*) FROM users');
+      console.log(`Total users found: ${userCount.rows[0].count}`);
+      
       if (parseInt(userCount.rows[0].count) === 0) {
         // Create first admin user
         const bcrypt = require('bcryptjs');
@@ -145,17 +163,28 @@ const initializeDatabase = async () => {
         console.log(`First admin user created: ${adminEmail}`);
       } else {
         // Promote first existing user to admin
-        const firstUser = await pool.query('SELECT id, email FROM users ORDER BY created_at ASC LIMIT 1');
+        const firstUser = await pool.query(`
+          SELECT id, email, role, status FROM users 
+          WHERE role IS NOT NULL AND status IS NOT NULL
+          ORDER BY created_at ASC 
+          LIMIT 1
+        `);
+        
         if (firstUser.rows.length > 0) {
-          await pool.query(`
+          const updateResult = await pool.query(`
             UPDATE users 
             SET role = 'admin', status = 'approved', updated_at = CURRENT_TIMESTAMP 
             WHERE id = $1
+            RETURNING id, email, role, status
           `, [firstUser.rows[0].id]);
           
-          console.log(`Promoted existing user to admin: ${firstUser.rows[0].email}`);
+          console.log(`Promoted existing user to admin:`, updateResult.rows[0]);
+        } else {
+          console.log('No valid users found to promote to admin');
         }
       }
+    } else {
+      console.log('Admin user(s) already exist');
     }
 
     console.log('Database tables initialized successfully');
