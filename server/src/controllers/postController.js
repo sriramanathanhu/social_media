@@ -20,13 +20,22 @@ const upload = multer({
 
 const createPost = async (req, res) => {
   try {
-    console.log('Create post request body:', req.body);
+    console.log('=== CREATE POST REQUEST ===');
+    console.log('Request method:', req.method);
+    console.log('Request headers:', req.headers);
+    console.log('Request body:', req.body);
+    console.log('Request files:', req.files);
     console.log('User:', req.user);
+    console.log('Content-Type:', req.get('Content-Type'));
     
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       console.log('Validation errors:', errors.array());
-      return res.status(400).json({ errors: errors.array() });
+      console.log('Detailed validation errors:', JSON.stringify(errors.array(), null, 2));
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: errors.array() 
+      });
     }
 
     let { content, targetAccountIds } = req.body;
