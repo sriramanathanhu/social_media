@@ -16,21 +16,56 @@ import {
   Avatar,
   IconButton,
   Stack,
+  Tabs,
+  Tab,
+  Divider,
 } from '@mui/material';
 import { 
   Send as SendIcon, 
   Image as ImageIcon, 
-  Close as CloseIcon 
+  Close as CloseIcon,
+  SelectAll as SelectAllIcon,
+  Clear as DeselectAllIcon
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { fetchAccounts } from '../store/slices/accountsSlice';
 import { createPost } from '../store/slices/postsSlice';
 
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`platform-tabpanel-${index}`}
+      aria-labelledby={`platform-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+    </div>
+  );
+}
+
+function a11yProps(index: number) {
+  return {
+    id: `platform-tab-${index}`,
+    'aria-controls': `platform-tabpanel-${index}`,
+  };
+}
+
 const ComposePost: React.FC = () => {
   const [content, setContent] = useState('');
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [tabValue, setTabValue] = useState(0);
   const dispatch = useDispatch<AppDispatch>();
   const { accounts, loading: accountsLoading } = useSelector((state: RootState) => state.accounts);
   const { publishing, error } = useSelector((state: RootState) => state.posts);
@@ -40,9 +75,21 @@ const ComposePost: React.FC = () => {
   }, [dispatch]);
 
   const activeAccounts = accounts.filter(account => account.status === 'active');
-  const supportedAccounts = activeAccounts.filter(account => 
-    account.platform === 'mastodon' || account.platform === 'x'
-  );
+  const mastodonAccounts = activeAccounts.filter(account => account.platform === 'mastodon');
+  const xAccounts = activeAccounts.filter(account => account.platform === 'x');
+  const allSupportedAccounts = [...mastodonAccounts, ...xAccounts];
+
+  const platforms = [
+    { name: 'All', accounts: allSupportedAccounts, count: allSupportedAccounts.length },
+    { name: 'Mastodon', accounts: mastodonAccounts, count: mastodonAccounts.length },
+    { name: 'X', accounts: xAccounts, count: xAccounts.length }
+  ];
+
+  const currentPlatformAccounts = platforms[tabValue]?.accounts || [];
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
 
   const handleAccountChange = (accountId: string) => {
     setSelectedAccounts(prev => 
@@ -51,6 +98,25 @@ const ComposePost: React.FC = () => {
         : [...prev, accountId]
     );
   };
+
+  const handleSelectAll = () => {
+    const currentAccountIds = currentPlatformAccounts.map(account => account.id);
+    const allSelected = currentAccountIds.every(id => selectedAccounts.includes(id));
+    
+    if (allSelected) {
+      // Deselect all current platform accounts
+      setSelectedAccounts(prev => prev.filter(id => !currentAccountIds.includes(id)));
+    } else {
+      // Select all current platform accounts
+      setSelectedAccounts(prev => {
+        const newIds = currentAccountIds.filter(id => !prev.includes(id));
+        return [...prev, ...newIds];
+      });
+    }
+  };
+
+  const areAllCurrentSelected = currentPlatformAccounts.length > 0 && 
+    currentPlatformAccounts.every(account => selectedAccounts.includes(account.id));
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -184,46 +250,80 @@ const ComposePost: React.FC = () => {
         </Box>
 
         {activeAccounts.length > 0 && (
-          <FormControl sx={{ mb: 2 }} component="fieldset">
-            <FormLabel component="legend">Select Accounts</FormLabel>
-            <FormGroup>
-              {supportedAccounts.map((account) => (
-                <FormControlLabel
-                  key={account.id}
-                  control={
-                    <Checkbox
-                      checked={selectedAccounts.includes(account.id)}
-                      onChange={() => handleAccountChange(account.id)}
-                    />
-                  }
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar
-                        src={account.avatar}
-                        alt={account.displayName || account.username}
-                        sx={{ width: 24, height: 24, mr: 1 }}
-                      >
-                        {(account.displayName || account.username).charAt(0).toUpperCase()}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body2">
-                          {account.displayName || account.username}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          @{account.username}
-                        </Typography>
-                      </Box>
-                      <Chip
-                        label={account.platform === 'mastodon' ? 'Mastodon' : 'X'}
-                        size="small"
-                        sx={{ ml: 1 }}
-                      />
-                    </Box>
-                  }
+          <Box sx={{ mb: 2 }}>
+            <FormLabel component="legend" sx={{ mb: 1 }}>Select Accounts</FormLabel>
+            
+            <Tabs value={tabValue} onChange={handleTabChange} aria-label="platform tabs">
+              {platforms.map((platform, index) => (
+                <Tab 
+                  key={platform.name}
+                  label={`${platform.name} (${platform.count})`}
+                  {...a11yProps(index)}
+                  disabled={platform.count === 0}
                 />
               ))}
-            </FormGroup>
-          </FormControl>
+            </Tabs>
+
+            {platforms.map((platform, index) => (
+              <TabPanel key={platform.name} value={tabValue} index={index}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    {selectedAccounts.filter(id => platform.accounts.some(acc => acc.id === id)).length} of {platform.count} selected
+                  </Typography>
+                  
+                  {platform.count > 0 && (
+                    <Button
+                      size="small"
+                      startIcon={areAllCurrentSelected ? <DeselectAllIcon /> : <SelectAllIcon />}
+                      onClick={handleSelectAll}
+                      variant="outlined"
+                    >
+                      {areAllCurrentSelected ? 'Deselect All' : 'Select All'}
+                    </Button>
+                  )}
+                </Box>
+
+                <FormGroup>
+                  {platform.accounts.map((account) => (
+                    <FormControlLabel
+                      key={account.id}
+                      control={
+                        <Checkbox
+                          checked={selectedAccounts.includes(account.id)}
+                          onChange={() => handleAccountChange(account.id)}
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Avatar
+                            src={account.avatar}
+                            alt={account.displayName || account.username}
+                            sx={{ width: 24, height: 24, mr: 1 }}
+                          >
+                            {(account.displayName || account.username).charAt(0).toUpperCase()}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2">
+                              {account.displayName || account.username}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              @{account.username}
+                            </Typography>
+                          </Box>
+                          <Chip
+                            label={account.platform === 'mastodon' ? 'Mastodon' : 'X'}
+                            size="small"
+                            sx={{ ml: 1 }}
+                            variant={tabValue === 0 ? "filled" : "outlined"}
+                          />
+                        </Box>
+                      }
+                    />
+                  ))}
+                </FormGroup>
+              </TabPanel>
+            ))}
+          </Box>
         )}
 
         {activeAccounts.length === 0 && !accountsLoading && (
