@@ -65,6 +65,7 @@ const verifyAccount = async (req, res) => {
 
     if (account.platform === 'mastodon') {
       try {
+        console.log('Verifying account:', id, 'for user:', req.user.id);
         const decryptedToken = mastodonService.decrypt(account.access_token);
         const userInfo = await mastodonService.verifyCredentials(
           account.instance_url,
@@ -84,10 +85,11 @@ const verifyAccount = async (req, res) => {
           }
         });
       } catch (error) {
+        console.error('Account verification failed for account:', id, 'Error:', error.message);
         await SocialAccount.updateStatus(id, 'error');
         res.status(400).json({ 
           verified: false, 
-          error: 'Account verification failed' 
+          error: 'Account verification failed: ' + error.message 
         });
       }
     } else {

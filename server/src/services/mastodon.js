@@ -18,13 +18,39 @@ class MastodonService {
   }
 
   decrypt(encryptedData) {
-    const [ivHex, encrypted] = encryptedData.split(':');
-    const iv = Buffer.from(ivHex, 'hex');
-    const key = crypto.createHash('sha256').update(this.secretKey).digest();
-    const decipher = crypto.createDecipheriv(this.algorithm, key, iv);
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
+    try {
+      console.log('Decrypting data:', encryptedData ? encryptedData.substring(0, 50) + '...' : 'null/undefined');
+      
+      if (!encryptedData) {
+        throw new Error('No encrypted data provided');
+      }
+      
+      if (!encryptedData.includes(':')) {
+        throw new Error('Invalid encrypted data format - missing colon separator');
+      }
+      
+      const [ivHex, encrypted] = encryptedData.split(':');
+      
+      if (!ivHex || !encrypted) {
+        throw new Error('Invalid encrypted data format - missing IV or encrypted data');
+      }
+      
+      console.log('IV hex length:', ivHex.length);
+      console.log('Encrypted data length:', encrypted.length);
+      
+      const iv = Buffer.from(ivHex, 'hex');
+      const key = crypto.createHash('sha256').update(this.secretKey).digest();
+      const decipher = crypto.createDecipheriv(this.algorithm, key, iv);
+      let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      
+      console.log('Decryption successful');
+      return decrypted;
+    } catch (error) {
+      console.error('Decryption error:', error.message);
+      console.error('Encrypted data format:', encryptedData);
+      throw error;
+    }
   }
 
   async createApp(instanceUrl) {
