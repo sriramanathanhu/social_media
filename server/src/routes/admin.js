@@ -4,28 +4,6 @@ const auth = require('../middleware/auth');
 
 const router = express.Router();
 
-// Emergency approval endpoint - REMOVE IN PRODUCTION
-router.post('/emergency-approve', async (req, res) => {
-  try {
-    const User = require('../models/User');
-    
-    // Get all pending users
-    const pool = require('../config/database');
-    const result = await pool.query(
-      'UPDATE users SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE status = $2 RETURNING id, email, status',
-      ['approved', 'pending']
-    );
-    
-    res.json({ 
-      message: `Approved ${result.rows.length} users`, 
-      approvedUsers: result.rows 
-    });
-  } catch (error) {
-    console.error('Emergency approval error:', error);
-    res.status(500).json({ error: 'Failed to approve users' });
-  }
-});
-
 // All admin routes require authentication and admin privileges
 router.use(auth);
 router.use(adminController.isAdmin);
