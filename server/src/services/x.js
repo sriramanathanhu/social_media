@@ -21,7 +21,9 @@ class XService {
   async getCredentials() {
     // Try database first, fallback to environment variables
     const dbCredentials = await ApiCredentials.findByPlatform('x');
+    console.log('DB Credentials found:', dbCredentials ? 'YES' : 'NO');
     if (dbCredentials) {
+      console.log('Using DB credentials - Client ID:', dbCredentials.client_id);
       return {
         clientId: dbCredentials.client_id,
         clientSecret: dbCredentials.client_secret
@@ -31,7 +33,9 @@ class XService {
     // Fallback to environment variables
     const envClientId = process.env.X_CLIENT_ID;
     const envClientSecret = process.env.X_CLIENT_SECRET;
+    console.log('ENV Credentials found:', envClientId ? 'YES' : 'NO');
     if (envClientId && envClientSecret) {
+      console.log('Using ENV credentials - Client ID:', envClientId);
       return {
         clientId: envClientId,
         clientSecret: envClientSecret
