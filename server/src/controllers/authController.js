@@ -199,6 +199,13 @@ const mastodonCallback = async (req, res) => {
       accessToken
     );
 
+    console.log('Searching for existing account with:', {
+      userId: oauthState.user_id,
+      platform: 'mastodon',
+      instanceUrl: oauthState.instance_url,
+      username: userInfo.username
+    });
+
     const existingAccount = await SocialAccount.findByPlatformUserAndUsername(
       oauthState.user_id,
       'mastodon',
@@ -206,7 +213,7 @@ const mastodonCallback = async (req, res) => {
       userInfo.username
     );
 
-    console.log('Existing account check:', existingAccount);
+    console.log('Existing account check result:', existingAccount);
     console.log('User info from Mastodon:', userInfo);
 
     if (existingAccount.length > 0) {
