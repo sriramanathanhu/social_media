@@ -40,7 +40,9 @@ const ComposePost: React.FC = () => {
   }, [dispatch]);
 
   const activeAccounts = accounts.filter(account => account.status === 'active');
-  const mastodonAccounts = activeAccounts.filter(account => account.platform === 'mastodon');
+  const supportedAccounts = activeAccounts.filter(account => 
+    account.platform === 'mastodon' || account.platform === 'x'
+  );
 
   const handleAccountChange = (accountId: string) => {
     setSelectedAccounts(prev => 
@@ -185,7 +187,7 @@ const ComposePost: React.FC = () => {
           <FormControl sx={{ mb: 2 }} component="fieldset">
             <FormLabel component="legend">Select Accounts</FormLabel>
             <FormGroup>
-              {mastodonAccounts.map((account) => (
+              {supportedAccounts.map((account) => (
                 <FormControlLabel
                   key={account.id}
                   control={
@@ -212,7 +214,7 @@ const ComposePost: React.FC = () => {
                         </Typography>
                       </Box>
                       <Chip
-                        label="Mastodon"
+                        label={account.platform === 'mastodon' ? 'Mastodon' : 'X'}
                         size="small"
                         sx={{ ml: 1 }}
                       />
