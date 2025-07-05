@@ -106,13 +106,19 @@ class XService {
       response_type: 'code',
       client_id: credentials.clientId,
       redirect_uri: this.redirectUri,
-      scope: 'tweet.read tweet.write users.read offline.access',
+      scope: 'tweet.read tweet.write users.read',
       state: state,
       code_challenge: pkceChallenge,
       code_challenge_method: 'S256'
     });
 
-    return `${this.oauthBaseUrl}/authorize?${params.toString()}`;
+    const authUrl = `${this.oauthBaseUrl}/authorize?${params.toString()}`;
+    console.log('Generated X OAuth URL:', authUrl);
+    console.log('Redirect URI:', this.redirectUri);
+    console.log('Client ID:', credentials.clientId);
+    console.log('PKCE Challenge:', pkceChallenge);
+    
+    return authUrl;
   }
 
   // Exchange authorization code for access token
