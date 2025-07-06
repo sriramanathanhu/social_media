@@ -231,6 +231,13 @@ class XService {
   // Post tweet using v2 API
   async postTweet(accessToken, content, mediaIds = [], postType = 'text') {
     try {
+      console.log('Posting tweet to X:', {
+        content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+        mediaIds,
+        postType,
+        tokenLength: accessToken ? accessToken.length : 0
+      });
+
       const tweetData = {
         text: content
       };
@@ -241,6 +248,8 @@ class XService {
         };
       }
 
+      console.log('Sending tweet data:', JSON.stringify(tweetData, null, 2));
+
       const response = await axios.post(`${this.v2BaseUrl}/tweets`, tweetData, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -248,18 +257,30 @@ class XService {
         }
       });
 
+      console.log('X tweet posted successfully:', response.data.data.id);
+
       return {
         id: response.data.data.id,
         text: response.data.data.text,
         created_at: new Date().toISOString()
       };
     } catch (error) {
-      console.error('X post tweet error:', error.response?.data || error.message);
-      throw new Error(`Failed to post X tweet: ${error.message}`);
+      console.error('X post tweet error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      const errorMessage = error.response?.data?.errors?.[0]?.message || 
+                          error.response?.data?.detail || 
+                          error.message;
+      
+      throw new Error(`Failed to post X tweet: ${errorMessage}`);
     }
   }
 
-  // Upload media using v1.1 API
+  // Upload media using v1.1 API (simple approach)
   async uploadMedia(accessToken, mediaFile, isVideo = false) {
     try {
       console.log('Uploading media to X:', {
@@ -269,43 +290,30 @@ class XService {
         isVideo
       });
 
-      const mediaBuffer = mediaFile.buffer;
-      const mediaType = mediaFile.mimetype;
-      const mediaSize = mediaBuffer.length;
+      // Use simple upload for all files first
+      const formData = new FormData();
+      formData.append('media', mediaFile.buffer, {
+        filename: mediaFile.originalname,
+        contentType: mediaFile.mimetype
+      });
 
-      // For small files (images under 5MB), use simple upload
-      if (!isVideo && mediaSize < 5 * 1024 * 1024) {
-        return await this.uploadMediaSimple(accessToken, mediaFile);
-      }
+      const response = await axios.post(`${this.v1BaseUrl}/media/upload.json`, formData, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          ...formData.getHeaders()
+        }
+      });
 
-      // For large files or videos, use chunked upload
-      return await this.uploadMediaChunked(accessToken, mediaFile, isVideo);
+      console.log('X media uploaded successfully, ID:', response.data.media_id_string);
+      return response.data.media_id_string;
     } catch (error) {
       console.error('X media upload error:', error.response?.data || error.message);
-      throw new Error(`Failed to upload X media: ${error.message}`);
+      // If simple upload fails, try without media for debugging
+      throw new Error(`Failed to upload X media: ${error.response?.data?.errors?.[0]?.message || error.message}`);
     }
   }
 
-  // Simple media upload for images
-  async uploadMediaSimple(accessToken, mediaFile) {
-    const formData = new FormData();
-    formData.append('media', mediaFile.buffer, {
-      filename: mediaFile.originalname,
-      contentType: mediaFile.mimetype
-    });
-
-    const response = await axios.post(`${this.v1BaseUrl}/media/upload.json`, formData, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        ...formData.getHeaders()
-      }
-    });
-
-    console.log('X media uploaded successfully (simple), ID:', response.data.media_id_string);
-    return response.data.media_id_string;
-  }
-
-  // Chunked upload for large files/videos
+  // Chunked upload for large files/videos (backup method)
   async uploadMediaChunked(accessToken, mediaFile, isVideo = false) {
     const mediaBuffer = mediaFile.buffer;
     const mediaType = mediaFile.mimetype;

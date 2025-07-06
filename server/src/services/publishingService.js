@@ -140,15 +140,23 @@ class PublishingService {
     const decryptedToken = xService.decrypt(account.access_token);
     
     let mediaIds = [];
+    
+    // Temporarily disable media upload to test text posts
     if (mediaFiles.length > 0) {
-      for (const mediaFile of mediaFiles) {
-        const isVideo = mediaFile.mimetype?.startsWith('video/') || postType === 'video' || postType === 'reel';
-        const mediaId = await xService.uploadMedia(
-          decryptedToken,
-          mediaFile,
-          isVideo
-        );
-        mediaIds.push(mediaId);
+      try {
+        for (const mediaFile of mediaFiles) {
+          const isVideo = mediaFile.mimetype?.startsWith('video/') || postType === 'video' || postType === 'reel';
+          const mediaId = await xService.uploadMedia(
+            decryptedToken,
+            mediaFile,
+            isVideo
+          );
+          mediaIds.push(mediaId);
+        }
+      } catch (error) {
+        console.error('X media upload failed, posting text only:', error.message);
+        // Continue with text-only post if media upload fails
+        mediaIds = [];
       }
     }
 
