@@ -27,6 +27,47 @@ router.get('/mastodon/callback', authController.mastodonCallback); // No auth mi
 router.post('/x/connect', auth, authController.connectX);
 router.get('/x/callback', authController.xCallback); // No auth middleware for OAuth callback
 
+// Debug route to check X accounts
+router.get('/debug/x-accounts', auth, async (req, res) => {
+  try {
+    const SocialAccount = require('../models/SocialAccount');
+    const pool = require('../config/database');
+    
+    // Get all accounts for this user
+    const allAccounts = await SocialAccount.findByUserId(req.user.id);
+    
+    // Get X accounts specifically
+    const xAccounts = allAccounts.filter(acc => acc.platform === 'x');
+    
+    // Check database directly for X accounts
+    const dbResult = await pool.query(
+      `SELECT id, user_id, platform, username, display_name, status, created_at,
+              CASE WHEN access_token IS NOT NULL THEN 'has_token' ELSE 'no_token' END as token_status
+       FROM social_accounts 
+       WHERE user_id = $1 AND platform = 'x'`,
+      [req.user.id]
+    );
+    
+    res.json({
+      userId: req.user.id,
+      totalAccounts: allAccounts.length,
+      xAccountsFiltered: xAccounts.length,
+      xAccountsFromDB: dbResult.rows.length,
+      allAccountsPlatforms: allAccounts.map(acc => acc.platform),
+      xAccountsDetails: xAccounts.map(acc => ({
+        id: acc.id,
+        username: acc.username,
+        status: acc.status,
+        hasToken: !!acc.access_token
+      })),
+      xAccountsFromDB: dbResult.rows
+    });
+  } catch (error) {
+    console.error('X accounts debug error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Debug route to test X posting
 router.post('/debug/test-x-post', auth, async (req, res) => {
   try {

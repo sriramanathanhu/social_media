@@ -29,6 +29,7 @@ class SocialAccount {
   }
 
   static async findByUserId(userId) {
+    console.log('SocialAccount.findByUserId called with userId:', userId);
     const result = await pool.query(
       `SELECT id, user_id, platform, instance_url, username, display_name, 
               avatar_url, status, last_used, created_at 
@@ -38,6 +39,8 @@ class SocialAccount {
       [userId]
     );
 
+    console.log('findByUserId result:', result.rows.length, 'rows');
+    console.log('Account platforms found:', result.rows.map(row => `${row.platform}:${row.username}`));
     return result.rows;
   }
 
