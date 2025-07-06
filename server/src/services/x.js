@@ -274,6 +274,15 @@ class XService {
         message: error.message
       });
       
+      // Handle rate limiting specifically
+      if (error.response?.status === 429) {
+        const resetTime = error.response?.headers?.['x-rate-limit-reset'];
+        const retryAfter = error.response?.headers?.['retry-after'];
+        const waitTime = retryAfter || (resetTime ? Math.max(0, resetTime - Math.floor(Date.now() / 1000)) : 900); // 15 min default
+        
+        throw new Error(`X rate limit exceeded. Please wait ${Math.ceil(waitTime / 60)} minutes before posting again.`);
+      }
+      
       const errorMessage = error.response?.data?.errors?.[0]?.message || 
                           error.response?.data?.detail || 
                           error.message;

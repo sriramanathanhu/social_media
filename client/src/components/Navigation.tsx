@@ -49,12 +49,26 @@ const Navigation: React.FC = () => {
     console.log('Navigation - User role:', user?.role);
     console.log('Navigation - Is admin:', user?.role === 'admin');
     
-    // Force token validation if user is missing role data
-    if (!user?.role && localStorage.getItem('token')) {
-      console.log('User missing role data, forcing token validation');
+    // Force token validation if user is missing role data or on every refresh
+    const token = localStorage.getItem('token');
+    if (token && (!user?.role || !user?.id)) {
+      console.log('User missing role/id data, forcing token validation');
       dispatch(validateToken());
     }
   }, [user, dispatch]);
+
+  // Additional useEffect to handle page refresh and ensure admin role persists
+  React.useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && localStorage.getItem('token')) {
+        console.log('Page became visible, refreshing user data');
+        dispatch(validateToken());
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [dispatch]);
 
   const menuItems = [
     { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
