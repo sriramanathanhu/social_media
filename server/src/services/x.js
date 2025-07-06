@@ -259,7 +259,7 @@ class XService {
     }
   }
 
-  // Upload media using v1.1 API (chunked upload)
+  // Upload media using v1.1 API
   async uploadMedia(accessToken, mediaFile, isVideo = false) {
     try {
       console.log('Uploading media to X:', {
@@ -273,71 +273,105 @@ class XService {
       const mediaType = mediaFile.mimetype;
       const mediaSize = mediaBuffer.length;
 
-      // Step 1: Initialize upload
-      const initParams = new URLSearchParams({
-        command: 'INIT',
-        media_type: mediaType,
-        total_bytes: mediaSize.toString()
-      });
-
-      const initResponse = await axios.post(`${this.v1BaseUrl}/media/upload.json`, initParams, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
-
-      const mediaId = initResponse.data.media_id_string;
-      console.log('X media upload initialized, ID:', mediaId);
-
-      // Step 2: Upload media in chunks
-      const chunkSize = 5 * 1024 * 1024; // 5MB chunks
-      let segmentIndex = 0;
-
-      for (let start = 0; start < mediaSize; start += chunkSize) {
-        const end = Math.min(start + chunkSize, mediaSize);
-        const chunk = mediaBuffer.slice(start, end);
-
-        const formData = new FormData();
-        formData.append('command', 'APPEND');
-        formData.append('media_id', mediaId);
-        formData.append('segment_index', segmentIndex);
-        formData.append('media', chunk);
-
-        await axios.post(`${this.v1BaseUrl}/media/upload.json`, formData, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            ...formData.getHeaders()
-          }
-        });
-
-        segmentIndex++;
+      // For small files (images under 5MB), use simple upload
+      if (!isVideo && mediaSize < 5 * 1024 * 1024) {
+        return await this.uploadMediaSimple(accessToken, mediaFile);
       }
 
-      // Step 3: Finalize upload
-      const finalizeParams = new URLSearchParams({
-        command: 'FINALIZE',
-        media_id: mediaId
-      });
-
-      const finalizeResponse = await axios.post(`${this.v1BaseUrl}/media/upload.json`, finalizeParams, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
-
-      // Check if processing is required
-      if (finalizeResponse.data.processing_info) {
-        await this.waitForProcessing(accessToken, mediaId);
-      }
-
-      console.log('X media uploaded successfully, ID:', mediaId);
-      return mediaId;
+      // For large files or videos, use chunked upload
+      return await this.uploadMediaChunked(accessToken, mediaFile, isVideo);
     } catch (error) {
       console.error('X media upload error:', error.response?.data || error.message);
       throw new Error(`Failed to upload X media: ${error.message}`);
     }
+  }
+
+  // Simple media upload for images
+  async uploadMediaSimple(accessToken, mediaFile) {
+    const formData = new FormData();
+    formData.append('media', mediaFile.buffer, {
+      filename: mediaFile.originalname,
+      contentType: mediaFile.mimetype
+    });
+
+    const response = await axios.post(`${this.v1BaseUrl}/media/upload.json`, formData, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        ...formData.getHeaders()
+      }
+    });
+
+    console.log('X media uploaded successfully (simple), ID:', response.data.media_id_string);
+    return response.data.media_id_string;
+  }
+
+  // Chunked upload for large files/videos
+  async uploadMediaChunked(accessToken, mediaFile, isVideo = false) {
+    const mediaBuffer = mediaFile.buffer;
+    const mediaType = mediaFile.mimetype;
+    const mediaSize = mediaBuffer.length;
+
+    // Step 1: Initialize upload
+    const initParams = new URLSearchParams({
+      command: 'INIT',
+      media_type: mediaType,
+      total_bytes: mediaSize.toString()
+    });
+
+    const initResponse = await axios.post(`${this.v1BaseUrl}/media/upload.json`, initParams, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    const mediaId = initResponse.data.media_id_string;
+    console.log('X media upload initialized, ID:', mediaId);
+
+    // Step 2: Upload media in chunks
+    const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+    let segmentIndex = 0;
+
+    for (let start = 0; start < mediaSize; start += chunkSize) {
+      const end = Math.min(start + chunkSize, mediaSize);
+      const chunk = mediaBuffer.slice(start, end);
+
+      const formData = new FormData();
+      formData.append('command', 'APPEND');
+      formData.append('media_id', mediaId);
+      formData.append('segment_index', segmentIndex);
+      formData.append('media', chunk);
+
+      await axios.post(`${this.v1BaseUrl}/media/upload.json`, formData, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          ...formData.getHeaders()
+        }
+      });
+
+      segmentIndex++;
+    }
+
+    // Step 3: Finalize upload
+    const finalizeParams = new URLSearchParams({
+      command: 'FINALIZE',
+      media_id: mediaId
+    });
+
+    const finalizeResponse = await axios.post(`${this.v1BaseUrl}/media/upload.json`, finalizeParams, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    // Check if processing is required
+    if (finalizeResponse.data.processing_info) {
+      await this.waitForProcessing(accessToken, mediaId);
+    }
+
+    console.log('X media uploaded successfully (chunked), ID:', mediaId);
+    return mediaId;
   }
 
   // Wait for media processing to complete

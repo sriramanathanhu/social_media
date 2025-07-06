@@ -19,5 +19,6 @@ router.post('/api-credentials/test', adminController.testApiCredentials);
 router.get('/users', adminController.getAllUsers);
 router.put('/users/:userId/status', adminController.updateUserStatus);
 router.put('/users/:userId/make-admin', adminController.makeAdmin);
+router.put('/users/:userId/remove-admin', adminController.removeAdmin);
 
 module.exports = router;

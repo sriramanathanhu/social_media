@@ -177,6 +177,27 @@ const makeAdmin = async (req, res) => {
   }
 };
 
+const removeAdmin = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Prevent removing admin from yourself
+    if (userId === req.user.id) {
+      return res.status(403).json({ error: 'Cannot remove admin privileges from yourself' });
+    }
+
+    const user = await User.removeAdmin(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ message: 'Admin privileges removed successfully', user });
+  } catch (error) {
+    console.error('Remove admin error:', error);
+    res.status(500).json({ error: 'Failed to remove admin privileges' });
+  }
+};
+
 const addApiCredentialsValidation = [
   body('platform')
     .isIn(['x', 'twitter'])
@@ -199,5 +220,6 @@ module.exports = {
   getAllUsers,
   updateUserStatus,
   makeAdmin,
+  removeAdmin,
   addApiCredentialsValidation
 };

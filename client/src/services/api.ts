@@ -113,6 +113,9 @@ export const adminApi = {
   
   makeAdmin: (userId: string) =>
     api.put(`/admin/users/${userId}/make-admin`),
+  
+  removeAdmin: (userId: string) =>
+    api.put(`/admin/users/${userId}/remove-admin`),
 };
 
 export const groupsAPI = {

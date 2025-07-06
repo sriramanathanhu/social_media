@@ -28,7 +28,9 @@ import {
   MoreVert,
   PersonAdd,
   Delete,
-  AdminPanelSettings
+  AdminPanelSettings,
+  PersonRemove,
+  Block
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
@@ -40,7 +42,7 @@ const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [actionType, setActionType] = useState<'approve' | 'reject' | 'makeAdmin' | 'delete' | null>(null);
+  const [actionType, setActionType] = useState<'approve' | 'reject' | 'makeAdmin' | 'removeAdmin' | 'suspend' | 'delete' | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuUser, setMenuUser] = useState<User | null>(null);
@@ -77,6 +79,12 @@ const UserManagement: React.FC = () => {
           break;
         case 'makeAdmin':
           await adminApi.makeAdmin(selectedUser.id);
+          break;
+        case 'removeAdmin':
+          await adminApi.removeAdmin(selectedUser.id);
+          break;
+        case 'suspend':
+          await adminApi.updateUserStatus(selectedUser.id, 'rejected');
           break;
         case 'delete':
           // Delete user endpoint would need to be implemented
@@ -118,6 +126,8 @@ const UserManagement: React.FC = () => {
       case 'approve': return 'approve';
       case 'reject': return 'reject';
       case 'makeAdmin': return 'promote to admin';
+      case 'removeAdmin': return 'remove admin privileges';
+      case 'suspend': return 'suspend';
       case 'delete': return 'delete';
       default: return '';
     }
@@ -261,11 +271,33 @@ const UserManagement: React.FC = () => {
           setMenuUser(null);
         }}
       >
-        {menuUser && menuUser.role !== 'admin' && (
-          <MenuItem onClick={() => openActionDialog(menuUser, 'makeAdmin')}>
-            <AdminPanelSettings sx={{ mr: 1 }} />
-            Make Admin
-          </MenuItem>
+        {menuUser && (
+          <>
+            {menuUser.role !== 'admin' && (
+              <MenuItem onClick={() => openActionDialog(menuUser, 'makeAdmin')}>
+                <AdminPanelSettings sx={{ mr: 1 }} />
+                Make Admin
+              </MenuItem>
+            )}
+            {menuUser.role === 'admin' && menuUser.id !== user?.id && (
+              <MenuItem onClick={() => openActionDialog(menuUser, 'removeAdmin')}>
+                <PersonRemove sx={{ mr: 1 }} />
+                Remove Admin
+              </MenuItem>
+            )}
+            {menuUser.status === 'approved' && (
+              <MenuItem onClick={() => openActionDialog(menuUser, 'suspend')}>
+                <Block sx={{ mr: 1 }} />
+                Suspend User
+              </MenuItem>
+            )}
+            {menuUser.status === 'rejected' && (
+              <MenuItem onClick={() => openActionDialog(menuUser, 'approve')}>
+                <CheckCircle sx={{ mr: 1 }} />
+                Reactivate User
+              </MenuItem>
+            )}
+          </>
         )}
       </Menu>
     </Box>

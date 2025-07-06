@@ -57,6 +57,15 @@ class User {
     return result.rows[0];
   }
 
+  static async removeAdmin(userId) {
+    const result = await pool.query(
+      'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, email, role, status',
+      ['user', userId]
+    );
+    
+    return result.rows[0];
+  }
+
   static async verifyPassword(plainPassword, hashedPassword) {
     return await bcrypt.compare(plainPassword, hashedPassword);
   }
