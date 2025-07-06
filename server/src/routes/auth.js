@@ -75,20 +75,29 @@ router.get('/x-api-status', auth, async (req, res) => {
     let monthlyUsage = 0;
     
     if (xAccounts.length > 0) {
+      const xAccountIds = xAccounts.map(acc => acc.id);
+      
+      // Use JSONB operator to check if any of the account IDs exist in the target_accounts array
       const dailyPosts = await pool.query(
         `SELECT COUNT(*) as count FROM posts 
          WHERE user_id = $1 AND status = 'published' 
          AND published_at >= $2
-         AND target_accounts && $3::integer[]`,
-        [req.user.id, startOfDay, xAccounts.map(acc => acc.id)]
+         AND EXISTS (
+           SELECT 1 FROM jsonb_array_elements(target_accounts) AS elem
+           WHERE elem::text::int = ANY($3::int[])
+         )`,
+        [req.user.id, startOfDay, xAccountIds]
       );
       
       const monthlyPosts = await pool.query(
         `SELECT COUNT(*) as count FROM posts 
          WHERE user_id = $1 AND status = 'published' 
          AND published_at >= $2
-         AND target_accounts && $3::integer[]`,
-        [req.user.id, startOfMonth, xAccounts.map(acc => acc.id)]
+         AND EXISTS (
+           SELECT 1 FROM jsonb_array_elements(target_accounts) AS elem
+           WHERE elem::text::int = ANY($3::int[])
+         )`,
+        [req.user.id, startOfMonth, xAccountIds]
       );
       
       dailyUsage = parseInt(dailyPosts.rows[0]?.count || 0);
