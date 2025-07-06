@@ -502,6 +502,49 @@ const connectPinterest = async (req, res) => {
   try {
     console.log('Connecting Pinterest account for user:', req.user.id);
     
+    // Check if using direct access token
+    const credentials = await pinterestService.getCredentials();
+    if (credentials.direct && credentials.accessToken) {
+      console.log('Using direct access token, creating account directly');
+      
+      // Use the access token directly to get user info
+      const userInfo = await pinterestService.getUserInfo(credentials.accessToken);
+      
+      // Create or update Pinterest account
+      const pinterestAccount = await SocialAccount.create(
+        req.user.id,
+        'pinterest',
+        userInfo.username,
+        userInfo.username,
+        null, // No instance URL for Pinterest
+        JSON.stringify({
+          id: userInfo.id,
+          username: userInfo.username,
+          display_name: userInfo.display_name || userInfo.username,
+          profile_image: userInfo.profile_image,
+          follower_count: userInfo.follower_count,
+          following_count: userInfo.following_count,
+          board_count: userInfo.board_count,
+          pin_count: userInfo.pin_count
+        }),
+        pinterestService.encrypt(credentials.accessToken)
+      );
+      
+      console.log('Pinterest account created/updated:', pinterestAccount.account_id);
+      
+      return res.json({
+        success: true,
+        message: 'Pinterest account connected successfully',
+        account: {
+          id: pinterestAccount.id,
+          platform: 'pinterest',
+          username: pinterestAccount.username,
+          status: 'active'
+        }
+      });
+    }
+    
+    // Standard OAuth flow
     // Create state data
     const stateData = {
       random: crypto.randomBytes(16).toString('hex'),

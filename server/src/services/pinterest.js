@@ -29,12 +29,25 @@ class PinterestService {
       };
     }
 
-    // Fallback to environment variables
-    const envClientId = process.env.PINTEREST_CLIENT_ID;
+    // Fallback to environment variables - support both OAuth and direct access token
+    const envClientId = process.env.PINTEREST_CLIENT_ID || process.env.PINTEREST_APP_ID;
     const envClientSecret = process.env.PINTEREST_CLIENT_SECRET;
-    console.log('ENV Credentials found:', envClientId ? 'YES' : 'NO');
+    const envAccessToken = process.env.PINTEREST_ACCESS_TOKEN;
+    
+    console.log('ENV OAuth Credentials found:', envClientId && envClientSecret ? 'YES' : 'NO');
+    console.log('ENV Access Token found:', envAccessToken ? 'YES' : 'NO');
+    
+    if (envAccessToken) {
+      console.log('Using direct access token - App ID:', envClientId);
+      return {
+        clientId: envClientId,
+        accessToken: envAccessToken,
+        direct: true
+      };
+    }
+    
     if (envClientId && envClientSecret) {
-      console.log('Using ENV credentials - Client ID:', envClientId);
+      console.log('Using ENV OAuth credentials - Client ID:', envClientId);
       return {
         clientId: envClientId,
         clientSecret: envClientSecret
@@ -91,7 +104,13 @@ class PinterestService {
   // Generate OAuth URL for Pinterest authorization
   async generateAuthUrl(state) {
     try {
-      const { clientId } = await this.getCredentials();
+      const credentials = await this.getCredentials();
+      
+      // If using direct access token, skip OAuth flow
+      if (credentials.direct && credentials.accessToken) {
+        console.log('Using direct access token, skipping OAuth URL generation');
+        return null; // Signal that we should use direct access
+      }
       
       const scopes = [
         'boards:read',
@@ -102,7 +121,7 @@ class PinterestService {
       ].join(',');
 
       const params = new URLSearchParams({
-        client_id: clientId,
+        client_id: credentials.clientId,
         redirect_uri: this.redirectUri,
         scope: scopes,
         response_type: 'code',
@@ -185,6 +204,11 @@ class PinterestService {
       throw new Error('Failed to get user profile: ' + 
         (error.response?.data?.message || error.message));
     }
+  }
+
+  // Alias for getUserProfile for consistency
+  async getUserInfo(accessToken) {
+    return this.getUserProfile(accessToken);
   }
 
   // Get user's boards
