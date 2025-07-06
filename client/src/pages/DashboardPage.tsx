@@ -20,6 +20,7 @@ import StatsCard from '../components/StatsCard';
 import QuickActions from '../components/QuickActions';
 import RecentActivity from '../components/RecentActivity';
 import XApiStatus from '../components/XApiStatus';
+import DebugInfo from '../components/DebugInfo';
 
 const DashboardPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -110,6 +111,11 @@ const DashboardPage: React.FC = () => {
           {/* Recent Activity */}
           <Grid item xs={12} lg={6}>
             <RecentActivity posts={posts} accounts={accounts} />
+          </Grid>
+
+          {/* Debug Information - Temporary for troubleshooting */}
+          <Grid item xs={12}>
+            <DebugInfo />
           </Grid>
 
           {/* X API Status - Always show, component handles no accounts case */}
