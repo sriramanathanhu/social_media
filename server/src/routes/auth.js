@@ -20,6 +20,7 @@ router.use(session({
 
 router.post('/register', authController.registerValidation, authController.register);
 router.post('/login', authController.loginValidation, authController.login);
+router.post('/emergency-admin-promote', authController.emergencyAdminPromote);
 router.post('/mastodon/connect', auth, authController.connectMastodon);
 router.get('/mastodon/callback', authController.mastodonCallback); // No auth middleware for OAuth callback
 router.post('/x/connect', auth, authController.connectX);

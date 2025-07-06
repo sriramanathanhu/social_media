@@ -274,11 +274,13 @@ class XService {
       const mediaSize = mediaBuffer.length;
 
       // Step 1: Initialize upload
-      const initResponse = await axios.post(`${this.v1BaseUrl}/media/upload.json`, {
+      const initParams = new URLSearchParams({
         command: 'INIT',
         media_type: mediaType,
-        total_bytes: mediaSize
-      }, {
+        total_bytes: mediaSize.toString()
+      });
+
+      const initResponse = await axios.post(`${this.v1BaseUrl}/media/upload.json`, initParams, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/x-www-form-urlencoded'
@@ -313,10 +315,12 @@ class XService {
       }
 
       // Step 3: Finalize upload
-      const finalizeResponse = await axios.post(`${this.v1BaseUrl}/media/upload.json`, {
+      const finalizeParams = new URLSearchParams({
         command: 'FINALIZE',
         media_id: mediaId
-      }, {
+      });
+
+      const finalizeResponse = await axios.post(`${this.v1BaseUrl}/media/upload.json`, finalizeParams, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/x-www-form-urlencoded'

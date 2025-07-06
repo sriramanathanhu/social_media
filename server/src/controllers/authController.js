@@ -444,6 +444,37 @@ const loginValidation = [
   body('password').notEmpty().withMessage('Password is required')
 ];
 
+// Emergency admin promotion (one-time use with specific email)
+const emergencyAdminPromote = async (req, res) => {
+  try {
+    const { email, secret } = req.body;
+    
+    // Only allow promotion for your specific email
+    if (email !== 'sri.ramanatha@uskfoundation.or.ke') {
+      return res.status(403).json({ error: 'Unauthorized email' });
+    }
+    
+    // Simple secret check (you can use any value you want)
+    if (secret !== 'promote-admin-2025') {
+      return res.status(403).json({ error: 'Invalid secret' });
+    }
+    
+    const user = await User.findByEmail(email);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    await User.updateRole(user.id, 'admin');
+    await User.updateStatus(user.id, 'approved');
+    
+    console.log(`🚀 Emergency admin promotion for ${email} completed`);
+    res.json({ message: 'Admin promotion successful', user: { email, role: 'admin' } });
+  } catch (error) {
+    console.error('Emergency admin promotion error:', error);
+    res.status(500).json({ error: 'Admin promotion failed' });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -452,5 +483,6 @@ module.exports = {
   connectX,
   xCallback,
   registerValidation,
-  loginValidation
+  loginValidation,
+  emergencyAdminPromote
 };
