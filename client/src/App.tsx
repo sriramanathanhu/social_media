@@ -11,6 +11,7 @@ import ComposePage from './pages/ComposePage';
 import PostsPage from './pages/PostsPage';
 import SettingsPage from './pages/SettingsPage';
 import UserManagement from './pages/UserManagement';
+import XApiDashboard from './pages/XApiDashboard';
 import { Box, CircularProgress } from '@mui/material';
 import { useSelector } from 'react-redux';
 import { RootState, AppDispatch } from './store';
@@ -74,6 +75,16 @@ const AppContent: React.FC = () => {
             element={
               user?.role === 'admin' ? (
                 <UserManagement />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            } 
+          />
+          <Route 
+            path="/admin/x-api-dashboard" 
+            element={
+              user?.role === 'admin' ? (
+                <XApiDashboard />
               ) : (
                 <Navigate to="/dashboard" replace />
               )
