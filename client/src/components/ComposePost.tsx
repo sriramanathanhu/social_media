@@ -208,7 +208,10 @@ const ComposePost: React.FC = () => {
     if (!content.trim() || selectedAccounts.length === 0) return;
 
     const mediaFiles = [...selectedImages, ...selectedVideos];
-    const scheduledFor = isScheduled && scheduledDate ? scheduledDate.toISOString() : undefined;
+    // Keep the local timezone for scheduling
+    const scheduledFor = isScheduled && scheduledDate ? 
+      new Date(scheduledDate.getTime() - (scheduledDate.getTimezoneOffset() * 60000)).toISOString() : 
+      undefined;
 
     const result = await dispatch(createPost({
       content: content.trim(),
@@ -392,15 +395,26 @@ const ComposePost: React.FC = () => {
                       <TextField
                         label="Schedule Date & Time"
                         type="datetime-local"
-                        value={scheduledDate ? scheduledDate.toISOString().slice(0, 16) : ''}
-                        onChange={(e) => setScheduledDate(e.target.value ? new Date(e.target.value) : null)}
+                        value={scheduledDate ? 
+                          new Date(scheduledDate.getTime() - (scheduledDate.getTimezoneOffset() * 60000))
+                            .toISOString().slice(0, 16) : ''}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            // Parse as local time, not UTC
+                            const localDate = new Date(e.target.value + ':00');
+                            setScheduledDate(localDate);
+                          } else {
+                            setScheduledDate(null);
+                          }
+                        }}
                         fullWidth
                         required={isScheduled}
                         InputLabelProps={{
                           shrink: true,
                         }}
                         inputProps={{
-                          min: new Date().toISOString().slice(0, 16)
+                          min: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000))
+                            .toISOString().slice(0, 16)
                         }}
                       />
                     </Box>

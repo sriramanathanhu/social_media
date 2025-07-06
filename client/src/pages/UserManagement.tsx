@@ -43,6 +43,7 @@ const UserManagement: React.FC = () => {
   const [actionType, setActionType] = useState<'approve' | 'reject' | 'makeAdmin' | 'delete' | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [menuUser, setMenuUser] = useState<User | null>(null);
   
   const { user } = useSelector((state: RootState) => state.auth);
 
@@ -207,23 +208,14 @@ const UserManagement: React.FC = () => {
                         </>
                       )}
                       <IconButton
-                        onClick={(e) => setAnchorEl(e.currentTarget)}
+                        onClick={(e) => {
+                          setAnchorEl(e.currentTarget);
+                          setMenuUser(userData);
+                        }}
                         title="More actions"
                       >
                         <MoreVert />
                       </IconButton>
-                      <Menu
-                        anchorEl={anchorEl}
-                        open={Boolean(anchorEl)}
-                        onClose={() => setAnchorEl(null)}
-                      >
-                        {userData.role !== 'admin' && (
-                          <MenuItem onClick={() => openActionDialog(userData, 'makeAdmin')}>
-                            <AdminPanelSettings sx={{ mr: 1 }} />
-                            Make Admin
-                          </MenuItem>
-                        )}
-                      </Menu>
                     </>
                   )}
                 </TableCell>
@@ -259,6 +251,23 @@ const UserManagement: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Actions Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => {
+          setAnchorEl(null);
+          setMenuUser(null);
+        }}
+      >
+        {menuUser && menuUser.role !== 'admin' && (
+          <MenuItem onClick={() => openActionDialog(menuUser, 'makeAdmin')}>
+            <AdminPanelSettings sx={{ mr: 1 }} />
+            Make Admin
+          </MenuItem>
+        )}
+      </Menu>
     </Box>
   );
 };
