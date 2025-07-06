@@ -71,24 +71,29 @@ router.get('/x-api-status', auth, async (req, res) => {
     const pool = require('../config/database');
     
     // Count posts made today and this month to X accounts
-    const dailyPosts = await pool.query(
-      `SELECT COUNT(*) as count FROM posts 
-       WHERE user_id = $1 AND status = 'published' 
-       AND published_at >= $2
-       AND target_accounts && $3::integer[]`,
-      [req.user.id, startOfDay, xAccounts.map(acc => acc.id)]
-    );
+    let dailyUsage = 0;
+    let monthlyUsage = 0;
     
-    const monthlyPosts = await pool.query(
-      `SELECT COUNT(*) as count FROM posts 
-       WHERE user_id = $1 AND status = 'published' 
-       AND published_at >= $2
-       AND target_accounts && $3::integer[]`,
-      [req.user.id, startOfMonth, xAccounts.map(acc => acc.id)]
-    );
-    
-    const dailyUsage = parseInt(dailyPosts.rows[0]?.count || 0);
-    const monthlyUsage = parseInt(monthlyPosts.rows[0]?.count || 0);
+    if (xAccounts.length > 0) {
+      const dailyPosts = await pool.query(
+        `SELECT COUNT(*) as count FROM posts 
+         WHERE user_id = $1 AND status = 'published' 
+         AND published_at >= $2
+         AND target_accounts && $3::integer[]`,
+        [req.user.id, startOfDay, xAccounts.map(acc => acc.id)]
+      );
+      
+      const monthlyPosts = await pool.query(
+        `SELECT COUNT(*) as count FROM posts 
+         WHERE user_id = $1 AND status = 'published' 
+         AND published_at >= $2
+         AND target_accounts && $3::integer[]`,
+        [req.user.id, startOfMonth, xAccounts.map(acc => acc.id)]
+      );
+      
+      dailyUsage = parseInt(dailyPosts.rows[0]?.count || 0);
+      monthlyUsage = parseInt(monthlyPosts.rows[0]?.count || 0);
+    }
     
     res.json({
       accounts: xAccounts.map(acc => ({
