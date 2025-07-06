@@ -141,6 +141,8 @@ const ApiCredentialsManager: React.FC = () => {
     switch (platform) {
       case 'x':
         return 'X (Twitter)';
+      case 'pinterest':
+        return 'Pinterest';
       default:
         return platform.charAt(0).toUpperCase() + platform.slice(1);
     }
@@ -252,6 +254,7 @@ const ApiCredentialsManager: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
               >
                 <MenuItem value="x">X (Twitter)</MenuItem>
+                <MenuItem value="pinterest">Pinterest</MenuItem>
               </Select>
             </FormControl>
             
