@@ -116,8 +116,12 @@ const authSlice = createSlice({
         state.initialized = true;
       })
       .addCase(validateToken.rejected, (state) => {
-        state.token = null;
-        state.user = null;
+        // Only clear user data if token is actually invalid, not on network errors
+        const token = localStorage.getItem('token');
+        if (!token) {
+          state.token = null;
+          state.user = null;
+        }
         state.initialized = true;
       });
   },

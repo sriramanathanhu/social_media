@@ -41,34 +41,21 @@ const Navigation: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user, loading } = useSelector((state: RootState) => state.auth);
 
-  // Debug logging for admin role and force token validation
+  // Debug logging for admin role - simplified approach
   React.useEffect(() => {
     console.log('Navigation - User object:', user);
     console.log('Navigation - User role:', user?.role);
     console.log('Navigation - Is admin:', user?.role === 'admin');
     
-    // Force token validation if user is missing role data or on every refresh
+    // Only validate token ONCE on initial load if user is completely missing
     const token = localStorage.getItem('token');
-    if (token && (!user?.role || !user?.id)) {
-      console.log('User missing role/id data, forcing token validation');
+    if (token && !user && !loading) {
+      console.log('No user data found, validating token once');
       dispatch(validateToken());
     }
-  }, [user, dispatch]);
-
-  // Additional useEffect to handle page refresh and ensure admin role persists
-  React.useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && localStorage.getItem('token')) {
-        console.log('Page became visible, refreshing user data');
-        dispatch(validateToken());
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [dispatch]);
+  }, [user, dispatch]); // Removed loading dependency to prevent loops
 
   const menuItems = [
     { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },

@@ -112,12 +112,10 @@ const DashboardPage: React.FC = () => {
             <RecentActivity posts={posts} accounts={accounts} />
           </Grid>
 
-          {/* X API Status - Show if user has X accounts */}
-          {xAccounts.length > 0 && (
-            <Grid item xs={12}>
-              <XApiStatus />
-            </Grid>
-          )}
+          {/* X API Status - Always show, component handles no accounts case */}
+          <Grid item xs={12}>
+            <XApiStatus />
+          </Grid>
 
           {/* Getting Started */}
           {accounts.length === 0 && (
