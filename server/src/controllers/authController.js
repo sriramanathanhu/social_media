@@ -464,8 +464,8 @@ const emergencyAdminPromote = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    await User.updateRole(user.id, 'admin');
-    await User.updateStatus(user.id, 'approved');
+    await User.makeAdmin(user.id);
+    await User.updateUserStatus(user.id, 'approved');
     
     console.log(`🚀 Emergency admin promotion for ${email} completed`);
     res.json({ message: 'Admin promotion successful', user: { email, role: 'admin' } });
