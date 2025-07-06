@@ -11,7 +11,7 @@ import ComposePage from './pages/ComposePage';
 import PostsPage from './pages/PostsPage';
 import SettingsPage from './pages/SettingsPage';
 import UserManagement from './pages/UserManagement';
-import { Box } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
 import { useSelector } from 'react-redux';
 import { RootState, AppDispatch } from './store';
 import Navigation from './components/Navigation';
@@ -30,16 +30,25 @@ const theme = createTheme({
 
 const AppContent: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { token, initialized } = useSelector((state: RootState) => state.auth);
+  const { token, initialized, user } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     // Validate token on app startup
     dispatch(validateToken());
   }, [dispatch]);
 
-  // Show loading or nothing while initializing
+  // Show loading spinner while initializing
   if (!initialized) {
-    return null; // or a loading spinner
+    return (
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="100vh"
+      >
+        <CircularProgress />
+      </Box>
+    );
   }
 
   if (!token) {
@@ -60,7 +69,16 @@ const AppContent: React.FC = () => {
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/compose" element={<ComposePage />} />
           <Route path="/posts" element={<PostsPage />} />
-          <Route path="/users" element={<UserManagement />} />
+          <Route 
+            path="/users" 
+            element={
+              user?.role === 'admin' ? (
+                <UserManagement />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            } 
+          />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

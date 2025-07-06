@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
-  Bug as BugIcon,
+  BugReport as BugIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
@@ -56,7 +56,7 @@ const DebugInfo: React.FC = () => {
 
   const runAllTests = async () => {
     setLoading(true);
-    const tests = {};
+    const tests: any = {};
 
     // Test backend health
     tests['Backend Health'] = await testEndpoint('health', 'https://socialmedia-p3ln.onrender.com/health', false);

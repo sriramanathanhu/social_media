@@ -48,14 +48,7 @@ const Navigation: React.FC = () => {
     console.log('Navigation - User object:', user);
     console.log('Navigation - User role:', user?.role);
     console.log('Navigation - Is admin:', user?.role === 'admin');
-    
-    // Only validate token ONCE on initial load if user is completely missing
-    const token = localStorage.getItem('token');
-    if (token && !user && !loading) {
-      console.log('No user data found, validating token once');
-      dispatch(validateToken());
-    }
-  }, [user, dispatch]); // Removed loading dependency to prevent loops
+  }, [user]); // Only log when user changes
 
   const menuItems = [
     { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },

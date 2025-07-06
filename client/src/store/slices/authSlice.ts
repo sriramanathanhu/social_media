@@ -110,17 +110,27 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Registration failed';
       })
+      .addCase(validateToken.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(validateToken.fulfilled, (state, action) => {
+        state.loading = false;
         state.token = action.payload.token;
         state.user = action.payload.user;
         state.initialized = true;
       })
-      .addCase(validateToken.rejected, (state) => {
-        // Only clear user data if token is actually invalid, not on network errors
+      .addCase(validateToken.rejected, (state, action) => {
+        state.loading = false;
+        // Handle different rejection scenarios
         const token = localStorage.getItem('token');
-        if (!token) {
+        if (!token || action.payload === 'No token found') {
+          // No token or invalid token - clear all auth data
           state.token = null;
           state.user = null;
+        } else {
+          // Network error or other issue - keep existing data if we have it
+          console.log('Token validation failed, but keeping existing user data');
         }
         state.initialized = true;
       });
