@@ -51,6 +51,12 @@ export const authAPI = {
   
   xCallback: (code: string, state: string) =>
     api.get(`/auth/x/callback?code=${code}&state=${state}`),
+  
+  connectPinterest: () =>
+    api.post('/auth/pinterest/connect'),
+  
+  pinterestCallback: (code: string, state: string) =>
+    api.get(`/auth/pinterest/callback?code=${code}&state=${state}`),
 };
 
 export const accountsAPI = {

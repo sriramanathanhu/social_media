@@ -2,6 +2,7 @@ const SocialAccount = require('../models/SocialAccount');
 const Post = require('../models/Post');
 const mastodonService = require('./mastodon');
 const xService = require('./x');
+const pinterestService = require('./pinterest');
 
 class PublishingService {
   async publishPost(userId, postData) {
@@ -106,6 +107,8 @@ class PublishingService {
         return await this.publishToMastodon(account, content, mediaFiles, postType);
       case 'x':
         return await this.publishToX(account, content, mediaFiles, postType);
+      case 'pinterest':
+        return await this.publishToPinterest(account, content, mediaFiles, postType);
       default:
         throw new Error(`Platform ${account.platform} not supported`);
     }
@@ -221,6 +224,61 @@ class PublishingService {
 
   async getPostStats(userId) {
     return await Post.getPostStats(userId);
+  }
+
+  async publishToPinterest(account, content, mediaFiles = [], postType = 'text') {
+    console.log('Publishing to Pinterest account:', {
+      accountId: account.id,
+      username: account.username,
+      tokenEncrypted: account.access_token ? account.access_token.substring(0, 20) + '...' : 'null'
+    });
+    
+    const decryptedToken = pinterestService.decrypt(account.access_token);
+    console.log('Pinterest token decrypted successfully, length:', decryptedToken ? decryptedToken.length : 0);
+    
+    // Pinterest requires an image for pins, so we need at least one media file
+    if (!mediaFiles || mediaFiles.length === 0) {
+      throw new Error('Pinterest pins require at least one image. Please add an image to your post.');
+    }
+    
+    // Pinterest requires a board to post to
+    // We'll need to get the user's boards and use the first available one
+    // In a real implementation, you'd let the user choose the board
+    const boards = await pinterestService.getUserBoards(decryptedToken);
+    
+    if (!boards || boards.length === 0) {
+      throw new Error('No Pinterest boards found. Please create a board on Pinterest first.');
+    }
+    
+    // Use the first available board
+    const targetBoard = boards[0];
+    console.log('Using Pinterest board:', targetBoard.name);
+    
+    // For now, we'll assume the first media file is an image URL
+    // In a real implementation, you'd need to handle file uploads properly
+    const imageUrl = mediaFiles[0].url || mediaFiles[0];
+    
+    // Create pin data
+    const pinData = {
+      boardId: targetBoard.id,
+      title: content.substring(0, 100), // Pinterest titles are limited
+      description: content,
+      mediaUrl: imageUrl,
+      link: null // Optional link back to your site
+    };
+    
+    console.log('Creating Pinterest pin with data:', pinData);
+    
+    const result = await pinterestService.createPin(decryptedToken, pinData);
+    
+    console.log('Pinterest pin created successfully:', result);
+    
+    return {
+      id: result.id,
+      url: result.url,
+      platform: 'pinterest',
+      board: targetBoard.name
+    };
   }
 }
 

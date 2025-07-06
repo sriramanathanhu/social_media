@@ -132,12 +132,14 @@ const ComposePost: React.FC = () => {
   const activeAccounts = accounts.filter(account => account.status === 'active');
   const mastodonAccounts = activeAccounts.filter(account => account.platform === 'mastodon');
   const xAccounts = activeAccounts.filter(account => account.platform === 'x');
-  const allSupportedAccounts = [...mastodonAccounts, ...xAccounts];
+  const pinterestAccounts = activeAccounts.filter(account => account.platform === 'pinterest');
+  const allSupportedAccounts = [...mastodonAccounts, ...xAccounts, ...pinterestAccounts];
 
   const platforms = [
     { name: 'All', accounts: allSupportedAccounts, count: allSupportedAccounts.length },
     { name: 'Mastodon', accounts: mastodonAccounts, count: mastodonAccounts.length },
-    { name: 'X', accounts: xAccounts, count: xAccounts.length }
+    { name: 'X', accounts: xAccounts, count: xAccounts.length },
+    { name: 'Pinterest', accounts: pinterestAccounts, count: pinterestAccounts.length }
   ];
 
   const currentPlatformAccounts = platforms[tabValue]?.accounts || [];
@@ -252,7 +254,8 @@ const ComposePost: React.FC = () => {
     const platformLimits: Record<string, number> = {
       'mastodon': 500,
       'x': 280,
-      'twitter': 280  // legacy support
+      'twitter': 280,  // legacy support
+      'pinterest': 500  // Pinterest pin descriptions
     };
 
     // Use the most restrictive limit among selected platforms
@@ -274,13 +277,16 @@ const ComposePost: React.FC = () => {
     const platformLimits: Record<string, number> = {
       'mastodon': 500,
       'x': 280,
-      'twitter': 280
+      'twitter': 280,
+      'pinterest': 500
     };
 
     const limitTexts = uniquePlatforms.map(platform => {
       if (!platform) return '';
       const limit = platformLimits[platform] || 5000;
-      const platformName = platform === 'x' ? 'X' : platform.charAt(0).toUpperCase() + platform.slice(1);
+      const platformName = platform === 'x' ? 'X' : 
+                          platform === 'pinterest' ? 'Pinterest' :
+                          platform.charAt(0).toUpperCase() + platform.slice(1);
       return `${platformName}: ${limit}`;
     }).filter(Boolean);
 
@@ -662,7 +668,10 @@ const ComposePost: React.FC = () => {
                             </Typography>
                           </Box>
                           <Chip
-                            label={account.platform === 'mastodon' ? 'Mastodon' : 'X'}
+                            label={account.platform === 'mastodon' ? 'Mastodon' : 
+                                  account.platform === 'x' ? 'X' : 
+                                  account.platform === 'pinterest' ? 'Pinterest' : 
+                                  account.platform}
                             size="small"
                             sx={{ ml: 1 }}
                             variant={tabValue === 0 ? "filled" : "outlined"}

@@ -21,6 +21,7 @@ import {
   Add as AddIcon,
   AccountCircle as MastodonIcon,
   Twitter as XIcon,
+  Pinterest as PinterestIcon,
   Group as GroupIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
@@ -29,6 +30,7 @@ import { fetchAccounts, deleteAccount, verifyAccount } from '../store/slices/acc
 import AccountCard from '../components/AccountCard';
 import ConnectMastodonDialog from '../components/ConnectMastodonDialog';
 import ConnectXDialog from '../components/ConnectXDialog';
+import ConnectPinterestDialog from '../components/ConnectPinterestDialog';
 import AccountGroups from '../components/AccountGroups';
 
 const AccountsPage: React.FC = () => {
@@ -37,6 +39,7 @@ const AccountsPage: React.FC = () => {
   const { token, initialized } = useSelector((state: RootState) => state.auth);
   const [connectMastodonDialogOpen, setConnectMastodonDialogOpen] = useState(false);
   const [connectXDialogOpen, setConnectXDialogOpen] = useState(false);
+  const [connectPinterestDialogOpen, setConnectPinterestDialogOpen] = useState(false);
   const [fabMenuAnchor, setFabMenuAnchor] = useState<null | HTMLElement>(null);
   const [currentTab, setCurrentTab] = useState(0);
 
@@ -74,8 +77,14 @@ const AccountsPage: React.FC = () => {
     handleFabMenuClose();
   };
 
+  const handleConnectPinterest = () => {
+    setConnectPinterestDialogOpen(true);
+    handleFabMenuClose();
+  };
+
   const mastodonAccounts = accounts.filter(account => account.platform === 'mastodon');
   const xAccounts = accounts.filter(account => account.platform === 'x');
+  const pinterestAccounts = accounts.filter(account => account.platform === 'pinterest');
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -183,6 +192,43 @@ const AccountsPage: React.FC = () => {
                 </Paper>
               </Grid>
 
+              {/* Pinterest Accounts */}
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <PinterestIcon sx={{ mr: 1, color: '#BD081C' }} />
+                    <Typography variant="h6">Pinterest Accounts</Typography>
+                  </Box>
+                  
+                  {pinterestAccounts.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        No Pinterest accounts connected
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        startIcon={<AddIcon />}
+                        onClick={handleConnectPinterest}
+                        sx={{ borderColor: '#BD081C', color: '#BD081C', '&:hover': { borderColor: '#BD081C', backgroundColor: 'rgba(189, 8, 28, 0.04)' } }}
+                      >
+                        Connect Pinterest Account
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box>
+                      {pinterestAccounts.map((account) => (
+                        <AccountCard
+                          key={account.id}
+                          account={account}
+                          onDelete={handleDeleteAccount}
+                          onVerify={handleVerifyAccount}
+                        />
+                      ))}
+                    </Box>
+                  )}
+                </Paper>
+              </Grid>
+
               {/* Other Platforms (Coming Soon) */}
               <Grid item xs={12}>
                 <Paper sx={{ p: 3 }}>
@@ -190,7 +236,7 @@ const AccountsPage: React.FC = () => {
                     More Platforms Coming Soon
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    We're working on adding support for Pinterest, SoundCloud, Substack, Telegram, and DeviantArt.
+                    We're working on adding support for SoundCloud, Substack, Telegram, and DeviantArt.
                   </Typography>
                 </Paper>
               </Grid>
@@ -239,6 +285,12 @@ const AccountsPage: React.FC = () => {
           </ListItemIcon>
           <ListItemText>Connect X (Twitter)</ListItemText>
         </MenuItem>
+        <MenuItem onClick={handleConnectPinterest}>
+          <ListItemIcon>
+            <PinterestIcon fontSize="small" sx={{ color: '#BD081C' }} />
+          </ListItemIcon>
+          <ListItemText>Connect Pinterest</ListItemText>
+        </MenuItem>
       </Menu>
 
       {/* Connect Mastodon Dialog */}
@@ -251,6 +303,12 @@ const AccountsPage: React.FC = () => {
       <ConnectXDialog
         open={connectXDialogOpen}
         onClose={() => setConnectXDialogOpen(false)}
+      />
+
+      {/* Connect Pinterest Dialog */}
+      <ConnectPinterestDialog
+        open={connectPinterestDialogOpen}
+        onClose={() => setConnectPinterestDialogOpen(false)}
       />
       </Container>
     </Box>

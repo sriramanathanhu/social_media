@@ -8,6 +8,7 @@ interface AccountsState {
   error: string | null;
   connectingMastodon: boolean;
   connectingX: boolean;
+  connectingPinterest: boolean;
 }
 
 const initialState: AccountsState = {
@@ -16,6 +17,7 @@ const initialState: AccountsState = {
   error: null,
   connectingMastodon: false,
   connectingX: false,
+  connectingPinterest: false,
 };
 
 export const fetchAccounts = createAsyncThunk(
@@ -38,6 +40,14 @@ export const connectX = createAsyncThunk(
   'accounts/connectX',
   async () => {
     const response = await authAPI.connectX();
+    return response.data;
+  }
+);
+
+export const connectPinterest = createAsyncThunk(
+  'accounts/connectPinterest',
+  async () => {
+    const response = await authAPI.connectPinterest();
     return response.data;
   }
 );
@@ -111,6 +121,17 @@ const accountsSlice = createSlice({
       .addCase(connectX.rejected, (state, action) => {
         state.connectingX = false;
         state.error = action.error.message || 'Failed to connect X account';
+      })
+      .addCase(connectPinterest.pending, (state) => {
+        state.connectingPinterest = true;
+        state.error = null;
+      })
+      .addCase(connectPinterest.fulfilled, (state, action) => {
+        state.connectingPinterest = false;
+      })
+      .addCase(connectPinterest.rejected, (state, action) => {
+        state.connectingPinterest = false;
+        state.error = action.error.message || 'Failed to connect Pinterest account';
       })
       .addCase(deleteAccount.pending, (state) => {
         state.loading = true;
