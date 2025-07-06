@@ -44,9 +44,9 @@ export const validateToken = createAsyncThunk(
       if (!token) {
         return rejectWithValue('No token found');
       }
-      // You could add a validate endpoint here, but for now just return success
-      // The API interceptor will handle invalid tokens automatically
-      return { token };
+      // Fetch user data to validate token and get user info
+      const response = await authAPI.getProfile();
+      return { token, user: response.data.user };
     } catch (error) {
       localStorage.removeItem('token');
       return rejectWithValue('Token validation failed');
@@ -112,6 +112,7 @@ const authSlice = createSlice({
       })
       .addCase(validateToken.fulfilled, (state, action) => {
         state.token = action.payload.token;
+        state.user = action.payload.user;
         state.initialized = true;
       })
       .addCase(validateToken.rejected, (state) => {

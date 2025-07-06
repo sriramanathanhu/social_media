@@ -30,18 +30,31 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '../store';
-import { logout } from '../store/slices/authSlice';
+import { RootState, AppDispatch } from '../store';
+import { logout, validateToken } from '../store/slices/authSlice';
 
 const Navigation: React.FC = () => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user } = useSelector((state: RootState) => state.auth);
+
+  // Debug logging for admin role and force token validation
+  React.useEffect(() => {
+    console.log('Navigation - User object:', user);
+    console.log('Navigation - User role:', user?.role);
+    console.log('Navigation - Is admin:', user?.role === 'admin');
+    
+    // Force token validation if user is missing role data
+    if (!user?.role && localStorage.getItem('token')) {
+      console.log('User missing role data, forcing token validation');
+      dispatch(validateToken());
+    }
+  }, [user, dispatch]);
 
   const menuItems = [
     { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },

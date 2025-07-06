@@ -137,7 +137,14 @@ class PublishingService {
   }
 
   async publishToX(account, content, mediaFiles = [], postType = 'text') {
+    console.log('Publishing to X account:', {
+      accountId: account.id,
+      username: account.username,
+      tokenEncrypted: account.access_token ? account.access_token.substring(0, 20) + '...' : 'null'
+    });
+    
     const decryptedToken = xService.decrypt(account.access_token);
+    console.log('Token decrypted successfully, length:', decryptedToken ? decryptedToken.length : 0);
     
     let mediaIds = [];
     

@@ -37,6 +37,9 @@ export const authAPI = {
   login: (email: string, password: string) =>
     api.post('/auth/login', { email, password }),
   
+  getProfile: () =>
+    api.get('/auth/profile'),
+  
   connectMastodon: (instanceUrl: string) =>
     api.post('/auth/mastodon/connect', { instanceUrl }),
   
