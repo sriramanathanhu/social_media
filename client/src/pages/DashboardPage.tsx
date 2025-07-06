@@ -19,6 +19,7 @@ import { fetchPosts } from '../store/slices/postsSlice';
 import StatsCard from '../components/StatsCard';
 import QuickActions from '../components/QuickActions';
 import RecentActivity from '../components/RecentActivity';
+import XApiStatus from '../components/XApiStatus';
 
 const DashboardPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -36,6 +37,7 @@ const DashboardPage: React.FC = () => {
 
   const activeAccounts = accounts.filter(account => account.status === 'active');
   const mastodonAccounts = accounts.filter(account => account.platform === 'mastodon');
+  const xAccounts = accounts.filter(account => account.platform === 'x');
   const publishedPosts = posts.filter(post => post.status === 'published');
   const scheduledPosts = posts.filter(post => post.status === 'scheduled');
   const todayPosts = posts.filter(post => {
@@ -109,6 +111,13 @@ const DashboardPage: React.FC = () => {
           <Grid item xs={12} lg={6}>
             <RecentActivity posts={posts} accounts={accounts} />
           </Grid>
+
+          {/* X API Status - Show if user has X accounts */}
+          {xAccounts.length > 0 && (
+            <Grid item xs={12}>
+              <XApiStatus />
+            </Grid>
+          )}
 
           {/* Getting Started */}
           {accounts.length === 0 && (

@@ -27,6 +27,108 @@ router.get('/mastodon/callback', authController.mastodonCallback); // No auth mi
 router.post('/x/connect', auth, authController.connectX);
 router.get('/x/callback', authController.xCallback); // No auth middleware for OAuth callback
 
+// Get X API status and limits for dashboard
+router.get('/x-api-status', auth, async (req, res) => {
+  try {
+    const SocialAccount = require('../models/SocialAccount');
+    const xService = require('../services/x');
+    
+    // Get user's X accounts
+    const allAccounts = await SocialAccount.findByUserId(req.user.id);
+    const xAccounts = allAccounts.filter(acc => acc.platform === 'x');
+    
+    // X API v2 rate limits (these can be updated based on your plan)
+    const apiLimits = {
+      free: {
+        posts_per_month: 1500,
+        posts_per_day: 50,
+        reads_per_month: 10000,
+        plan_name: 'Free'
+      },
+      basic: {
+        posts_per_month: 3000,
+        posts_per_day: 100,
+        reads_per_month: 50000,
+        plan_name: 'Basic ($100/month)'
+      },
+      pro: {
+        posts_per_month: 300000,
+        posts_per_day: 10000,
+        reads_per_month: 1000000,
+        plan_name: 'Pro ($5000/month)'
+      }
+    };
+    
+    // Default to free plan - this should be configurable per user
+    const currentPlan = 'free'; // TODO: Make this user-configurable
+    const limits = apiLimits[currentPlan];
+    
+    // Get recent post count for rate limiting estimate
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    const pool = require('../config/database');
+    
+    // Count posts made today and this month to X accounts
+    const dailyPosts = await pool.query(
+      `SELECT COUNT(*) as count FROM posts 
+       WHERE user_id = $1 AND status = 'published' 
+       AND published_at >= $2
+       AND target_accounts && $3::integer[]`,
+      [req.user.id, startOfDay, xAccounts.map(acc => acc.id)]
+    );
+    
+    const monthlyPosts = await pool.query(
+      `SELECT COUNT(*) as count FROM posts 
+       WHERE user_id = $1 AND status = 'published' 
+       AND published_at >= $2
+       AND target_accounts && $3::integer[]`,
+      [req.user.id, startOfMonth, xAccounts.map(acc => acc.id)]
+    );
+    
+    const dailyUsage = parseInt(dailyPosts.rows[0]?.count || 0);
+    const monthlyUsage = parseInt(monthlyPosts.rows[0]?.count || 0);
+    
+    res.json({
+      accounts: xAccounts.map(acc => ({
+        id: acc.id,
+        username: acc.username,
+        status: acc.status,
+        hasToken: !!acc.access_token,
+        lastUsed: acc.last_used
+      })),
+      rateLimits: {
+        currentPlan: limits.plan_name,
+        daily: {
+          used: dailyUsage,
+          limit: limits.posts_per_day,
+          remaining: limits.posts_per_day - dailyUsage,
+          resetTime: new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000).toISOString()
+        },
+        monthly: {
+          used: monthlyUsage,
+          limit: limits.posts_per_month,
+          remaining: limits.posts_per_month - monthlyUsage,
+          resetTime: new Date(today.getFullYear(), today.getMonth() + 1, 1).toISOString()
+        }
+      },
+      availablePlans: Object.keys(apiLimits).map(key => ({
+        key,
+        ...apiLimits[key]
+      })),
+      lastRateLimitError: null, // TODO: Track last rate limit error time
+      recommendations: [
+        dailyUsage >= limits.posts_per_day * 0.8 ? 'Daily limit warning: Consider spacing out posts' : null,
+        monthlyUsage >= limits.posts_per_month * 0.8 ? 'Monthly limit warning: Consider upgrading plan' : null
+      ].filter(Boolean)
+    });
+  } catch (error) {
+    console.error('X API status error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Debug route to check X accounts
 router.get('/debug/x-accounts', auth, async (req, res) => {
   try {
