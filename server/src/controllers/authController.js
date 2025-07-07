@@ -511,26 +511,19 @@ const connectPinterest = async (req, res) => {
       const userInfo = await pinterestService.getUserInfo(credentials.accessToken);
       
       // Create or update Pinterest account
-      const pinterestAccount = await SocialAccount.create(
-        req.user.id,
-        'pinterest',
-        userInfo.username,
-        userInfo.username,
-        null, // No instance URL for Pinterest
-        JSON.stringify({
-          id: userInfo.id,
-          username: userInfo.username,
-          display_name: userInfo.display_name || userInfo.username,
-          profile_image: userInfo.profile_image,
-          follower_count: userInfo.follower_count,
-          following_count: userInfo.following_count,
-          board_count: userInfo.board_count,
-          pin_count: userInfo.pin_count
-        }),
-        pinterestService.encrypt(credentials.accessToken)
-      );
+      const pinterestAccount = await SocialAccount.create({
+        userId: req.user.id,
+        platform: 'pinterest',
+        instanceUrl: null, // No instance URL for Pinterest
+        username: userInfo.username,
+        displayName: userInfo.username,
+        avatarUrl: userInfo.profile_image,
+        accessToken: pinterestService.encrypt(credentials.accessToken),
+        refreshToken: null,
+        tokenExpiresAt: null
+      });
       
-      console.log('Pinterest account created/updated:', pinterestAccount.account_id);
+      console.log('Pinterest account created/updated:', pinterestAccount.id);
       
       return res.json({
         success: true,
