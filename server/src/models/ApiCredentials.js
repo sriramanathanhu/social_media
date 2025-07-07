@@ -71,8 +71,8 @@ class ApiCredentials {
     
     if (platform === 'pinterest') {
       try {
-        // Basic validation for Pinterest credentials
-        return clientId && clientSecret && clientId.length > 10 && clientSecret.length > 10;
+        // Basic validation for Pinterest credentials (Pinterest Client IDs can be shorter)
+        return clientId && clientSecret && clientId.length >= 5 && clientSecret.length >= 10;
       } catch (error) {
         return false;
       }

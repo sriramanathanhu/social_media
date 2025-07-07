@@ -203,8 +203,8 @@ const addApiCredentialsValidation = [
     .isIn(['x', 'twitter', 'pinterest'])
     .withMessage('Platform must be x, twitter, or pinterest'),
   body('clientId')
-    .isLength({ min: 10 })
-    .withMessage('Client ID must be at least 10 characters'),
+    .isLength({ min: 5 })
+    .withMessage('Client ID must be at least 5 characters'),
   body('clientSecret')
     .isLength({ min: 10 })
     .withMessage('Client Secret must be at least 10 characters')
