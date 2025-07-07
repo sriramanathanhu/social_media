@@ -80,7 +80,7 @@ export const postsAPI = {
   getScheduledPosts: (): Promise<{ data: { posts: Post[] } }> =>
     api.get('/posts/scheduled'),
   
-  createPost: (content: string, targetAccountIds: string[], mediaFiles?: File[], scheduledFor?: string, postType?: string) => {
+  createPost: (content: string, targetAccountIds: string[], mediaFiles?: File[], scheduledFor?: string, postType?: string, pinterestTitle?: string, pinterestDescription?: string, pinterestBoard?: string, pinterestDestinationUrl?: string) => {
     const formData = new FormData();
     formData.append('content', content);
     formData.append('targetAccountIds', JSON.stringify(targetAccountIds));
@@ -91,6 +91,22 @@ export const postsAPI = {
     
     if (postType) {
       formData.append('postType', postType);
+    }
+    
+    if (pinterestTitle) {
+      formData.append('pinterestTitle', pinterestTitle);
+    }
+    
+    if (pinterestDescription) {
+      formData.append('pinterestDescription', pinterestDescription);
+    }
+    
+    if (pinterestBoard) {
+      formData.append('pinterestBoard', pinterestBoard);
+    }
+    
+    if (pinterestDestinationUrl) {
+      formData.append('pinterestDestinationUrl', pinterestDestinationUrl);
     }
     
     if (mediaFiles) {

@@ -26,14 +26,18 @@ export const fetchPosts = createAsyncThunk(
 
 export const createPost = createAsyncThunk(
   'posts/createPost',
-  async ({ content, targetAccountIds, mediaFiles, scheduledFor, postType }: { 
+  async ({ content, targetAccountIds, mediaFiles, scheduledFor, postType, pinterestTitle, pinterestDescription, pinterestBoard, pinterestDestinationUrl }: { 
     content: string; 
     targetAccountIds: string[];
     mediaFiles?: File[];
     scheduledFor?: string;
     postType?: string;
+    pinterestTitle?: string;
+    pinterestDescription?: string;
+    pinterestBoard?: string;
+    pinterestDestinationUrl?: string;
   }) => {
-    const response = await postsAPI.createPost(content, targetAccountIds, mediaFiles, scheduledFor, postType);
+    const response = await postsAPI.createPost(content, targetAccountIds, mediaFiles, scheduledFor, postType, pinterestTitle, pinterestDescription, pinterestBoard, pinterestDestinationUrl);
     return response.data;
   }
 );
