@@ -60,7 +60,7 @@ class ApiCredentials {
   static async testCredentials(platform, clientId, clientSecret) {
     // This would test the credentials against the platform API
     // Implementation depends on the platform
-    if (platform === 'x') {
+    if (platform === 'x' || platform === 'twitter') {
       try {
         // Basic validation - could be enhanced with actual API test
         return clientId && clientSecret && clientId.length > 10 && clientSecret.length > 10;
@@ -68,6 +68,16 @@ class ApiCredentials {
         return false;
       }
     }
+    
+    if (platform === 'pinterest') {
+      try {
+        // Basic validation for Pinterest credentials
+        return clientId && clientSecret && clientId.length > 10 && clientSecret.length > 10;
+      } catch (error) {
+        return false;
+      }
+    }
+    
     return false;
   }
 }

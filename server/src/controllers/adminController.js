@@ -200,8 +200,8 @@ const removeAdmin = async (req, res) => {
 
 const addApiCredentialsValidation = [
   body('platform')
-    .isIn(['x', 'twitter'])
-    .withMessage('Platform must be x or twitter'),
+    .isIn(['x', 'twitter', 'pinterest'])
+    .withMessage('Platform must be x, twitter, or pinterest'),
   body('clientId')
     .isLength({ min: 10 })
     .withMessage('Client ID must be at least 10 characters'),
