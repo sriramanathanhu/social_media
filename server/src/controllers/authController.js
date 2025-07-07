@@ -503,12 +503,16 @@ const connectPinterest = async (req, res) => {
     console.log('Connecting Pinterest account for user:', req.user.id);
     
     // Check if using direct access token
+    console.log('Getting Pinterest credentials...');
     const credentials = await pinterestService.getCredentials();
+    console.log('Pinterest credentials retrieved:', credentials.direct ? 'DIRECT ACCESS TOKEN' : 'OAUTH CREDENTIALS');
     if (credentials.direct && credentials.accessToken) {
       console.log('Using direct access token, creating account directly');
       
       // Use the access token directly to get user info
+      console.log('Getting Pinterest user info with access token...');
       const userInfo = await pinterestService.getUserInfo(credentials.accessToken);
+      console.log('Pinterest user info retrieved:', userInfo.username);
       
       // Create or update Pinterest account
       const pinterestAccount = await SocialAccount.create({
@@ -568,7 +572,9 @@ const connectPinterest = async (req, res) => {
     });
   } catch (error) {
     console.error('Pinterest connect error:', error);
-    res.status(500).json({ error: 'Failed to connect to Pinterest' });
+    console.error('Error stack:', error.stack);
+    console.error('Error message:', error.message);
+    res.status(500).json({ error: 'Failed to connect to Pinterest: ' + error.message });
   }
 };
 
