@@ -97,6 +97,9 @@ const ComposePost: React.FC = () => {
   const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
   const [postType, setPostType] = useState<'text' | 'image' | 'video' | 'reel'>('text');
   const [groupAccounts, setGroupAccounts] = useState<any[]>([]);
+  // Pinterest-specific fields
+  const [pinterestTitle, setPinterestTitle] = useState('');
+  const [pinterestDescription, setPinterestDescription] = useState('');
   const dispatch = useDispatch<AppDispatch>();
   const { accounts, loading: accountsLoading } = useSelector((state: RootState) => state.accounts);
   const { publishing, error } = useSelector((state: RootState) => state.posts);
@@ -209,6 +212,22 @@ const ComposePost: React.FC = () => {
     e.preventDefault();
     if (!content.trim() || selectedAccounts.length === 0) return;
 
+    // Validate Pinterest-specific fields if Pinterest accounts are selected
+    const hasPinterestAccounts = pinterestAccounts.some(account => 
+      selectedAccounts.includes(account.id.toString())
+    );
+    
+    if (hasPinterestAccounts) {
+      if (!pinterestTitle.trim()) {
+        alert('Pinterest title is required when posting to Pinterest accounts');
+        return;
+      }
+      if (!pinterestDescription.trim()) {
+        alert('Pinterest description is required when posting to Pinterest accounts');
+        return;
+      }
+    }
+
     const mediaFiles = [...selectedImages, ...selectedVideos];
     // Keep the local timezone for scheduling
     const scheduledFor = isScheduled && scheduledDate ? 
@@ -220,7 +239,10 @@ const ComposePost: React.FC = () => {
       targetAccountIds: selectedAccounts,
       mediaFiles,
       scheduledFor,
-      postType
+      postType,
+      // Pinterest-specific data
+      pinterestTitle: hasPinterestAccounts ? pinterestTitle.trim() : undefined,
+      pinterestDescription: hasPinterestAccounts ? pinterestDescription.trim() : undefined
     }));
 
     if (result.meta.requestStatus === 'fulfilled') {
@@ -232,6 +254,8 @@ const ComposePost: React.FC = () => {
       setIsScheduled(false);
       setScheduledDate(null);
       setPostType('text');
+      setPinterestTitle('');
+      setPinterestDescription('');
     }
   };
 
@@ -318,6 +342,49 @@ const ComposePost: React.FC = () => {
                 : `${getCharacterCount()}/${getCharacterLimit()} - ${getPlatformLimitInfo()}`
             }
           />
+
+          {/* Pinterest-specific fields */}
+          {pinterestAccounts.some(account => selectedAccounts.includes(account.id.toString())) && (
+            <Box sx={{ mb: 2, p: 2, border: '1px solid #BD081C', borderRadius: 1, bgcolor: '#fafafa' }}>
+              <Typography variant="subtitle2" sx={{ mb: 1, color: '#BD081C', fontWeight: 'bold' }}>
+                Pinterest Pin Details
+              </Typography>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Pin Title (Required)"
+                placeholder="Enter a catchy title for your pin"
+                value={pinterestTitle}
+                onChange={(e) => setPinterestTitle(e.target.value)}
+                sx={{ mb: 2 }}
+                required
+                error={pinterestAccounts.some(account => selectedAccounts.includes(account.id.toString())) && !pinterestTitle.trim()}
+                helperText={
+                  pinterestAccounts.some(account => selectedAccounts.includes(account.id.toString())) && !pinterestTitle.trim()
+                    ? "Title is required for Pinterest pins"
+                    : "This will be the title of your Pinterest pin"
+                }
+              />
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                variant="outlined"
+                label="Pin Description (Required)"
+                placeholder="Describe your pin to help people find it"
+                value={pinterestDescription}
+                onChange={(e) => setPinterestDescription(e.target.value)}
+                required
+                error={pinterestAccounts.some(account => selectedAccounts.includes(account.id.toString())) && !pinterestDescription.trim()}
+                helperText={
+                  pinterestAccounts.some(account => selectedAccounts.includes(account.id.toString())) && !pinterestDescription.trim()
+                    ? "Description is required for Pinterest pins"
+                    : `${pinterestDescription.length}/500 characters - This will be the description of your Pinterest pin`
+                }
+                inputProps={{ maxLength: 500 }}
+              />
+            </Box>
+          )}
 
           {/* Advanced Options */}
           <Accordion sx={{ mb: 2 }}>

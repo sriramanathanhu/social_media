@@ -29,8 +29,18 @@ const ConnectPinterestDialog: React.FC<ConnectPinterestDialogProps> = ({
     try {
       const result = await dispatch(connectPinterest());
       if (result.meta.requestStatus === 'fulfilled') {
-        const { authUrl } = result.payload;
-        window.location.href = authUrl;
+        const { authUrl, success } = result.payload;
+        
+        // If direct access token is used (no authUrl), the account is already connected
+        if (success && !authUrl) {
+          // Account connected successfully with direct access token
+          onClose();
+          // Optionally refresh accounts list
+          window.location.reload();
+        } else if (authUrl) {
+          // OAuth flow - redirect to Pinterest
+          window.location.href = authUrl;
+        }
       }
     } catch (error) {
       console.error('Failed to connect Pinterest:', error);
