@@ -100,6 +100,9 @@ const ComposePost: React.FC = () => {
   // Pinterest-specific fields
   const [pinterestTitle, setPinterestTitle] = useState('');
   const [pinterestDescription, setPinterestDescription] = useState('');
+  const [pinterestBoard, setPinterestBoard] = useState('');
+  const [pinterestDestinationUrl, setPinterestDestinationUrl] = useState('');
+  const [pinterestBoards, setPinterestBoards] = useState<any[]>([]);
   const dispatch = useDispatch<AppDispatch>();
   const { accounts, loading: accountsLoading } = useSelector((state: RootState) => state.accounts);
   const { publishing, error } = useSelector((state: RootState) => state.posts);
@@ -226,6 +229,10 @@ const ComposePost: React.FC = () => {
         alert('Pinterest description is required when posting to Pinterest accounts');
         return;
       }
+      if (!pinterestBoard) {
+        alert('Please select a Pinterest board for your pin');
+        return;
+      }
     }
 
     const mediaFiles = [...selectedImages, ...selectedVideos];
@@ -242,7 +249,9 @@ const ComposePost: React.FC = () => {
       postType,
       // Pinterest-specific data
       pinterestTitle: hasPinterestAccounts ? pinterestTitle.trim() : undefined,
-      pinterestDescription: hasPinterestAccounts ? pinterestDescription.trim() : undefined
+      pinterestDescription: hasPinterestAccounts ? pinterestDescription.trim() : undefined,
+      pinterestBoard: hasPinterestAccounts ? pinterestBoard : undefined,
+      pinterestDestinationUrl: hasPinterestAccounts ? pinterestDestinationUrl.trim() : undefined
     }));
 
     if (result.meta.requestStatus === 'fulfilled') {
@@ -256,6 +265,8 @@ const ComposePost: React.FC = () => {
       setPostType('text');
       setPinterestTitle('');
       setPinterestDescription('');
+      setPinterestBoard('');
+      setPinterestDestinationUrl('');
     }
   };
 
@@ -349,15 +360,36 @@ const ComposePost: React.FC = () => {
               const account = activeAccounts.find(acc => acc.id.toString() === id);
               return account?.platform === 'pinterest';
             })) && (
-            <Box sx={{ mb: 2, p: 2, border: '1px solid #BD081C', borderRadius: 1, bgcolor: '#fafafa' }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, color: '#BD081C', fontWeight: 'bold' }}>
-                Pinterest Pin Details
+            <Box sx={{ mb: 2, p: 3, border: '2px solid #BD081C', borderRadius: 2, bgcolor: '#fff8f8' }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#BD081C', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                📌 Pinterest Pin Details
               </Typography>
+              
+              {/* Board Selection */}
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Select Board for Pins</InputLabel>
+                <Select
+                  value={pinterestBoard}
+                  onChange={(e) => setPinterestBoard(e.target.value)}
+                  label="Select Board for Pins"
+                  placeholder="Select Board"
+                >
+                  <MenuItem value="">
+                    <em>Select Board</em>
+                  </MenuItem>
+                  <MenuItem value="default-board">My First Board</MenuItem>
+                  <MenuItem value="ideas">Ideas</MenuItem>
+                  <MenuItem value="inspiration">Inspiration</MenuItem>
+                  <MenuItem value="recipes">Recipes</MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* Pin Title */}
               <TextField
                 fullWidth
                 variant="outlined"
                 label="Pin Title (Required)"
-                placeholder="Enter a catchy title for your pin"
+                placeholder="Write title here"
                 value={pinterestTitle}
                 onChange={(e) => setPinterestTitle(e.target.value)}
                 sx={{ mb: 2 }}
@@ -366,27 +398,52 @@ const ComposePost: React.FC = () => {
                 helperText={
                   pinterestAccounts.some(account => selectedAccounts.includes(account.id.toString())) && !pinterestTitle.trim()
                     ? "Title is required for Pinterest pins"
-                    : "This will be the title of your Pinterest pin"
+                    : "This will be the title of your Pinterest pin (100 characters max)"
                 }
+                inputProps={{ maxLength: 100 }}
               />
+
+              {/* Pin Description */}
               <TextField
                 fullWidth
                 multiline
                 rows={3}
                 variant="outlined"
                 label="Pin Description (Required)"
-                placeholder="Describe your pin to help people find it"
+                placeholder="Write description here"
                 value={pinterestDescription}
                 onChange={(e) => setPinterestDescription(e.target.value)}
+                sx={{ mb: 2 }}
                 required
                 error={pinterestAccounts.some(account => selectedAccounts.includes(account.id.toString())) && !pinterestDescription.trim()}
                 helperText={
                   pinterestAccounts.some(account => selectedAccounts.includes(account.id.toString())) && !pinterestDescription.trim()
                     ? "Description is required for Pinterest pins"
-                    : `${pinterestDescription.length}/500 characters - This will be the description of your Pinterest pin`
+                    : `${pinterestDescription.length}/500 characters - Describe your pin to help people find it`
                 }
                 inputProps={{ maxLength: 500 }}
               />
+
+              {/* Destination URL */}
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Destination URL (Optional)"
+                placeholder="Enter URL"
+                value={pinterestDestinationUrl}
+                onChange={(e) => setPinterestDestinationUrl(e.target.value)}
+                sx={{ mb: 2 }}
+                helperText="Where should people go when they click your pin? (Optional)"
+                type="url"
+              />
+
+              {/* Image Upload Requirement Notice */}
+              <Box sx={{ p: 2, bgcolor: '#f0f0f0', borderRadius: 1, border: '1px dashed #ccc' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                  📷 <strong>Image Required</strong><br />
+                  Pinterest pins require an image. Please add an image using the media upload section below.
+                </Typography>
+              </Box>
             </Box>
           )}
 
