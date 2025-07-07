@@ -344,7 +344,11 @@ const ComposePost: React.FC = () => {
           />
 
           {/* Pinterest-specific fields */}
-          {pinterestAccounts.some(account => selectedAccounts.includes(account.id.toString())) && (
+          {(pinterestAccounts.some(account => selectedAccounts.includes(account.id.toString())) || 
+            selectedAccounts.some(id => {
+              const account = activeAccounts.find(acc => acc.id.toString() === id);
+              return account?.platform === 'pinterest';
+            })) && (
             <Box sx={{ mb: 2, p: 2, border: '1px solid #BD081C', borderRadius: 1, bgcolor: '#fafafa' }}>
               <Typography variant="subtitle2" sx={{ mb: 1, color: '#BD081C', fontWeight: 'bold' }}>
                 Pinterest Pin Details
