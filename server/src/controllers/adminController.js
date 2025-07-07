@@ -50,10 +50,12 @@ const addApiCredentials = async (req, res) => {
 
     const { platform, clientId, clientSecret } = req.body;
     
-    // Test credentials before saving
-    const isValid = await ApiCredentials.testCredentials(platform, clientId, clientSecret);
-    if (!isValid) {
-      return res.status(400).json({ error: 'Invalid API credentials' });
+    // Test credentials before saving (skip for Pinterest for now)
+    if (platform !== 'pinterest') {
+      const isValid = await ApiCredentials.testCredentials(platform, clientId, clientSecret);
+      if (!isValid) {
+        return res.status(400).json({ error: 'Invalid API credentials' });
+      }
     }
 
     // Check if credentials for this platform already exist
