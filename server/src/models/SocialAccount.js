@@ -2,6 +2,13 @@ const pool = require('../config/database');
 
 class SocialAccount {
   static async create(accountData) {
+    console.log('SocialAccount.create called with data:', JSON.stringify(accountData, null, 2));
+    
+    // Validate required fields
+    if (!accountData) {
+      throw new Error('Account data is required');
+    }
+    
     const {
       userId,
       platform,
@@ -13,6 +20,29 @@ class SocialAccount {
       refreshToken,
       tokenExpiresAt
     } = accountData;
+
+    console.log('Destructured values:', {
+      userId,
+      platform,
+      instanceUrl,
+      username,
+      displayName,
+      avatarUrl: avatarUrl ? 'present' : 'null',
+      accessToken: accessToken ? 'present' : 'null',
+      refreshToken: refreshToken ? 'present' : 'null',
+      tokenExpiresAt
+    });
+
+    // Validate required fields
+    if (!userId) {
+      throw new Error('userId is required');
+    }
+    if (!platform) {
+      throw new Error('platform is required');
+    }
+    if (!username) {
+      throw new Error('username is required');
+    }
 
     const result = await pool.query(
       `INSERT INTO social_accounts 

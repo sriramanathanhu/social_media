@@ -512,20 +512,28 @@ const connectPinterest = async (req, res) => {
       // Use the access token directly to get user info
       console.log('Getting Pinterest user info with access token...');
       const userInfo = await pinterestService.getUserInfo(credentials.accessToken);
-      console.log('Pinterest user info retrieved:', userInfo.username);
+      console.log('Pinterest user info retrieved:', JSON.stringify(userInfo, null, 2));
+      
+      // Validate required fields
+      if (!userInfo || !userInfo.username) {
+        throw new Error('Pinterest user info missing required username field');
+      }
       
       // Create or update Pinterest account
-      const pinterestAccount = await SocialAccount.create({
+      const accountData = {
         userId: req.user.id,
         platform: 'pinterest',
         instanceUrl: null, // No instance URL for Pinterest
         username: userInfo.username,
-        displayName: userInfo.username,
-        avatarUrl: userInfo.profile_image,
+        displayName: userInfo.username || userInfo.id || 'Pinterest User',
+        avatarUrl: userInfo.profile_image || null,
         accessToken: pinterestService.encrypt(credentials.accessToken),
         refreshToken: null,
         tokenExpiresAt: null
-      });
+      };
+      
+      console.log('Creating Pinterest account with data:', JSON.stringify(accountData, null, 2));
+      const pinterestAccount = await SocialAccount.create(accountData);
       
       console.log('Pinterest account created/updated:', pinterestAccount.id);
       

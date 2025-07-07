@@ -189,6 +189,7 @@ class PinterestService {
 
       if (response.data) {
         console.log('Pinterest user profile retrieved successfully');
+        console.log('Pinterest API response:', JSON.stringify(response.data, null, 2));
         return {
           id: response.data.id,
           username: response.data.username,
