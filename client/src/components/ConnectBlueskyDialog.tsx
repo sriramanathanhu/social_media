@@ -51,6 +51,9 @@ const ConnectBlueskyDialog: React.FC<ConnectBlueskyDialogProps> = ({
         setAppPassword('');
         // Optionally refresh accounts list
         window.location.reload();
+      } else if (result.meta.requestStatus === 'rejected') {
+        // Error will be shown in the dialog
+        console.error('Bluesky connection failed:', result.error);
       }
     } catch (error) {
       console.error('Failed to connect Bluesky:', error);
