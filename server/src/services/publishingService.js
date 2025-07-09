@@ -307,9 +307,13 @@ class PublishingService {
     }
     
     // Prepare media files for Bluesky
+    console.log('Bluesky publishToBluesky received media files:', mediaFiles.length);
+    console.log('Media files details:', mediaFiles.map(f => ({ path: f?.path, mimetype: f?.mimetype, size: f?.size })));
+    
     const mediaForBluesky = [];
     if (mediaFiles && mediaFiles.length > 0) {
       for (const mediaFile of mediaFiles) {
+        console.log('Processing media file for Bluesky:', { hasPath: !!mediaFile.path, file: mediaFile });
         if (mediaFile.path) {
           mediaForBluesky.push(mediaFile);
         }

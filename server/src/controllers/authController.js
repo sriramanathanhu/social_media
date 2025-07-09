@@ -759,7 +759,7 @@ const connectBluesky = async (req, res) => {
       tokenExpiresAt: null
     });
     
-    console.log('New Bluesky account created:', newAccount);
+    console.log('New Bluesky account created successfully:', newAccount);
     
     // Store agent for this account
     blueskyService.setAgent(newAccount.id, sessionData.agent);
