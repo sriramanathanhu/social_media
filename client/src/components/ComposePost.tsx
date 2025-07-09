@@ -359,8 +359,8 @@ const ComposePost: React.FC = () => {
             }
           />
 
-          {/* Pinterest-specific fields - ALWAYS SHOW FOR TESTING */}
-          {true && (
+          {/* Pinterest-specific fields */}
+          {pinterestAccounts.some(account => selectedAccounts.includes(account.id.toString())) && (
             <Box sx={{ mb: 2, p: 3, border: '2px solid #BD081C', borderRadius: 2, bgcolor: '#fff8f8' }}>
               <Typography variant="h6" sx={{ mb: 2, color: '#BD081C', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
                 📌 Pinterest Pin Details

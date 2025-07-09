@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
-import { connectBluesky } from '../store/slices/accountsSlice';
+import { connectBluesky, clearError } from '../store/slices/accountsSlice';
 
 interface ConnectBlueskyDialogProps {
   open: boolean;
@@ -29,6 +29,13 @@ const ConnectBlueskyDialog: React.FC<ConnectBlueskyDialogProps> = ({
   const { connectingBluesky, error } = useSelector((state: RootState) => state.accounts);
   const [handle, setHandle] = useState('');
   const [appPassword, setAppPassword] = useState('');
+
+  // Clear error when dialog opens
+  useEffect(() => {
+    if (open) {
+      dispatch(clearError());
+    }
+  }, [open, dispatch]);
 
   const handleConnect = async () => {
     if (!handle.trim() || !appPassword.trim()) {
@@ -52,6 +59,7 @@ const ConnectBlueskyDialog: React.FC<ConnectBlueskyDialogProps> = ({
 
   const handleClose = () => {
     if (!connectingBluesky) {
+      dispatch(clearError());
       onClose();
       setHandle('');
       setAppPassword('');
