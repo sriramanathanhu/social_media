@@ -14,13 +14,18 @@ class BlueskyService {
    */
   encrypt(text) {
     if (!text) return null;
-    const algorithm = 'aes-256-cbc';
-    const key = crypto.scryptSync(this.encryptionKey, 'salt', 32);
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipher(algorithm, key);
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return iv.toString('hex') + ':' + encrypted;
+    try {
+      const algorithm = 'aes-256-cbc';
+      const key = crypto.scryptSync(this.encryptionKey, 'salt', 32);
+      const iv = crypto.randomBytes(16);
+      const cipher = crypto.createCipheriv(algorithm, key, iv);
+      let encrypted = cipher.update(text, 'utf8', 'hex');
+      encrypted += cipher.final('hex');
+      return iv.toString('hex') + ':' + encrypted;
+    } catch (error) {
+      console.error('Encryption error:', error);
+      return text; // Return original if encryption fails
+    }
   }
 
   /**
@@ -32,9 +37,13 @@ class BlueskyService {
       const algorithm = 'aes-256-cbc';
       const key = crypto.scryptSync(this.encryptionKey, 'salt', 32);
       const textParts = encryptedText.split(':');
-      const iv = Buffer.from(textParts.shift(), 'hex');
-      const encrypted = textParts.join(':');
-      const decipher = crypto.createDecipher(algorithm, key);
+      if (textParts.length !== 2) {
+        // If not properly encrypted format, return as-is (for backward compatibility)
+        return encryptedText;
+      }
+      const iv = Buffer.from(textParts[0], 'hex');
+      const encrypted = textParts[1];
+      const decipher = crypto.createDecipheriv(algorithm, key, iv);
       let decrypted = decipher.update(encrypted, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
       return decrypted;
