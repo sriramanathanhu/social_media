@@ -9,7 +9,7 @@ export interface User {
 export interface SocialAccount {
   id: string;
   userId: string;
-  platform: 'mastodon' | 'x' | 'twitter' | 'pinterest' | 'soundcloud' | 'substack' | 'telegram' | 'deviantart';
+  platform: 'mastodon' | 'x' | 'twitter' | 'pinterest' | 'bluesky' | 'soundcloud' | 'substack' | 'telegram' | 'deviantart';
   instanceUrl?: string;
   username: string;
   displayName?: string;

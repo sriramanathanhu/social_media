@@ -6,6 +6,7 @@ const OAuthState = require('../models/OAuthState');
 const mastodonService = require('../services/mastodon');
 const xService = require('../services/x');
 const pinterestService = require('../services/pinterest');
+const blueskyService = require('../services/bluesky');
 const crypto = require('crypto');
 
 const generateToken = (userId) => {
@@ -713,6 +714,80 @@ const pinterestCallback = async (req, res) => {
   }
 };
 
+const connectBluesky = async (req, res) => {
+  try {
+    console.log('Connecting Bluesky account for user:', req.user.id);
+    
+    const { handle, appPassword } = req.body;
+    
+    if (!handle || !appPassword) {
+      return res.status(400).json({ error: 'Handle and app password are required' });
+    }
+    
+    console.log('Attempting to create Bluesky session for:', handle);
+    
+    // Create session with Bluesky
+    const sessionData = await blueskyService.createSession(handle, appPassword);
+    
+    console.log('Bluesky session created successfully');
+    
+    // Check for existing account
+    const existingAccount = await SocialAccount.findByPlatformUserAndUsername(
+      req.user.id,
+      'bluesky',
+      null, // Bluesky doesn't have instance URLs
+      sessionData.handle
+    );
+    
+    if (existingAccount.length > 0) {
+      console.log('Updating existing Bluesky account:', existingAccount[0].id);
+      
+      // Update existing account
+      await SocialAccount.updateTokens(
+        existingAccount[0].id,
+        blueskyService.encrypt ? blueskyService.encrypt(appPassword) : appPassword
+      );
+      
+      console.log('Existing Bluesky account updated');
+    } else {
+      console.log('Creating new Bluesky account');
+      
+      // Create new account record
+      const newAccount = await SocialAccount.create({
+        userId: req.user.id,
+        platform: 'bluesky',
+        instanceUrl: null,
+        username: sessionData.handle,
+        displayName: sessionData.displayName || sessionData.handle,
+        avatarUrl: sessionData.session?.avatar || null,
+        accessToken: blueskyService.encrypt ? blueskyService.encrypt(appPassword) : appPassword,
+        refreshToken: null,
+        tokenExpiresAt: null
+      });
+      
+      console.log('New Bluesky account created:', newAccount);
+    }
+    
+    // Store agent for this account
+    const accountId = existingAccount.length > 0 ? existingAccount[0].id : newAccount.id;
+    blueskyService.setAgent(accountId, sessionData.agent);
+    
+    res.json({
+      success: true,
+      message: 'Bluesky account connected successfully',
+      account: {
+        platform: 'bluesky',
+        username: sessionData.handle,
+        displayName: sessionData.displayName,
+        status: 'active'
+      }
+    });
+  } catch (error) {
+    console.error('Bluesky connect error:', error);
+    res.status(500).json({ error: 'Failed to connect to Bluesky: ' + error.message });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -723,6 +798,7 @@ module.exports = {
   xCallback,
   connectPinterest,
   pinterestCallback,
+  connectBluesky,
   registerValidation,
   loginValidation,
   emergencyAdminPromote

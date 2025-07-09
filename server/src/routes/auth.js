@@ -28,6 +28,7 @@ router.post('/x/connect', auth, authController.connectX);
 router.get('/x/callback', authController.xCallback); // No auth middleware for OAuth callback
 router.post('/pinterest/connect', auth, authController.connectPinterest);
 router.get('/pinterest/callback', authController.pinterestCallback); // No auth middleware for OAuth callback
+router.post('/bluesky/connect', auth, authController.connectBluesky);
 
 // Get X API status and limits for dashboard
 router.get('/x-api-status', auth, async (req, res) => {

@@ -9,6 +9,7 @@ interface AccountsState {
   connectingMastodon: boolean;
   connectingX: boolean;
   connectingPinterest: boolean;
+  connectingBluesky: boolean;
 }
 
 const initialState: AccountsState = {
@@ -18,6 +19,7 @@ const initialState: AccountsState = {
   connectingMastodon: false,
   connectingX: false,
   connectingPinterest: false,
+  connectingBluesky: false,
 };
 
 export const fetchAccounts = createAsyncThunk(
@@ -48,6 +50,14 @@ export const connectPinterest = createAsyncThunk(
   'accounts/connectPinterest',
   async () => {
     const response = await authAPI.connectPinterest();
+    return response.data;
+  }
+);
+
+export const connectBluesky = createAsyncThunk(
+  'accounts/connectBluesky',
+  async ({ handle, appPassword }: { handle: string; appPassword: string }) => {
+    const response = await authAPI.connectBluesky(handle, appPassword);
     return response.data;
   }
 );
@@ -132,6 +142,17 @@ const accountsSlice = createSlice({
       .addCase(connectPinterest.rejected, (state, action) => {
         state.connectingPinterest = false;
         state.error = action.error.message || 'Failed to connect Pinterest account';
+      })
+      .addCase(connectBluesky.pending, (state) => {
+        state.connectingBluesky = true;
+        state.error = null;
+      })
+      .addCase(connectBluesky.fulfilled, (state, action) => {
+        state.connectingBluesky = false;
+      })
+      .addCase(connectBluesky.rejected, (state, action) => {
+        state.connectingBluesky = false;
+        state.error = action.error.message || 'Failed to connect Bluesky account';
       })
       .addCase(deleteAccount.pending, (state) => {
         state.loading = true;

@@ -23,6 +23,7 @@ import {
   Twitter as XIcon,
   Pinterest as PinterestIcon,
   Group as GroupIcon,
+  Cloud as BlueskyIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
@@ -31,6 +32,7 @@ import AccountCard from '../components/AccountCard';
 import ConnectMastodonDialog from '../components/ConnectMastodonDialog';
 import ConnectXDialog from '../components/ConnectXDialog';
 import ConnectPinterestDialog from '../components/ConnectPinterestDialog';
+import ConnectBlueskyDialog from '../components/ConnectBlueskyDialog';
 import AccountGroups from '../components/AccountGroups';
 
 const AccountsPage: React.FC = () => {
@@ -40,6 +42,7 @@ const AccountsPage: React.FC = () => {
   const [connectMastodonDialogOpen, setConnectMastodonDialogOpen] = useState(false);
   const [connectXDialogOpen, setConnectXDialogOpen] = useState(false);
   const [connectPinterestDialogOpen, setConnectPinterestDialogOpen] = useState(false);
+  const [connectBlueskyDialogOpen, setConnectBlueskyDialogOpen] = useState(false);
   const [fabMenuAnchor, setFabMenuAnchor] = useState<null | HTMLElement>(null);
   const [currentTab, setCurrentTab] = useState(0);
 
@@ -82,9 +85,15 @@ const AccountsPage: React.FC = () => {
     handleFabMenuClose();
   };
 
+  const handleConnectBluesky = () => {
+    setConnectBlueskyDialogOpen(true);
+    handleFabMenuClose();
+  };
+
   const mastodonAccounts = accounts.filter(account => account.platform === 'mastodon');
   const xAccounts = accounts.filter(account => account.platform === 'x');
   const pinterestAccounts = accounts.filter(account => account.platform === 'pinterest');
+  const blueskyAccounts = accounts.filter(account => account.platform === 'bluesky');
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -229,6 +238,43 @@ const AccountsPage: React.FC = () => {
                 </Paper>
               </Grid>
 
+              {/* Bluesky Accounts */}
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <BlueskyIcon sx={{ mr: 1, color: '#00A8E8' }} />
+                    <Typography variant="h6">Bluesky Accounts</Typography>
+                  </Box>
+                  
+                  {blueskyAccounts.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        No Bluesky accounts connected
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        startIcon={<AddIcon />}
+                        onClick={handleConnectBluesky}
+                        sx={{ borderColor: '#00A8E8', color: '#00A8E8', '&:hover': { borderColor: '#00A8E8', backgroundColor: 'rgba(0, 168, 232, 0.04)' } }}
+                      >
+                        Connect Bluesky Account
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box>
+                      {blueskyAccounts.map((account) => (
+                        <AccountCard
+                          key={account.id}
+                          account={account}
+                          onDelete={handleDeleteAccount}
+                          onVerify={handleVerifyAccount}
+                        />
+                      ))}
+                    </Box>
+                  )}
+                </Paper>
+              </Grid>
+
               {/* Other Platforms (Coming Soon) */}
               <Grid item xs={12}>
                 <Paper sx={{ p: 3 }}>
@@ -291,6 +337,12 @@ const AccountsPage: React.FC = () => {
           </ListItemIcon>
           <ListItemText>Connect Pinterest</ListItemText>
         </MenuItem>
+        <MenuItem onClick={handleConnectBluesky}>
+          <ListItemIcon>
+            <BlueskyIcon fontSize="small" sx={{ color: '#00A8E8' }} />
+          </ListItemIcon>
+          <ListItemText>Connect Bluesky</ListItemText>
+        </MenuItem>
       </Menu>
 
       {/* Connect Mastodon Dialog */}
@@ -309,6 +361,12 @@ const AccountsPage: React.FC = () => {
       <ConnectPinterestDialog
         open={connectPinterestDialogOpen}
         onClose={() => setConnectPinterestDialogOpen(false)}
+      />
+
+      {/* Connect Bluesky Dialog */}
+      <ConnectBlueskyDialog
+        open={connectBlueskyDialogOpen}
+        onClose={() => setConnectBlueskyDialogOpen(false)}
       />
       </Container>
     </Box>

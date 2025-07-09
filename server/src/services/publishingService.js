@@ -3,6 +3,7 @@ const Post = require('../models/Post');
 const mastodonService = require('./mastodon');
 const xService = require('./x');
 const pinterestService = require('./pinterest');
+const blueskyService = require('./bluesky');
 
 class PublishingService {
   async publishPost(userId, postData) {
@@ -109,6 +110,8 @@ class PublishingService {
         return await this.publishToX(account, content, mediaFiles, postType);
       case 'pinterest':
         return await this.publishToPinterest(account, content, mediaFiles, postType);
+      case 'bluesky':
+        return await this.publishToBluesky(account, content, mediaFiles, postType);
       default:
         throw new Error(`Platform ${account.platform} not supported`);
     }
@@ -278,6 +281,52 @@ class PublishingService {
       url: result.url,
       platform: 'pinterest',
       board: targetBoard.name
+    };
+  }
+
+  async publishToBluesky(account, content, mediaFiles = [], postType = 'text') {
+    console.log('Publishing to Bluesky account:', {
+      accountId: account.id,
+      username: account.username,
+      hasToken: !!account.access_token
+    });
+    
+    // Get the stored agent for this account
+    let agent = blueskyService.getAgent(account.id);
+    
+    if (!agent) {
+      console.log('No cached agent found, creating new session');
+      // If no cached agent, create a new session
+      const appPassword = blueskyService.decrypt ? 
+        blueskyService.decrypt(account.access_token) : 
+        account.access_token;
+      
+      const sessionData = await blueskyService.createSession(account.username, appPassword);
+      agent = sessionData.agent;
+      blueskyService.setAgent(account.id, agent);
+    }
+    
+    // Prepare image paths if media files exist
+    const imagePaths = [];
+    if (mediaFiles && mediaFiles.length > 0) {
+      for (const mediaFile of mediaFiles) {
+        if (mediaFile.path) {
+          imagePaths.push(mediaFile.path);
+        }
+      }
+    }
+    
+    console.log('Creating Bluesky post with images:', imagePaths.length);
+    
+    const result = await blueskyService.createPost(agent, content, imagePaths);
+    
+    console.log('Bluesky post created successfully:', result);
+    
+    return {
+      id: result.uri,
+      url: result.uri,
+      platform: 'bluesky',
+      success: result.success
     };
   }
 }

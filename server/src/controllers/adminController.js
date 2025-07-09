@@ -50,8 +50,8 @@ const addApiCredentials = async (req, res) => {
 
     const { platform, clientId, clientSecret } = req.body;
     
-    // Test credentials before saving (skip for Pinterest for now)
-    if (platform !== 'pinterest') {
+    // Test credentials before saving (skip for Pinterest and Bluesky for now)
+    if (platform !== 'pinterest' && platform !== 'bluesky') {
       const isValid = await ApiCredentials.testCredentials(platform, clientId, clientSecret);
       if (!isValid) {
         return res.status(400).json({ error: 'Invalid API credentials' });
@@ -202,8 +202,8 @@ const removeAdmin = async (req, res) => {
 
 const addApiCredentialsValidation = [
   body('platform')
-    .isIn(['x', 'twitter', 'pinterest'])
-    .withMessage('Platform must be x, twitter, or pinterest'),
+    .isIn(['x', 'twitter', 'pinterest', 'bluesky'])
+    .withMessage('Platform must be x, twitter, pinterest, or bluesky'),
   body('clientId')
     .isLength({ min: 5 })
     .withMessage('Client ID must be at least 5 characters'),

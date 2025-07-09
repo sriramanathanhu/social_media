@@ -57,6 +57,9 @@ export const authAPI = {
   
   pinterestCallback: (code: string, state: string) =>
     api.get(`/auth/pinterest/callback?code=${code}&state=${state}`),
+  
+  connectBluesky: (handle: string, appPassword: string) =>
+    api.post('/auth/bluesky/connect', { handle, appPassword }),
 };
 
 export const accountsAPI = {
