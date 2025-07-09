@@ -132,37 +132,65 @@ class BlueskyService {
    * Create a post on Bluesky
    * @param {BskyAgent} agent - Bluesky agent
    * @param {string} text - Post text
-   * @param {Array} images - Array of image file paths
+   * @param {Array} mediaFiles - Array of media file objects or file paths
    * @returns {Promise<Object>} Post creation result
    */
-  async createPost(agent, text, images = []) {
+  async createPost(agent, text, mediaFiles = []) {
     try {
-      console.log('Creating Bluesky post:', { text: text.substring(0, 50) + '...', imageCount: images.length });
+      console.log('Creating Bluesky post:', { text: text.substring(0, 50) + '...', mediaCount: mediaFiles.length });
+      console.log('Media files received:', mediaFiles.map(f => ({ path: f.path, mimetype: f.mimetype, size: f.size })));
 
       const post = {
         text: text,
         createdAt: new Date().toISOString(),
       };
 
-      // Handle images if provided
-      if (images && images.length > 0) {
+      // Handle media files if provided
+      if (mediaFiles && mediaFiles.length > 0) {
         const imageBlobs = [];
         
-        for (const imagePath of images.slice(0, 4)) { // Max 4 images
+        for (const mediaFile of mediaFiles.slice(0, 4)) { // Max 4 images
           try {
-            const imageBuffer = fs.readFileSync(imagePath);
-            const mimeType = this.getMimeType(imagePath);
+            let imageBuffer;
+            let mimeType;
+            
+            console.log('Processing media file:', mediaFile);
+            
+            if (typeof mediaFile === 'string') {
+              // It's a file path
+              console.log('Processing string path:', mediaFile);
+              imageBuffer = fs.readFileSync(mediaFile);
+              mimeType = this.getMimeType(mediaFile);
+            } else if (mediaFile.path) {
+              // It's a media file object with path
+              console.log('Processing file object with path:', mediaFile.path);
+              if (!fs.existsSync(mediaFile.path)) {
+                console.error('Media file does not exist:', mediaFile.path);
+                continue;
+              }
+              imageBuffer = fs.readFileSync(mediaFile.path);
+              mimeType = mediaFile.mimetype || this.getMimeType(mediaFile.path);
+            } else {
+              console.error('Invalid media file format:', mediaFile);
+              continue;
+            }
+            
+            console.log('Image buffer size:', imageBuffer.length, 'MIME type:', mimeType);
             
             const blob = await this.uploadBlob(agent, imageBuffer, mimeType);
             imageBlobs.push({
               image: blob,
               alt: '', // Alt text can be added later
             });
+            
+            console.log('Successfully uploaded image blob');
           } catch (error) {
-            console.error('Failed to upload image:', imagePath, error);
+            console.error('Failed to upload image:', mediaFile, error);
             // Continue with other images
           }
         }
+
+        console.log('Total image blobs processed:', imageBlobs.length);
 
         if (imageBlobs.length > 0) {
           post.embed = {

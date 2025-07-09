@@ -306,19 +306,19 @@ class PublishingService {
       blueskyService.setAgent(account.id, agent);
     }
     
-    // Prepare image paths if media files exist
-    const imagePaths = [];
+    // Prepare media files for Bluesky
+    const mediaForBluesky = [];
     if (mediaFiles && mediaFiles.length > 0) {
       for (const mediaFile of mediaFiles) {
         if (mediaFile.path) {
-          imagePaths.push(mediaFile.path);
+          mediaForBluesky.push(mediaFile);
         }
       }
     }
     
-    console.log('Creating Bluesky post with images:', imagePaths.length);
+    console.log('Creating Bluesky post with media files:', mediaForBluesky.length);
     
-    const result = await blueskyService.createPost(agent, content, imagePaths);
+    const result = await blueskyService.createPost(agent, content, mediaForBluesky);
     
     console.log('Bluesky post created successfully:', result);
     

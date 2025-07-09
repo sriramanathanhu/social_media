@@ -740,37 +740,29 @@ const connectBluesky = async (req, res) => {
     );
     
     if (existingAccount.length > 0) {
-      console.log('Updating existing Bluesky account:', existingAccount[0].id);
-      
-      // Update existing account
-      await SocialAccount.updateTokens(
-        existingAccount[0].id,
-        blueskyService.encrypt ? blueskyService.encrypt(appPassword) : appPassword
-      );
-      
-      console.log('Existing Bluesky account updated');
-    } else {
-      console.log('Creating new Bluesky account');
-      
-      // Create new account record
-      const newAccount = await SocialAccount.create({
-        userId: req.user.id,
-        platform: 'bluesky',
-        instanceUrl: null,
-        username: sessionData.handle,
-        displayName: sessionData.displayName || sessionData.handle,
-        avatarUrl: sessionData.session?.avatar || null,
-        accessToken: blueskyService.encrypt ? blueskyService.encrypt(appPassword) : appPassword,
-        refreshToken: null,
-        tokenExpiresAt: null
-      });
-      
-      console.log('New Bluesky account created:', newAccount);
+      console.log('Bluesky account already exists for this user:', existingAccount[0].id);
+      return res.status(409).json({ error: 'Bluesky account already connected for this user' });
     }
     
+    console.log('Creating new Bluesky account');
+    
+    // Create new account record
+    const newAccount = await SocialAccount.create({
+      userId: req.user.id,
+      platform: 'bluesky',
+      instanceUrl: null,
+      username: sessionData.handle,
+      displayName: sessionData.displayName || sessionData.handle,
+      avatarUrl: sessionData.session?.avatar || null,
+      accessToken: blueskyService.encrypt ? blueskyService.encrypt(appPassword) : appPassword,
+      refreshToken: null,
+      tokenExpiresAt: null
+    });
+    
+    console.log('New Bluesky account created:', newAccount);
+    
     // Store agent for this account
-    const accountId = existingAccount.length > 0 ? existingAccount[0].id : newAccount.id;
-    blueskyService.setAgent(accountId, sessionData.agent);
+    blueskyService.setAgent(newAccount.id, sessionData.agent);
     
     res.json({
       success: true,
