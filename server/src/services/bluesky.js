@@ -133,13 +133,11 @@ class BlueskyService {
       // The response should contain the blob metadata we need for embedding
       console.log('Blob uploaded successfully:', response.data.blob);
       
-      // Return the blob object that will be used in post embedding
-      return {
-        $type: 'blob',
-        ref: response.data.blob.ref,
-        mimeType: response.data.blob.mimeType,
-        size: response.data.blob.size
-      };
+      // Return the blob object exactly as expected by Bluesky API
+      console.log('Raw blob response:', JSON.stringify(response.data.blob, null, 2));
+      
+      // The blob should be returned as-is from the API response
+      return response.data.blob;
     } catch (error) {
       console.error('Bluesky blob upload failed:', error);
       if (error.message.includes('too large')) {
@@ -159,9 +157,16 @@ class BlueskyService {
   async createPost(agent, text, mediaFiles = []) {
     try {
       console.log('Creating Bluesky post:', { text: text.substring(0, 50) + '...', mediaCount: mediaFiles.length });
-      console.log('Media files received:', mediaFiles.map(f => ({ path: f?.path, mimetype: f?.mimetype, size: f?.size })));
+      console.log('Media files received:', mediaFiles.map(f => ({ 
+        originalname: f?.originalname, 
+        mimetype: f?.mimetype, 
+        size: f?.size,
+        hasBuffer: !!f?.buffer,
+        hasPath: !!f?.path 
+      })));
 
       const post = {
+        $type: 'app.bsky.feed.post',
         text: text,
         createdAt: new Date().toISOString(),
       };
@@ -179,15 +184,27 @@ class BlueskyService {
             let imageBuffer;
             let mimeType;
             
-            console.log('Processing media file:', mediaFile);
+            console.log('Processing media file:', {
+              fieldname: mediaFile.fieldname,
+              originalname: mediaFile.originalname,
+              mimetype: mediaFile.mimetype,
+              size: mediaFile.size,
+              hasBuffer: !!mediaFile.buffer,
+              hasPath: !!mediaFile.path
+            });
             
             if (typeof mediaFile === 'string') {
               // It's a file path
               console.log('Processing string path:', mediaFile);
               imageBuffer = fs.readFileSync(mediaFile);
               mimeType = this.getMimeType(mediaFile);
+            } else if (mediaFile.buffer) {
+              // It's a multer file object with buffer (memory storage)
+              console.log('Processing multer buffer file:', mediaFile.originalname);
+              imageBuffer = mediaFile.buffer;
+              mimeType = mediaFile.mimetype;
             } else if (mediaFile.path) {
-              // It's a media file object with path
+              // It's a media file object with path (disk storage)
               console.log('Processing file object with path:', mediaFile.path);
               if (!fs.existsSync(mediaFile.path)) {
                 console.error('Media file does not exist:', mediaFile.path);
