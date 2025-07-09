@@ -106,7 +106,7 @@ class BlueskyService {
   }
 
   /**
-   * Upload blob (image) to Bluesky
+   * Upload blob (image) to Bluesky using the official API method
    * @param {BskyAgent} agent - Bluesky agent
    * @param {Buffer} imageBuffer - Image buffer
    * @param {string} mimeType - MIME type of the image
@@ -114,22 +114,43 @@ class BlueskyService {
    */
   async uploadBlob(agent, imageBuffer, mimeType) {
     try {
-      console.log('Uploading blob to Bluesky, size:', imageBuffer.length, 'type:', mimeType);
+      const fileSizeBytes = imageBuffer.length;
+      const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2);
+      const maxSizeBytes = 1000000; // 1MB limit for Bluesky as per official docs
       
+      console.log('Uploading blob to Bluesky, size:', fileSizeBytes, 'bytes (' + fileSizeMB + 'MB), type:', mimeType);
+      
+      // Check file size before attempting upload (official requirement)
+      if (fileSizeBytes > maxSizeBytes) {
+        throw new Error(`Image file too large for Bluesky (${fileSizeMB}MB). Maximum size allowed is 1MB. Please compress or resize your image.`);
+      }
+      
+      // Use the official blob upload method as documented
       const response = await agent.uploadBlob(imageBuffer, {
         encoding: mimeType,
       });
 
-      console.log('Blob uploaded successfully:', response.data.blob.ref);
-      return response.data.blob;
+      // The response should contain the blob metadata we need for embedding
+      console.log('Blob uploaded successfully:', response.data.blob);
+      
+      // Return the blob object that will be used in post embedding
+      return {
+        $type: 'blob',
+        ref: response.data.blob.ref,
+        mimeType: response.data.blob.mimeType,
+        size: response.data.blob.size
+      };
     } catch (error) {
       console.error('Bluesky blob upload failed:', error);
+      if (error.message.includes('too large')) {
+        throw error; // Pass through our custom error message
+      }
       throw new Error(`Failed to upload blob: ${error.message}`);
     }
   }
 
   /**
-   * Create a post on Bluesky
+   * Create a post on Bluesky with proper image embedding per official API docs
    * @param {BskyAgent} agent - Bluesky agent
    * @param {string} text - Post text
    * @param {Array} mediaFiles - Array of media file objects or file paths
@@ -138,18 +159,22 @@ class BlueskyService {
   async createPost(agent, text, mediaFiles = []) {
     try {
       console.log('Creating Bluesky post:', { text: text.substring(0, 50) + '...', mediaCount: mediaFiles.length });
-      console.log('Media files received:', mediaFiles.map(f => ({ path: f.path, mimetype: f.mimetype, size: f.size })));
+      console.log('Media files received:', mediaFiles.map(f => ({ path: f?.path, mimetype: f?.mimetype, size: f?.size })));
 
       const post = {
         text: text,
         createdAt: new Date().toISOString(),
       };
 
-      // Handle media files if provided
+      // Handle media files if provided (up to 4 images as per Bluesky docs)
       if (mediaFiles && mediaFiles.length > 0) {
         const imageBlobs = [];
+        const maxImages = Math.min(mediaFiles.length, 4); // Bluesky supports max 4 images
         
-        for (const mediaFile of mediaFiles.slice(0, 4)) { // Max 4 images
+        console.log(`Processing ${maxImages} images for Bluesky post`);
+        
+        for (let i = 0; i < maxImages; i++) {
+          const mediaFile = mediaFiles[i];
           try {
             let imageBuffer;
             let mimeType;
@@ -177,29 +202,36 @@ class BlueskyService {
             
             console.log('Image buffer size:', imageBuffer.length, 'MIME type:', mimeType);
             
+            // Upload blob using the official API method
             const blob = await this.uploadBlob(agent, imageBuffer, mimeType);
+            
+            // Create image object as per Bluesky docs
             imageBlobs.push({
-              image: blob,
-              alt: '', // Alt text can be added later
+              alt: `Image ${i + 1}`, // Default alt text for accessibility
+              image: blob
             });
             
-            console.log('Successfully uploaded image blob');
+            console.log(`Successfully uploaded image blob ${i + 1}/${maxImages}`);
           } catch (error) {
-            console.error('Failed to upload image:', mediaFile, error);
-            // Continue with other images
+            console.error(`Failed to upload image ${i + 1}:`, mediaFile, error);
+            // Continue with other images - don't fail the entire post
           }
         }
 
         console.log('Total image blobs processed:', imageBlobs.length);
 
+        // Add image embed if we have any successful uploads
         if (imageBlobs.length > 0) {
           post.embed = {
             $type: 'app.bsky.embed.images',
             images: imageBlobs,
           };
+          console.log('Added image embed to post:', post.embed);
         }
       }
 
+      console.log('Final post object:', JSON.stringify(post, null, 2));
+      
       const response = await agent.post(post);
       console.log('Bluesky post created successfully:', response.uri);
       
@@ -208,6 +240,7 @@ class BlueskyService {
         uri: response.uri,
         cid: response.cid,
         data: response,
+        imagesCount: post.embed?.images?.length || 0
       };
     } catch (error) {
       console.error('Bluesky post creation failed:', error);
