@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { compressImageForBluesky, needsCompressionForBluesky, getCompressionInfo } from '../utils/imageCompression';
 import {
   Box,
   TextField,
@@ -183,10 +184,40 @@ const ComposePost: React.FC = () => {
   const areAllCurrentSelected = currentPlatformAccounts.length > 0 && 
     currentPlatformAccounts.every(account => selectedAccounts.includes(account.id));
 
-  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const files = Array.from(event.target.files);
-      setSelectedImages(prev => [...prev, ...files].slice(0, 4)); // Limit to 4 images
+      const processedFiles: File[] = [];
+      
+      // Check if any Bluesky accounts are selected
+      const hasBlueskySelected = selectedAccounts.some(accountId => 
+        blueskyAccounts.some(acc => acc.id.toString() === accountId)
+      );
+      
+      for (const file of files) {
+        let processedFile = file;
+        
+        // Compress for Bluesky if needed
+        if (hasBlueskySelected && needsCompressionForBluesky(file)) {
+          try {
+            console.log(`Compressing ${file.name} for Bluesky (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+            processedFile = await compressImageForBluesky(file);
+            const info = getCompressionInfo(file.size, processedFile.size);
+            console.log(`Compression completed: ${info.message}`);
+            
+            // Optionally show a toast notification to user
+            // You could dispatch a notification here
+          } catch (error) {
+            console.error('Failed to compress image:', error);
+            // Keep original file if compression fails
+            processedFile = file;
+          }
+        }
+        
+        processedFiles.push(processedFile);
+      }
+      
+      setSelectedImages(prev => [...prev, ...processedFiles].slice(0, 4)); // Limit to 4 images
       setPostType('image');
     }
   };
@@ -606,6 +637,44 @@ const ComposePost: React.FC = () => {
                       objectFit: 'cover'
                     }}
                   />
+                  {/* File size indicator */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 2,
+                      left: 2,
+                      bgcolor: 'rgba(0,0,0,0.7)',
+                      color: 'white',
+                      px: 0.5,
+                      py: 0.25,
+                      borderRadius: 0.5,
+                      fontSize: '0.7rem'
+                    }}
+                  >
+                    {(file.size / 1024 / 1024).toFixed(1)}MB
+                  </Box>
+                  
+                  {/* Bluesky compatibility indicator */}
+                  {selectedAccounts.some(accountId => 
+                    blueskyAccounts.some(acc => acc.id.toString() === accountId)
+                  ) && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 2,
+                        left: 2,
+                        bgcolor: file.size <= 1000000 ? 'success.main' : 'warning.main',
+                        color: 'white',
+                        px: 0.5,
+                        py: 0.25,
+                        borderRadius: 0.5,
+                        fontSize: '0.6rem'
+                      }}
+                    >
+                      {file.size <= 1000000 ? '✓' : '⚠'}
+                    </Box>
+                  )}
+                  
                   <IconButton
                     size="small"
                     onClick={() => handleImageRemove(index)}

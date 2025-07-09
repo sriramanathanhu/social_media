@@ -53,7 +53,7 @@ const ConnectBlueskyDialog: React.FC<ConnectBlueskyDialogProps> = ({
         window.location.reload();
       } else if (result.meta.requestStatus === 'rejected') {
         // Error will be shown in the dialog
-        console.error('Bluesky connection failed:', result.error);
+        console.error('Bluesky connection failed');
       }
     } catch (error) {
       console.error('Failed to connect Bluesky:', error);
