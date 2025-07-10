@@ -104,7 +104,8 @@ const CreateStreamDialog: React.FC<CreateStreamDialogProps> = ({
 
   const fetchAccounts = async () => {
     try {
-      const response = await fetch('/api/accounts', {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const response = await fetch(`${API_BASE_URL}/accounts`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -132,7 +133,8 @@ const CreateStreamDialog: React.FC<CreateStreamDialogProps> = ({
     setError(null);
 
     try {
-      const response = await fetch('/api/live', {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const response = await fetch(`${API_BASE_URL}/live`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

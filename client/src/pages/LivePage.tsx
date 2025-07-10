@@ -106,7 +106,8 @@ const LivePage: React.FC = () => {
   const fetchStreams = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/live', {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const response = await fetch(`${API_BASE_URL}/live`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -128,7 +129,8 @@ const LivePage: React.FC = () => {
 
   const fetchActiveSessions = async () => {
     try {
-      const response = await fetch('/api/live/sessions/active', {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const response = await fetch(`${API_BASE_URL}/live/sessions/active`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
