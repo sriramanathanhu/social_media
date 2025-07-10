@@ -209,6 +209,7 @@ class XService {
   // Refresh access token
   async refreshAccessToken(refreshToken) {
     try {
+      console.log('X token refresh: Starting refresh process');
       const credentials = await this.getCredentials();
       
       const tokenData = {
@@ -220,7 +221,7 @@ class XService {
       const authHeader = Buffer.from(`${credentials.clientId}:${credentials.clientSecret}`).toString('base64');
       
       const tokenUrl = 'https://api.x.com/2/oauth2/token';
-      console.log('Making refresh token request to:', tokenUrl);
+      console.log('X token refresh: Making refresh token request to:', tokenUrl);
       
       const response = await axios.post(tokenUrl, tokenData, {
         headers: {
@@ -229,6 +230,7 @@ class XService {
         }
       });
 
+      console.log('X token refresh: Success, new token received');
       return {
         accessToken: response.data.access_token,
         refreshToken: response.data.refresh_token,
@@ -236,8 +238,37 @@ class XService {
         tokenType: response.data.token_type
       };
     } catch (error) {
-      console.error('X refresh token error:', error.response?.data || error.message);
+      console.error('X token refresh error:', error.response?.data || error.message);
       throw new Error(`Failed to refresh X access token: ${error.message}`);
+    }
+  }
+
+  // Try to refresh token and update in database
+  async tryRefreshToken(account) {
+    try {
+      if (!account.refresh_token) {
+        console.log('X token refresh: No refresh token available for account', account.id);
+        return null;
+      }
+
+      console.log('X token refresh: Attempting to refresh token for account', account.id);
+      const decryptedRefreshToken = this.decrypt(account.refresh_token);
+      const newTokenData = await this.refreshAccessToken(decryptedRefreshToken);
+
+      // Update tokens in database
+      const SocialAccount = require('../models/SocialAccount');
+      await SocialAccount.updateTokens(
+        account.id,
+        this.encrypt(newTokenData.accessToken),
+        newTokenData.refreshToken ? this.encrypt(newTokenData.refreshToken) : null,
+        newTokenData.expiresIn ? new Date(Date.now() + newTokenData.expiresIn * 1000) : null
+      );
+
+      console.log('X token refresh: Token updated successfully in database');
+      return newTokenData.accessToken;
+    } catch (error) {
+      console.error('X token refresh: Failed to refresh token for account', account.id, ':', error.message);
+      return null;
     }
   }
 
@@ -328,13 +359,35 @@ class XService {
   // Upload media using v1.1 API (simple approach)
   async uploadMedia(accessToken, mediaFile, isVideo = false) {
     try {
-      console.log('Uploading media to X:', {
+      console.log('X media upload: Starting upload process');
+      console.log('X media upload: File details:', {
         filename: mediaFile.originalname,
         size: mediaFile.size,
         mimetype: mediaFile.mimetype,
         isVideo,
-        endpoint: `${this.v1BaseUrl}/media/upload.json`
+        hasBuffer: !!mediaFile.buffer,
+        bufferLength: mediaFile.buffer ? mediaFile.buffer.length : 0
       });
+      
+      // Validate file size (X limits: 5MB for images, 512MB for videos)
+      const maxSize = isVideo ? 512 * 1024 * 1024 : 5 * 1024 * 1024;
+      if (mediaFile.size > maxSize) {
+        throw new Error(`File too large for X: ${mediaFile.size} bytes (max: ${maxSize} bytes for ${isVideo ? 'video' : 'image'})`);
+      }
+      
+      // Validate MIME type
+      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      const validVideoTypes = ['video/mp4', 'video/mov', 'video/avi', 'video/wmv'];
+      
+      if (isVideo && !validVideoTypes.includes(mediaFile.mimetype)) {
+        throw new Error(`Invalid video type for X: ${mediaFile.mimetype}. Supported: ${validVideoTypes.join(', ')}`);
+      }
+      
+      if (!isVideo && !validImageTypes.includes(mediaFile.mimetype)) {
+        throw new Error(`Invalid image type for X: ${mediaFile.mimetype}. Supported: ${validImageTypes.join(', ')}`);
+      }
+      
+      console.log('X media upload: File validation passed');
 
       // Try multiple approaches for X media upload
       const approaches = [

@@ -146,41 +146,186 @@ class PublishingService {
     console.log('Publishing to X account:', {
       accountId: account.id,
       username: account.username,
-      tokenEncrypted: account.access_token ? account.access_token.substring(0, 20) + '...' : 'null'
+      tokenEncrypted: account.access_token ? account.access_token.substring(0, 20) + '...' : 'null',
+      mediaFilesCount: mediaFiles.length,
+      postType
     });
     
-    const decryptedToken = xService.decrypt(account.access_token);
-    console.log('Token decrypted successfully, length:', decryptedToken ? decryptedToken.length : 0);
+    let decryptedToken;
+    try {
+      decryptedToken = xService.decrypt(account.access_token);
+      console.log('X token decrypted successfully, length:', decryptedToken ? decryptedToken.length : 0);
+    } catch (error) {
+      console.error('X token decryption failed:', error.message);
+      
+      // Try to refresh the token if we have a refresh token
+      console.log('X token: Attempting token refresh...');
+      const refreshedToken = await xService.tryRefreshToken(account);
+      
+      if (refreshedToken) {
+        console.log('X token: Refresh successful, using new token');
+        decryptedToken = refreshedToken;
+      } else {
+        console.error('X token: Refresh failed, account needs reconnection');
+        await SocialAccount.updateStatus(account.id, 'error');
+        throw new Error('X account token is invalid and could not be refreshed. Please reconnect your X account.');
+      }
+    }
     
     let mediaIds = [];
     
-    // Temporarily disable media upload to test text posts
+    // Handle media uploads with detailed error logging
     if (mediaFiles.length > 0) {
-      try {
-        for (const mediaFile of mediaFiles) {
+      console.log('X media upload: Starting upload of', mediaFiles.length, 'files');
+      
+      for (let i = 0; i < mediaFiles.length; i++) {
+        const mediaFile = mediaFiles[i];
+        console.log(`X media upload: Processing file ${i + 1}/${mediaFiles.length}:`, {
+          filename: mediaFile.originalname,
+          mimetype: mediaFile.mimetype,
+          size: mediaFile.size,
+          hasBuffer: !!mediaFile.buffer
+        });
+        
+        try {
           const isVideo = mediaFile.mimetype?.startsWith('video/') || postType === 'video' || postType === 'reel';
+          console.log(`X media upload: Uploading ${isVideo ? 'video' : 'image'} file to X...`);
+          
           const mediaId = await xService.uploadMedia(
             decryptedToken,
             mediaFile,
             isVideo
           );
+          
+          console.log(`X media upload: File ${i + 1} uploaded successfully, media ID:`, mediaId);
           mediaIds.push(mediaId);
+          
+        } catch (error) {
+          console.error(`X media upload: File ${i + 1} upload failed:`, {
+            error: error.message,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data
+          });
+          
+          // Check if it's a token-related error
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            console.error('X media upload: Authentication error detected, trying token refresh...');
+            
+            // Try to refresh the token
+            const refreshedToken = await xService.tryRefreshToken(account);
+            
+            if (refreshedToken) {
+              console.log('X media upload: Token refreshed, retrying upload...');
+              
+              // Retry the upload with the new token
+              try {
+                const mediaId = await xService.uploadMedia(
+                  refreshedToken,
+                  mediaFile,
+                  isVideo
+                );
+                console.log(`X media upload: File ${i + 1} uploaded successfully after token refresh, media ID:`, mediaId);
+                mediaIds.push(mediaId);
+                decryptedToken = refreshedToken; // Update token for future use
+                continue; // Continue to next file
+              } catch (retryError) {
+                console.error(`X media upload: Retry failed after token refresh:`, retryError.message);
+              }
+            }
+            
+            console.error('X media upload: Token refresh failed, marking account as invalid');
+            await SocialAccount.updateStatus(account.id, 'error');
+            throw new Error('X account authentication failed. Please reconnect your X account.');
+          }
+          
+          // Check if it's a rate limit error
+          if (error.response?.status === 429) {
+            const resetTime = error.response?.headers?.['x-rate-limit-reset'];
+            const retryAfter = error.response?.headers?.['retry-after'];
+            const waitTime = retryAfter || (resetTime ? Math.max(0, resetTime - Math.floor(Date.now() / 1000)) : 900);
+            throw new Error(`X rate limit exceeded. Please wait ${Math.ceil(waitTime / 60)} minutes before posting again.`);
+          }
+          
+          // For other errors, try to continue with remaining files
+          console.log(`X media upload: Continuing with remaining files after error for file ${i + 1}`);
         }
-      } catch (error) {
-        console.error('X media upload failed, posting text only:', error.message);
-        // Continue with text-only post if media upload fails
-        mediaIds = [];
       }
+      
+      console.log('X media upload: Completed. Successfully uploaded', mediaIds.length, 'out of', mediaFiles.length, 'files');
     }
 
-    const result = await xService.postTweet(
-      decryptedToken,
-      content,
-      mediaIds,
-      postType
-    );
-
-    return result;
+    console.log('X posting: Creating tweet with', mediaIds.length, 'media attachments');
+    
+    try {
+      const result = await xService.postTweet(
+        decryptedToken,
+        content,
+        mediaIds,
+        postType
+      );
+      
+      console.log('X posting: Tweet created successfully:', {
+        id: result.id,
+        text: result.text ? result.text.substring(0, 50) + '...' : 'N/A',
+        mediaCount: mediaIds.length
+      });
+      
+      // Mark account as active since posting was successful
+      await SocialAccount.updateLastUsed(account.id);
+      
+      return result;
+      
+    } catch (error) {
+      console.error('X posting: Tweet creation failed:', {
+        error: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+      
+      // Check if it's a token-related error
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.error('X posting: Authentication error detected, trying token refresh...');
+        
+        // Try to refresh the token
+        const refreshedToken = await xService.tryRefreshToken(account);
+        
+        if (refreshedToken) {
+          console.log('X posting: Token refreshed, retrying tweet creation...');
+          
+          // Retry the tweet with the new token
+          try {
+            const retryResult = await xService.postTweet(
+              refreshedToken,
+              content,
+              mediaIds,
+              postType
+            );
+            
+            console.log('X posting: Tweet created successfully after token refresh:', {
+              id: retryResult.id,
+              text: retryResult.text ? retryResult.text.substring(0, 50) + '...' : 'N/A',
+              mediaCount: mediaIds.length
+            });
+            
+            // Mark account as active since posting was successful
+            await SocialAccount.updateLastUsed(account.id);
+            
+            return retryResult;
+            
+          } catch (retryError) {
+            console.error('X posting: Retry failed after token refresh:', retryError.message);
+          }
+        }
+        
+        console.error('X posting: Token refresh failed, marking account as invalid');
+        await SocialAccount.updateStatus(account.id, 'error');
+        throw new Error('X account authentication failed. Please reconnect your X account.');
+      }
+      
+      throw error;
+    }
   }
 
   async getPostHistory(userId, limit = 50, offset = 0) {

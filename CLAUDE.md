@@ -25,6 +25,12 @@ This section maintains essential context of the project state across different c
 - Backend: `cd server && npm test`
 - Linting: `cd client && npm run lint` and `cd server && npm run lint`
 
+# Render SSH Access
+- SSH Connection: `ssh srv-d1k35rndiees73e10vsg@ssh.oregon.render.com`
+- Server Process: Node.js running on PID 128, port 10000
+- Database: `psql postgresql://socialmediadb_82lt_user:nPuC2nBBHB7oU0OhEqqX8E9hLIOz9zts@dpg-d1k3qker433s73c3k8cg-a/socialmediadb_82lt`
+- Project Path: `/opt/render/project/src`
+
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
