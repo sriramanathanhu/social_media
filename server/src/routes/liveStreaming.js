@@ -150,4 +150,25 @@ router.post('/:id/republishing/twitter',
   liveStreamController.addTwitterRepublishing
 );
 
+// Nimble-specific routes
+router.get('/nimble/config',
+  auth,
+  liveStreamController.getNimbleConfig
+);
+
+router.post('/nimble/config/update',
+  auth,
+  liveStreamController.updateNimbleConfig
+);
+
+router.get('/nimble/status',
+  auth,
+  liveStreamController.getNimbleStatus
+);
+
+router.get('/:id/rtmp-info',
+  auth,
+  liveStreamController.getStreamRTMPInfo
+);
+
 module.exports = router;

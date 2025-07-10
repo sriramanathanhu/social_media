@@ -2,27 +2,71 @@ const LiveStream = require('../models/LiveStream');
 const StreamSession = require('../models/StreamSession');
 const StreamRepublishing = require('../models/StreamRepublishing');
 const publishingService = require('./publishingService');
+const NimbleController = require('./nimbleController');
+const NimbleMonitor = require('./nimbleMonitor');
 const crypto = require('crypto');
 
 class LiveStreamingService {
+  constructor() {
+    this.nimbleController = new NimbleController();
+    this.nimbleMonitor = new NimbleMonitor();
+    
+    // Start monitoring Nimble streams
+    this.nimbleMonitor.startMonitoring(30000); // Monitor every 30 seconds
+    
+    console.log('LiveStreamingService initialized with Nimble integration');
+  }
   
   // Stream Management
   async createStream(userId, streamData) {
     try {
       console.log('Creating live stream for user:', userId);
       
-      // Generate unique source stream name if not provided
-      if (!streamData.sourceStream) {
-        streamData.sourceStream = `stream_${crypto.randomBytes(8).toString('hex')}`;
-      }
+      // Generate unique stream key
+      const streamKey = crypto.randomBytes(16).toString('hex');
       
+      // Generate RTMP URL for this stream
+      const nimbleHost = process.env.NIMBLE_HOST || 'localhost';
+      const nimblePort = process.env.NIMBLE_PORT || 1935;
+      const rtmpUrl = `rtmp://${nimbleHost}:${nimblePort}/live`;
+      
+      // Create stream in database with Nimble-specific fields
       const stream = await LiveStream.create({
         userId,
-        ...streamData
+        title: streamData.title,
+        description: streamData.description,
+        stream_key: streamKey,
+        rtmp_url: rtmpUrl,
+        source_app: streamData.sourceApp || 'live',
+        source_stream: streamKey,
+        destinations: streamData.destinations || [],
+        quality_settings: streamData.qualitySettings || {
+          resolution: '1920x1080',
+          bitrate: 4000,
+          framerate: 30,
+          audio_bitrate: 128
+        },
+        auto_post_enabled: streamData.autoPostEnabled || false,
+        auto_post_accounts: streamData.autoPostAccounts || [],
+        auto_post_message: streamData.autoPostMessage,
+        category: streamData.category,
+        tags: streamData.tags || [],
+        is_public: streamData.isPublic !== false
       });
       
-      console.log('Live stream created:', stream.id);
-      return stream;
+      console.log('Live stream created:', stream.id, 'with key:', streamKey);
+      
+      // Add republishing destinations if provided
+      if (streamData.republishingTargets && streamData.republishingTargets.length > 0) {
+        await this.addStreamRepublishing(stream.id, streamData.republishingTargets);
+      }
+      
+      return {
+        ...stream,
+        rtmp_url: rtmpUrl,
+        stream_key: streamKey
+      };
+      
     } catch (error) {
       console.error('Failed to create live stream:', error);
       throw error;
@@ -215,6 +259,9 @@ class LiveStreamingService {
     try {
       console.log('Starting republishing for stream:', streamId);
       
+      // Use NimbleController to start stream republishing
+      await this.nimbleController.startStreamRepublishing(streamId);
+      
       const republishingList = await StreamRepublishing.findByStreamId(streamId);
       const enabledRepublishing = republishingList.filter(r => r.enabled);
       
@@ -222,9 +269,6 @@ class LiveStreamingService {
         try {
           // Update status to active
           await StreamRepublishing.updateStatus(republishing.id, 'active');
-          
-          // Here you would integrate with the actual streaming server
-          // to configure the republishing destinations
           console.log('Started republishing to:', republishing.destination_name);
         } catch (error) {
           console.error('Failed to start republishing to', republishing.destination_name, ':', error);
@@ -243,6 +287,9 @@ class LiveStreamingService {
     try {
       console.log('Stopping republishing for stream:', streamId);
       
+      // Use NimbleController to stop stream republishing
+      await this.nimbleController.stopStreamRepublishing(streamId);
+      
       const results = await StreamRepublishing.bulkUpdateStatus(streamId, 'inactive');
       
       console.log('Stopped republishing for', results.length, 'destinations');
@@ -253,17 +300,51 @@ class LiveStreamingService {
     }
   }
   
+  // Helper method to add stream republishing
+  async addStreamRepublishing(streamId, republishingTargets) {
+    try {
+      console.log('Adding republishing targets for stream:', streamId);
+      
+      const results = [];
+      for (const target of republishingTargets) {
+        const republishing = await this.nimbleController.addRepublishing(streamId, target);
+        results.push(republishing);
+      }
+      
+      console.log(`Added ${results.length} republishing targets`);
+      return results;
+    } catch (error) {
+      console.error('Failed to add stream republishing:', error);
+      throw error;
+    }
+  }
+  
   // Platform-specific republishing helpers
   async addYouTubeRepublishing(streamId, userId, sourceApp, sourceStream, youtubeStreamKey) {
-    return StreamRepublishing.createYouTubeRepublishing(streamId, userId, sourceApp, sourceStream, youtubeStreamKey);
+    const destination = {
+      platform: 'youtube',
+      streamKey: youtubeStreamKey,
+      enabled: true
+    };
+    return this.nimbleController.addRepublishing(streamId, destination);
   }
   
   async addTwitterRepublishing(streamId, userId, sourceApp, sourceStream, twitterStreamKey) {
-    return StreamRepublishing.createTwitterRepublishing(streamId, userId, sourceApp, sourceStream, twitterStreamKey);
+    const destination = {
+      platform: 'twitter',
+      streamKey: twitterStreamKey,
+      enabled: true
+    };
+    return this.nimbleController.addRepublishing(streamId, destination);
   }
   
   async addFacebookRepublishing(streamId, userId, sourceApp, sourceStream, facebookStreamKey) {
-    return StreamRepublishing.createFacebookRepublishing(streamId, userId, sourceApp, sourceStream, facebookStreamKey);
+    const destination = {
+      platform: 'facebook',
+      streamKey: facebookStreamKey,
+      enabled: true
+    };
+    return this.nimbleController.addRepublishing(streamId, destination);
   }
   
   // Social Media Integration

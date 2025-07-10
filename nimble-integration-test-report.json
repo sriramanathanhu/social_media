@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-07-10T17:20:42.256Z",
+  "status": "FAILED",
+  "tests": {
+    "service_initialization": "PASSED",
+    "stream_creation": "PASSED",
+    "nimble_config": "FAILED",
+    "monitoring": "FAILED",
+    "platform_mapping": "FAILED",
+    "environment": "PASSED"
+  },
+  "configuration": {},
+  "errors": [
+    "database \"hinduismnow\" does not exist"
+  ]
+}

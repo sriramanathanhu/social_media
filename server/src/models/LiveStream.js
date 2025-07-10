@@ -40,10 +40,12 @@ class LiveStream {
     }
 
     // Generate unique stream key
-    const streamKey = crypto.randomBytes(16).toString('hex');
+    const streamKey = streamData.stream_key || crypto.randomBytes(16).toString('hex');
     
-    // Generate RTMP URL (this could be configurable)
-    const rtmpUrl = `rtmp://streaming.server.com/live/${streamKey}`;
+    // Generate RTMP URL for Nimble Streamer
+    const nimbleHost = process.env.NIMBLE_HOST || 'localhost';
+    const nimblePort = process.env.NIMBLE_PORT || 1935;
+    const rtmpUrl = streamData.rtmp_url || `rtmp://${nimbleHost}:${nimblePort}/live`;
 
     const result = await pool.query(
       `INSERT INTO live_streams 

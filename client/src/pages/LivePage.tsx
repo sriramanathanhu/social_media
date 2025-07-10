@@ -23,11 +23,14 @@ import {
   Analytics as AnalyticsIcon,
   Settings as SettingsIcon,
   HelpOutline as HelpIcon,
+  Videocam as RTMPIcon,
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import CreateStreamDialog from '../components/CreateStreamDialog';
 import StreamingGuide from '../components/StreamingGuide';
+import StreamRTMPInfo from '../components/StreamRTMPInfo';
+import NimbleStatus from '../components/NimbleStatus';
 
 interface LiveStream {
   id: string;
@@ -95,6 +98,8 @@ const LivePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [rtmpInfoOpen, setRtmpInfoOpen] = useState(false);
+  const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
 
   const { token } = useSelector((state: RootState) => state.auth);
 
@@ -177,6 +182,11 @@ const LivePage: React.FC = () => {
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = seconds % 60;
     return `${hours}h ${minutes}m ${remainingSeconds}s`;
+  };
+
+  const handleShowRTMPInfo = (streamId: string) => {
+    setSelectedStreamId(streamId);
+    setRtmpInfoOpen(true);
   };
 
   if (loading) {
@@ -345,6 +355,13 @@ const LivePage: React.FC = () => {
                           Stop Stream
                         </Button>
                       )}
+                      <Button 
+                        size="small" 
+                        startIcon={<RTMPIcon />}
+                        onClick={() => handleShowRTMPInfo(stream.id)}
+                      >
+                        OBS Setup
+                      </Button>
                       <Button size="small" startIcon={<SettingsIcon />}>
                         Settings
                       </Button>
@@ -437,17 +454,32 @@ const LivePage: React.FC = () => {
       </TabPanel>
 
       <TabPanel value={tabValue} index={3}>
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 8 }}>
-            <SettingsIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" gutterBottom>
-              Settings Coming Soon
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Stream settings and configuration will be available here
-            </Typography>
-          </CardContent>
-        </Card>
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <NimbleStatus />
+          </Grid>
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  🎛️ Stream Server Configuration
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Your streams are powered by Nimble Streamer for optimal performance and multi-platform distribution.
+                </Typography>
+                <Alert severity="info">
+                  <Typography variant="body2">
+                    <strong>How it works:</strong><br />
+                    • OBS Studio streams to Nimble Streamer via RTMP<br />
+                    • Nimble automatically republishes to your configured platforms<br />
+                    • Real-time monitoring ensures optimal stream quality<br />
+                    • One stream input, multiple platform outputs
+                  </Typography>
+                </Alert>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       </TabPanel>
 
       {/* Create Stream Dialog */}
@@ -462,6 +494,18 @@ const LivePage: React.FC = () => {
         open={guideOpen}
         onClose={() => setGuideOpen(false)}
       />
+
+      {/* RTMP Info Dialog */}
+      {selectedStreamId && (
+        <StreamRTMPInfo
+          open={rtmpInfoOpen}
+          onClose={() => {
+            setRtmpInfoOpen(false);
+            setSelectedStreamId(null);
+          }}
+          streamId={selectedStreamId}
+        />
+      )}
     </Container>
   );
 };

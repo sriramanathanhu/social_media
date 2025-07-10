@@ -140,7 +140,13 @@ const CreateStreamDialog: React.FC<CreateStreamDialogProps> = ({
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          // Ensure republishing targets are properly formatted for the backend
+          republishingTargets: formData.republishingTargets.filter(target => 
+            target.enabled && target.streamKey.trim()
+          )
+        }),
       });
 
       if (!response.ok) {

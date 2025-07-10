@@ -1,5 +1,7 @@
 const liveStreamingService = require('../services/liveStreamingService');
 const StreamRepublishing = require('../models/StreamRepublishing');
+const NimbleController = require('../services/nimbleController');
+const NimbleMonitor = require('../services/nimbleMonitor');
 const { validationResult } = require('express-validator');
 
 // Stream Management
@@ -443,6 +445,107 @@ const getActiveSessions = async (req, res) => {
   }
 };
 
+// Nimble-specific endpoints
+const getNimbleConfig = async (req, res) => {
+  try {
+    console.log('Fetching Nimble configuration');
+    
+    const nimbleController = new NimbleController();
+    const config = await nimbleController.getCurrentConfig();
+    
+    res.json({
+      success: true,
+      config
+    });
+  } catch (error) {
+    console.error('Get Nimble config error:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch Nimble configuration',
+      details: error.message 
+    });
+  }
+};
+
+const updateNimbleConfig = async (req, res) => {
+  try {
+    console.log('Updating Nimble configuration');
+    
+    const nimbleController = new NimbleController();
+    const config = await nimbleController.updateNimbleConfig();
+    
+    res.json({
+      success: true,
+      message: 'Nimble configuration updated successfully',
+      config
+    });
+  } catch (error) {
+    console.error('Update Nimble config error:', error);
+    res.status(500).json({ 
+      error: 'Failed to update Nimble configuration',
+      details: error.message 
+    });
+  }
+};
+
+const getNimbleStatus = async (req, res) => {
+  try {
+    console.log('Fetching Nimble monitor status');
+    
+    const nimbleMonitor = new NimbleMonitor();
+    const status = nimbleMonitor.getStatus();
+    
+    res.json({
+      success: true,
+      status
+    });
+  } catch (error) {
+    console.error('Get Nimble status error:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch Nimble status',
+      details: error.message 
+    });
+  }
+};
+
+const getStreamRTMPInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Fetching RTMP info for stream:', id);
+    
+    // Check ownership
+    const stream = await liveStreamingService.getStream(id);
+    if (!stream) {
+      return res.status(404).json({ error: 'Stream not found' });
+    }
+    
+    if (stream.user_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const nimbleHost = process.env.NIMBLE_HOST || 'localhost';
+    const nimblePort = process.env.NIMBLE_PORT || 1935;
+    
+    res.json({
+      success: true,
+      rtmp_info: {
+        server: `rtmp://${nimbleHost}:${nimblePort}/live`,
+        stream_key: stream.stream_key,
+        full_url: `rtmp://${nimbleHost}:${nimblePort}/live/${stream.stream_key}`,
+        obs_settings: {
+          server: `rtmp://${nimbleHost}:${nimblePort}/live`,
+          stream_key: stream.stream_key
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get RTMP info error:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch RTMP information',
+      details: error.message 
+    });
+  }
+};
+
 module.exports = {
   createStream,
   getStreams,
@@ -459,5 +562,9 @@ module.exports = {
   addTwitterRepublishing,
   getStreamAnalytics,
   getActiveStreams,
-  getActiveSessions
+  getActiveSessions,
+  getNimbleConfig,
+  updateNimbleConfig,
+  getNimbleStatus,
+  getStreamRTMPInfo
 };
