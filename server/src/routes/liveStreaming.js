@@ -1,13 +1,13 @@
 const express = require('express');
 const { body } = require('express-validator');
-const authenticateToken = require('../middleware/authenticateToken');
+const auth = require('../middleware/auth');
 const liveStreamController = require('../controllers/liveStreamController');
 
 const router = express.Router();
 
 // Stream Management Routes
 router.post('/', 
-  authenticateToken,
+  auth,
   [
     body('title').notEmpty().withMessage('Title is required'),
     body('description').optional().isLength({ max: 500 }).withMessage('Description must be less than 500 characters'),
@@ -26,32 +26,32 @@ router.post('/',
 );
 
 router.get('/', 
-  authenticateToken,
+  auth,
   liveStreamController.getStreams
 );
 
 router.get('/analytics',
-  authenticateToken,
+  auth,
   liveStreamController.getStreamAnalytics
 );
 
 router.get('/active',
-  authenticateToken,
+  auth,
   liveStreamController.getActiveStreams
 );
 
 router.get('/sessions/active',
-  authenticateToken,
+  auth,
   liveStreamController.getActiveSessions
 );
 
 router.get('/:id',
-  authenticateToken,
+  auth,
   liveStreamController.getStream
 );
 
 router.put('/:id',
-  authenticateToken,
+  auth,
   [
     body('title').optional().notEmpty().withMessage('Title cannot be empty'),
     body('description').optional().isLength({ max: 500 }).withMessage('Description must be less than 500 characters'),
@@ -70,23 +70,23 @@ router.put('/:id',
 );
 
 router.delete('/:id',
-  authenticateToken,
+  auth,
   liveStreamController.deleteStream
 );
 
 // Stream Session Management Routes
 router.post('/:id/sessions',
-  authenticateToken,
+  auth,
   liveStreamController.startStreamSession
 );
 
 router.put('/sessions/:sessionId/end',
-  authenticateToken,
+  auth,
   liveStreamController.endStreamSession
 );
 
 router.put('/sessions/:sessionId/stats',
-  authenticateToken,
+  auth,
   [
     body('peak_viewers').optional().isNumeric(),
     body('total_viewers').optional().isNumeric(),
@@ -102,12 +102,12 @@ router.put('/sessions/:sessionId/stats',
 
 // Republishing Management Routes
 router.get('/:id/republishing',
-  authenticateToken,
+  auth,
   liveStreamController.getRepublishing
 );
 
 router.post('/:id/republishing',
-  authenticateToken,
+  auth,
   [
     body('sourceApp').notEmpty().withMessage('Source app is required'),
     body('sourceStream').notEmpty().withMessage('Source stream is required'),
@@ -125,13 +125,13 @@ router.post('/:id/republishing',
 );
 
 router.delete('/republishing/:republishingId',
-  authenticateToken,
+  auth,
   liveStreamController.removeRepublishing
 );
 
 // Platform-specific republishing routes
 router.post('/:id/republishing/youtube',
-  authenticateToken,
+  auth,
   [
     body('streamKey').notEmpty().withMessage('YouTube stream key is required'),
     body('sourceApp').optional().isString(),
@@ -141,7 +141,7 @@ router.post('/:id/republishing/youtube',
 );
 
 router.post('/:id/republishing/twitter',
-  authenticateToken,
+  auth,
   [
     body('streamKey').notEmpty().withMessage('Twitter stream key is required'),
     body('sourceApp').optional().isString(),
