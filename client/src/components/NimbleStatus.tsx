@@ -16,7 +16,7 @@ import {
   Refresh as RefreshIcon,
   Settings as SettingsIcon,
   CheckCircle,
-  Error,
+  Error as ErrorIcon,
   Warning,
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
@@ -77,7 +77,7 @@ const NimbleStatus: React.FC = () => {
       const data = await response.json();
       setStatus(data.status);
       setError(null);
-    } catch (err) {
+    } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to fetch status');
     } finally {
       setLoading(false);
@@ -101,7 +101,7 @@ const NimbleStatus: React.FC = () => {
 
       const data = await response.json();
       setConfig(data.config);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to fetch Nimble config:', err);
     } finally {
       setConfigLoading(false);
@@ -125,7 +125,7 @@ const NimbleStatus: React.FC = () => {
       }
 
       await fetchNimbleConfig();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to update Nimble config:', err);
     } finally {
       setUpdateLoading(false);
@@ -140,7 +140,7 @@ const NimbleStatus: React.FC = () => {
   };
 
   const getStatusIcon = () => {
-    if (error) return <Error />;
+    if (error) return <ErrorIcon />;
     if (!status) return <Warning />;
     if (status.isMonitoring) return <CheckCircle />;
     return <Warning />;

@@ -79,7 +79,7 @@ const StreamRTMPInfo: React.FC<StreamRTMPInfoProps> = ({
 
       const data = await response.json();
       setRtmpInfo(data.rtmp_info);
-    } catch (err) {
+    } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to fetch RTMP info');
     } finally {
       setLoading(false);
@@ -91,7 +91,7 @@ const StreamRTMPInfo: React.FC<StreamRTMPInfoProps> = ({
       await navigator.clipboard.writeText(text);
       setCopySuccess(label);
       setTimeout(() => setCopySuccess(null), 2000);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to copy:', err);
     }
   };
