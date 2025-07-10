@@ -287,12 +287,12 @@ const LivePage: React.FC = () => {
                       </Box>
                     )}
 
-                    {stream.republishing_count > 0 && (
+                    {(stream.republishing_count || 0) > 0 && (
                       <Box sx={{ mb: 2 }}>
                         <Chip
-                          label={`${stream.active_republishing}/${stream.republishing_count} destinations active`}
+                          label={`${stream.active_republishing || 0}/${stream.republishing_count || 0} destinations active`}
                           size="small"
-                          color={stream.active_republishing > 0 ? 'primary' : 'default'}
+                          color={(stream.active_republishing || 0) > 0 ? 'primary' : 'default'}
                           variant="outlined"
                         />
                       </Box>
