@@ -313,10 +313,15 @@ class PublishingService {
     const mediaForBluesky = [];
     if (mediaFiles && mediaFiles.length > 0) {
       for (const mediaFile of mediaFiles) {
-        console.log('Processing media file for Bluesky:', { hasPath: !!mediaFile.path, file: mediaFile });
-        if (mediaFile.path) {
-          mediaForBluesky.push(mediaFile);
-        }
+        console.log('Processing media file for Bluesky:', { 
+          hasPath: !!mediaFile.path, 
+          hasBuffer: !!mediaFile.buffer,
+          bufferLength: mediaFile.buffer ? mediaFile.buffer.length : 'no buffer',
+          file: mediaFile 
+        });
+        // Always accept files from multer - they have fieldname, originalname, and buffer
+        console.log('Adding media file to mediaForBluesky array');
+        mediaForBluesky.push(mediaFile);
       }
     }
     
