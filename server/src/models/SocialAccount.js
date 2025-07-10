@@ -169,21 +169,53 @@ class SocialAccount {
     console.log('Account IDs type:', typeof accountIds);
     console.log('Is array:', Array.isArray(accountIds));
     
+    // Ensure accountIds is an array and contains valid integers
+    if (!Array.isArray(accountIds)) {
+      console.log('Converting accountIds to array:', accountIds);
+      accountIds = Array.isArray(accountIds) ? accountIds : [accountIds];
+    }
+    
+    // Filter out any invalid IDs and convert to integers
+    const validIds = accountIds.filter(id => id && !isNaN(parseInt(id))).map(id => parseInt(id));
+    console.log('Valid account IDs:', validIds);
+    
+    if (validIds.length === 0) {
+      console.log('No valid account IDs provided');
+      return [];
+    }
+    
+    // First, let's check if the accounts exist at all (without status filter)
+    const existsResult = await pool.query(
+      `SELECT id, user_id, platform, username, status 
+       FROM social_accounts 
+       WHERE id = ANY($1)`,
+      [validIds]
+    );
+    
+    console.log('Accounts that exist (any status):', existsResult.rows.length, 'rows');
+    console.log('Account existence check:', existsResult.rows.map(row => ({
+      id: row.id,
+      platform: row.platform,
+      username: row.username,
+      status: row.status
+    })));
+    
+    // Now get the active accounts
     const result = await pool.query(
       `SELECT id, user_id, platform, instance_url, username, display_name, 
-              avatar_url, access_token, refresh_token, token_expires_at 
+              avatar_url, access_token, refresh_token, token_expires_at, status
        FROM social_accounts 
-       WHERE id = ANY($1) AND status = 'active'`,
-      [accountIds]
+       WHERE id = ANY($1) AND (status = 'active' OR status IS NULL)`,
+      [validIds]
     );
 
-    console.log('Query result:', result.rows.length, 'rows');
-    console.log('Account details from DB:', result.rows.map(row => ({
+    console.log('Active accounts query result:', result.rows.length, 'rows');
+    console.log('Active account details from DB:', result.rows.map(row => ({
       id: row.id,
       user_id: row.user_id,
       platform: row.platform,
       username: row.username,
-      status: row.status || 'active'
+      status: row.status
     })));
 
     return result.rows;
