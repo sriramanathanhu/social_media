@@ -45,12 +45,21 @@ interface StreamFormData {
   autoPostEnabled: boolean;
   autoPostAccounts: string[];
   autoPostMessage: string;
+  sourceType: 'rtmp_pull' | 'rtmp_push' | 'local_camera';
+  sourceUrl?: string;
+  sourceApp?: string;
+  sourceStream?: string;
   qualitySettings: {
     resolution: string;
     bitrate: number;
     framerate: number;
     audio_bitrate: number;
   };
+  republishingTargets: Array<{
+    platform: string;
+    streamKey: string;
+    enabled: boolean;
+  }>;
 }
 
 const CreateStreamDialog: React.FC<CreateStreamDialogProps> = ({
@@ -67,12 +76,17 @@ const CreateStreamDialog: React.FC<CreateStreamDialogProps> = ({
     autoPostEnabled: false,
     autoPostAccounts: [],
     autoPostMessage: '',
+    sourceType: 'rtmp_push',
+    sourceUrl: '',
+    sourceApp: 'live',
+    sourceStream: '',
     qualitySettings: {
       resolution: '1920x1080',
       bitrate: 4000,
       framerate: 30,
       audio_bitrate: 128,
     },
+    republishingTargets: [],
   });
 
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
@@ -154,12 +168,17 @@ const CreateStreamDialog: React.FC<CreateStreamDialogProps> = ({
       autoPostEnabled: false,
       autoPostAccounts: [],
       autoPostMessage: '',
+      sourceType: 'rtmp_push',
+      sourceUrl: '',
+      sourceApp: 'live',
+      sourceStream: '',
       qualitySettings: {
         resolution: '1920x1080',
         bitrate: 4000,
         framerate: 30,
         audio_bitrate: 128,
       },
+      republishingTargets: [],
     });
     setError(null);
     setTagInput('');
@@ -183,6 +202,35 @@ const CreateStreamDialog: React.FC<CreateStreamDialogProps> = ({
     }));
   };
 
+  const handleAddRepublishingTarget = (platform: string) => {
+    if (!formData.republishingTargets.find(target => target.platform === platform)) {
+      setFormData(prev => ({
+        ...prev,
+        republishingTargets: [...prev.republishingTargets, {
+          platform,
+          streamKey: '',
+          enabled: true
+        }]
+      }));
+    }
+  };
+
+  const handleUpdateRepublishingTarget = (platform: string, field: 'streamKey' | 'enabled', value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      republishingTargets: prev.republishingTargets.map(target =>
+        target.platform === platform ? { ...target, [field]: value } : target
+      )
+    }));
+  };
+
+  const handleRemoveRepublishingTarget = (platform: string) => {
+    setFormData(prev => ({
+      ...prev,
+      republishingTargets: prev.republishingTargets.filter(target => target.platform !== platform)
+    }));
+  };
+
   const qualityPresets = [
     { label: '1080p (Recommended)', resolution: '1920x1080', bitrate: 4000, framerate: 30 },
     { label: '720p', resolution: '1280x720', bitrate: 2500, framerate: 30 },
@@ -201,6 +249,14 @@ const CreateStreamDialog: React.FC<CreateStreamDialogProps> = ({
     'Cooking',
     'Travel',
     'Other',
+  ];
+
+  const availablePlatforms = [
+    { id: 'youtube', name: 'YouTube Live', url: 'rtmp://a.rtmp.youtube.com/live2' },
+    { id: 'twitch', name: 'Twitch', url: 'rtmp://live.twitch.tv/live' },
+    { id: 'facebook', name: 'Facebook Live', url: 'rtmps://live-api-s.facebook.com:443/rtmp' },
+    { id: 'twitter', name: 'Twitter/X Live', url: 'rtmp://ingest.pscp.tv:80/x' },
+    { id: 'linkedin', name: 'LinkedIn Live', url: 'rtmps://live-api.linkedin.com/v1/broadcasts' },
   ];
 
   return (
@@ -314,6 +370,142 @@ const CreateStreamDialog: React.FC<CreateStreamDialogProps> = ({
                 Add
               </Button>
             </Box>
+          </Grid>
+
+          {/* Stream Source Configuration */}
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+              Stream Source Configuration
+            </Typography>
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <InputLabel>Source Type</InputLabel>
+              <Select
+                value={formData.sourceType}
+                onChange={(e) => setFormData(prev => ({ ...prev, sourceType: e.target.value as any }))}
+                label="Source Type"
+              >
+                <MenuItem value="rtmp_push">RTMP Push (Receive Stream)</MenuItem>
+                <MenuItem value="rtmp_pull">RTMP Pull (Pull from URL)</MenuItem>
+                <MenuItem value="local_camera">Local Camera/OBS</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Source App"
+              value={formData.sourceApp}
+              onChange={(e) => setFormData(prev => ({ ...prev, sourceApp: e.target.value }))}
+              placeholder="live"
+              helperText="RTMP application name (e.g., 'live', 'stream')"
+            />
+          </Grid>
+
+          {formData.sourceType === 'rtmp_pull' && (
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Source RTMP URL"
+                value={formData.sourceUrl}
+                onChange={(e) => setFormData(prev => ({ ...prev, sourceUrl: e.target.value }))}
+                placeholder="rtmp://source-server.com/live/streamkey"
+                helperText="Enter the RTMP URL to pull the stream from"
+              />
+            </Grid>
+          )}
+
+          {formData.sourceType === 'rtmp_push' && (
+            <Grid item xs={12}>
+              <Alert severity="info">
+                <Typography variant="body2">
+                  <strong>RTMP Push URL:</strong> rtmp://your-server.com/{formData.sourceApp || 'live'}
+                  <br />
+                  <strong>Stream Key:</strong> Will be generated after creating the stream
+                  <br />
+                  Use this information in your streaming software (OBS, Streamlabs, etc.)
+                </Typography>
+              </Alert>
+            </Grid>
+          )}
+
+          {formData.sourceType === 'local_camera' && (
+            <Grid item xs={12}>
+              <Alert severity="info">
+                <Typography variant="body2">
+                  Local camera streaming requires additional setup and browser permissions.
+                  This feature is primarily for testing purposes.
+                </Typography>
+              </Alert>
+            </Grid>
+          )}
+
+          {/* Republishing Destinations */}
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+              Republishing Destinations
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Configure which platforms you want to stream to simultaneously
+            </Typography>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+              {availablePlatforms.map((platform) => (
+                <Button
+                  key={platform.id}
+                  size="small"
+                  variant={formData.republishingTargets.find(t => t.platform === platform.id) ? "contained" : "outlined"}
+                  onClick={() => {
+                    if (formData.republishingTargets.find(t => t.platform === platform.id)) {
+                      handleRemoveRepublishingTarget(platform.id);
+                    } else {
+                      handleAddRepublishingTarget(platform.id);
+                    }
+                  }}
+                >
+                  {platform.name}
+                </Button>
+              ))}
+            </Box>
+
+            {formData.republishingTargets.map((target) => {
+              const platform = availablePlatforms.find(p => p.id === target.platform);
+              return (
+                <Box key={target.platform} sx={{ mb: 2, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="subtitle2">{platform?.name}</Typography>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={target.enabled}
+                          onChange={(e) => handleUpdateRepublishingTarget(target.platform, 'enabled', e.target.checked)}
+                          size="small"
+                        />
+                      }
+                      label="Enabled"
+                    />
+                  </Box>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Stream Key"
+                    value={target.streamKey}
+                    onChange={(e) => handleUpdateRepublishingTarget(target.platform, 'streamKey', e.target.value)}
+                    placeholder={`Enter ${platform?.name} stream key`}
+                    type="password"
+                    helperText={`Get your stream key from ${platform?.name} dashboard`}
+                  />
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                    RTMP URL: {platform?.url}
+                  </Typography>
+                </Box>
+              );
+            })}
           </Grid>
 
           {/* Quality Settings */}

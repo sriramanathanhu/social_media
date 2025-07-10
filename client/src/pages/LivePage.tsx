@@ -22,10 +22,12 @@ import {
   Videocam as LiveIcon,
   Analytics as AnalyticsIcon,
   Settings as SettingsIcon,
+  HelpOutline as HelpIcon,
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import CreateStreamDialog from '../components/CreateStreamDialog';
+import StreamingGuide from '../components/StreamingGuide';
 
 interface LiveStream {
   id: string;
@@ -92,6 +94,7 @@ const LivePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const { token } = useSelector((state: RootState) => state.auth);
 
@@ -190,13 +193,22 @@ const LivePage: React.FC = () => {
         <Typography variant="h4" component="h1">
           Live Streaming
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setCreateDialogOpen(true)}
-        >
-          Create Stream
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<HelpIcon />}
+            onClick={() => setGuideOpen(true)}
+          >
+            How it Works
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateDialogOpen(true)}
+          >
+            Create Stream
+          </Button>
+        </Box>
       </Box>
 
       {error && (
@@ -222,16 +234,28 @@ const LivePage: React.FC = () => {
               <Typography variant="h6" gutterBottom>
                 No streams created yet
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Create your first live stream to get started
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Create your first live stream to start broadcasting to multiple platforms simultaneously
               </Typography>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setCreateDialogOpen(true)}
-              >
-                Create Stream
-              </Button>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                🎯 Stream once, reach everywhere: YouTube, Twitch, Facebook, Twitter & more
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<HelpIcon />}
+                  onClick={() => setGuideOpen(true)}
+                >
+                  How it Works
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setCreateDialogOpen(true)}
+                >
+                  Create Stream
+                </Button>
+              </Box>
             </CardContent>
           </Card>
         ) : (
@@ -429,6 +453,12 @@ const LivePage: React.FC = () => {
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
         onStreamCreated={fetchStreams}
+      />
+
+      {/* Streaming Guide */}
+      <StreamingGuide
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
       />
     </Container>
   );
