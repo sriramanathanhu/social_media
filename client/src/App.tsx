@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import AccountsPage from './pages/AccountsPage';
 import ComposePage from './pages/ComposePage';
 import PostsPage from './pages/PostsPage';
+import LivePage from './pages/LivePage';
 import SettingsPage from './pages/SettingsPage';
 import UserManagement from './pages/UserManagement';
 import XApiDashboard from './pages/XApiDashboard';
@@ -70,6 +71,7 @@ const AppContent: React.FC = () => {
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/compose" element={<ComposePage />} />
           <Route path="/posts" element={<PostsPage />} />
+          <Route path="/live" element={<LivePage />} />
           <Route 
             path="/users" 
             element={

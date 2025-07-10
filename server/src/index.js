@@ -49,7 +49,7 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'Social Media Scheduler API',
     status: 'running',
-    endpoints: ['/health', '/api/auth', '/api/accounts', '/api/posts']
+    endpoints: ['/health', '/api/auth', '/api/accounts', '/api/posts', '/api/live']
   });
 });
 
@@ -62,6 +62,7 @@ app.use('/api/accounts', require('./routes/accounts'));
 app.use('/api/posts', require('./routes/posts'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/groups', require('./routes/accountGroups'));
+app.use('/api/live', require('./routes/liveStreaming'));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

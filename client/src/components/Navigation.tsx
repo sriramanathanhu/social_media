@@ -28,6 +28,7 @@ import {
   Settings as SettingsIcon,
   People as PeopleIcon,
   Twitter as TwitterIcon,
+  Videocam as LiveIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -56,6 +57,7 @@ const Navigation: React.FC = () => {
     { label: 'Accounts', path: '/accounts', icon: <AccountIcon /> },
     { label: 'Compose', path: '/compose', icon: <CreateIcon /> },
     { label: 'Posts', path: '/posts', icon: <PostsIcon /> },
+    { label: 'Live', path: '/live', icon: <LiveIcon /> },
     ...(user?.role === 'admin' ? [
       { label: 'Users', path: '/users', icon: <PeopleIcon /> },
       { label: 'X API Dashboard', path: '/admin/x-api-dashboard', icon: <TwitterIcon /> }
