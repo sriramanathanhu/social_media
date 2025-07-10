@@ -57,32 +57,66 @@ class XService {
 
   decrypt(encryptedData) {
     try {
-      console.log('Decrypting X token data:', encryptedData ? encryptedData.substring(0, 50) + '...' : 'null/undefined');
+      console.log('Decrypting X token data...');
+      console.log('- Input data type:', typeof encryptedData);
+      console.log('- Input data length:', encryptedData ? encryptedData.length : 'null/undefined');
+      console.log('- Input data preview:', encryptedData ? encryptedData.substring(0, 50) + '...' : 'null/undefined');
+      console.log('- Using encryption key:', this.secretKey ? this.secretKey.substring(0, 10) + '...' : 'NO KEY');
       
       if (!encryptedData) {
         throw new Error('No encrypted data provided');
       }
       
+      if (typeof encryptedData !== 'string') {
+        throw new Error(`Invalid encrypted data type: ${typeof encryptedData}, expected string`);
+      }
+      
       if (!encryptedData.includes(':')) {
+        console.log('- Missing colon separator in:', encryptedData);
         throw new Error('Invalid encrypted data format - missing colon separator');
       }
       
       const [ivHex, encrypted] = encryptedData.split(':');
       
       if (!ivHex || !encrypted) {
+        console.log('- IV hex:', ivHex ? ivHex.length + ' chars' : 'missing');
+        console.log('- Encrypted part:', encrypted ? encrypted.length + ' chars' : 'missing');
         throw new Error('Invalid encrypted data format - missing IV or encrypted data');
+      }
+      
+      console.log('- IV hex length:', ivHex.length);
+      console.log('- Encrypted data length:', encrypted.length);
+      
+      // Validate hex format
+      if (!/^[0-9a-fA-F]+$/.test(ivHex)) {
+        throw new Error('Invalid IV format - not valid hex');
+      }
+      
+      if (!/^[0-9a-fA-F]+$/.test(encrypted)) {
+        throw new Error('Invalid encrypted data format - not valid hex');
       }
       
       const iv = Buffer.from(ivHex, 'hex');
       const key = crypto.createHash('sha256').update(this.secretKey).digest();
+      
+      console.log('- IV buffer length:', iv.length);
+      console.log('- Key hash length:', key.length);
+      
       const decipher = crypto.createDecipheriv(this.algorithm, key, iv);
       let decrypted = decipher.update(encrypted, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
       
-      console.log('X token decryption successful');
+      console.log('- X token decryption successful, result length:', decrypted.length);
+      console.log('- Decrypted token preview:', decrypted.substring(0, 20) + '...');
+      
       return decrypted;
     } catch (error) {
-      console.error('X token decryption error:', error.message);
+      console.error('X token decryption error details:');
+      console.error('- Error message:', error.message);
+      console.error('- Error stack:', error.stack);
+      console.error('- Algorithm:', this.algorithm);
+      console.error('- Secret key available:', !!this.secretKey);
+      console.error('- Secret key length:', this.secretKey ? this.secretKey.length : 'N/A');
       throw error;
     }
   }

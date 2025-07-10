@@ -7,19 +7,82 @@ const getAccounts = async (req, res) => {
     console.log('Fetching accounts for user:', req.user.id);
     const accounts = await SocialAccount.findByUserId(req.user.id);
     console.log('Found accounts:', accounts.length);
-    console.log('Account details:', accounts.map(acc => ({
+    
+    // Enhanced logging for token status
+    const accountsWithTokenStatus = await Promise.all(accounts.map(async (acc) => {
+      const tokenStatus = await checkTokenStatus(acc);
+      console.log(`Account ${acc.id} (${acc.platform}:${acc.username}) - Token Status:`, tokenStatus);
+      return {
+        ...acc,
+        hasValidToken: tokenStatus.hasValidToken,
+        tokenError: tokenStatus.error
+      };
+    }));
+    
+    console.log('Account details:', accountsWithTokenStatus.map(acc => ({
       id: acc.id,
       platform: acc.platform,
       username: acc.username,
-      status: acc.status
+      status: acc.status,
+      hasValidToken: acc.hasValidToken,
+      tokenError: acc.tokenError
     })));
-    res.json({ accounts });
+    
+    res.json({ accounts: accountsWithTokenStatus });
   } catch (error) {
     console.error('Get accounts error:', error);
     console.error('Error stack:', error.stack);
     res.status(500).json({ error: 'Failed to fetch accounts' });
   }
 };
+
+// Helper function to check token status
+async function checkTokenStatus(account) {
+  try {
+    const fullAccount = await SocialAccount.findById(account.id);
+    
+    if (!fullAccount) {
+      return { hasValidToken: false, error: 'Account not found' };
+    }
+    
+    if (!fullAccount.access_token) {
+      return { hasValidToken: false, error: 'No access token stored' };
+    }
+    
+    console.log(`Checking token for ${account.platform} account ${account.id}:`);
+    console.log('- Token exists:', !!fullAccount.access_token);
+    console.log('- Token length:', fullAccount.access_token.length);
+    console.log('- Token format (has colon):', fullAccount.access_token.includes(':'));
+    console.log('- Token preview:', fullAccount.access_token.substring(0, 32) + '...');
+    
+    // Platform-specific token validation
+    if (account.platform === 'x') {
+      try {
+        const decryptedToken = xService.decrypt(fullAccount.access_token);
+        console.log('- X token decryption successful, length:', decryptedToken.length);
+        return { hasValidToken: true, error: null };
+      } catch (decryptError) {
+        console.log('- X token decryption failed:', decryptError.message);
+        return { hasValidToken: false, error: 'Token decryption failed: ' + decryptError.message };
+      }
+    } else if (account.platform === 'mastodon') {
+      try {
+        const decryptedToken = mastodonService.decrypt(fullAccount.access_token);
+        console.log('- Mastodon token decryption successful, length:', decryptedToken.length);
+        return { hasValidToken: true, error: null };
+      } catch (decryptError) {
+        console.log('- Mastodon token decryption failed:', decryptError.message);
+        return { hasValidToken: false, error: 'Token decryption failed: ' + decryptError.message };
+      }
+    } else {
+      // For other platforms, just check if token exists
+      return { hasValidToken: true, error: null };
+    }
+  } catch (error) {
+    console.error('Token status check error:', error);
+    return { hasValidToken: false, error: 'Token check failed: ' + error.message };
+  }
+}
 
 const getAccount = async (req, res) => {
   try {

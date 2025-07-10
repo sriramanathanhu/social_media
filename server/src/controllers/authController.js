@@ -367,9 +367,18 @@ const xCallback = async (req, res) => {
     }
     
     // Exchange code for access token using PKCE
+    console.log('Exchanging X authorization code for access token...');
     const tokenData = await xService.getAccessToken(code, oauthState.extra_data);
+    console.log('X token data received:', {
+      hasAccessToken: !!tokenData.accessToken,
+      accessTokenLength: tokenData.accessToken ? tokenData.accessToken.length : 0,
+      hasRefreshToken: !!tokenData.refreshToken,
+      expiresIn: tokenData.expiresIn,
+      tokenType: tokenData.tokenType
+    });
     
     // Verify credentials
+    console.log('Verifying X credentials with access token...');
     const userInfo = await xService.verifyCredentials(tokenData.accessToken);
     
     console.log('X user info:', userInfo);
@@ -386,26 +395,68 @@ const xCallback = async (req, res) => {
     
     if (existingAccount.length > 0) {
       console.log('Updating existing X account with ID:', existingAccount[0].id);
+      
+      // Encrypt tokens with detailed logging
+      console.log('Encrypting X access token for storage...');
+      const encryptedAccessToken = xService.encrypt(tokenData.accessToken);
+      console.log('Encrypted access token length:', encryptedAccessToken.length);
+      console.log('Encrypted access token format check (has colon):', encryptedAccessToken.includes(':'));
+      
+      let encryptedRefreshToken = null;
+      if (tokenData.refreshToken) {
+        console.log('Encrypting X refresh token for storage...');
+        encryptedRefreshToken = xService.encrypt(tokenData.refreshToken);
+        console.log('Encrypted refresh token length:', encryptedRefreshToken.length);
+      }
+      
+      console.log('Updating X account tokens in database...');
       await SocialAccount.updateTokens(
         existingAccount[0].id,
-        xService.encrypt(tokenData.accessToken),
-        tokenData.refreshToken ? xService.encrypt(tokenData.refreshToken) : null,
+        encryptedAccessToken,
+        encryptedRefreshToken,
         tokenData.expiresIn ? new Date(Date.now() + tokenData.expiresIn * 1000) : null
       );
+      console.log('X account tokens updated successfully');
     } else {
       console.log('Creating new X account for user:', oauthState.user_id);
-      const newAccount = await SocialAccount.create({
+      
+      // Encrypt tokens with detailed logging
+      console.log('Encrypting X access token for new account...');
+      const encryptedAccessToken = xService.encrypt(tokenData.accessToken);
+      console.log('Encrypted access token length:', encryptedAccessToken.length);
+      console.log('Encrypted access token format check (has colon):', encryptedAccessToken.includes(':'));
+      
+      let encryptedRefreshToken = null;
+      if (tokenData.refreshToken) {
+        console.log('Encrypting X refresh token for new account...');
+        encryptedRefreshToken = xService.encrypt(tokenData.refreshToken);
+        console.log('Encrypted refresh token length:', encryptedRefreshToken.length);
+      }
+      
+      const accountData = {
         userId: oauthState.user_id,
         platform: 'x',
         instanceUrl: null,
         username: userInfo.username,
         displayName: userInfo.name,
         avatarUrl: userInfo.profile_image_url,
-        accessToken: xService.encrypt(tokenData.accessToken),
-        refreshToken: tokenData.refreshToken ? xService.encrypt(tokenData.refreshToken) : null,
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
         tokenExpiresAt: tokenData.expiresIn ? new Date(Date.now() + tokenData.expiresIn * 1000) : null
+      };
+      
+      console.log('Creating X account with data:', {
+        ...accountData,
+        accessToken: 'ENCRYPTED_' + accountData.accessToken.length + '_CHARS',
+        refreshToken: accountData.refreshToken ? 'ENCRYPTED_' + accountData.refreshToken.length + '_CHARS' : null
       });
-      console.log('New X account created:', newAccount);
+      
+      const newAccount = await SocialAccount.create(accountData);
+      console.log('New X account created successfully:', {
+        id: newAccount.id,
+        username: newAccount.username,
+        platform: newAccount.platform
+      });
     }
     
     // Clean up OAuth state data
