@@ -1,6 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const auth = require('../middleware/auth');
+const adminAuth = require('../middleware/admin');
 const liveStreamController = require('../controllers/liveStreamController');
 
 const router = express.Router();
@@ -150,19 +151,22 @@ router.post('/:id/republishing/twitter',
   liveStreamController.addTwitterRepublishing
 );
 
-// Nimble-specific routes
+// Nimble-specific routes (Admin only)
 router.get('/nimble/config',
   auth,
+  adminAuth,
   liveStreamController.getNimbleConfig
 );
 
 router.post('/nimble/config/update',
   auth,
+  adminAuth,
   liveStreamController.updateNimbleConfig
 );
 
 router.get('/nimble/status',
   auth,
+  adminAuth,
   liveStreamController.getNimbleStatus
 );
 
