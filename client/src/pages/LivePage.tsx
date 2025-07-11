@@ -191,7 +191,7 @@ const LivePage: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Container maxWidth="lg" sx={{ mt: 8, mb: 4, pt: 4 }}>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
           <CircularProgress />
         </Box>
@@ -200,14 +200,15 @@ const LivePage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 6, mb: 4, pt: 2, position: 'relative', zIndex: 1 }}>
-      <Box sx={{ mb: 3 }}>
+    <Container maxWidth="lg" sx={{ mt: 8, mb: 4, pt: 4, position: 'relative', zIndex: 1 }}>
+      <Box sx={{ mb: 4, mt: 2 }}>
         <Box sx={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
           flexDirection: { xs: 'column', sm: 'row' },
-          gap: 2
+          gap: 3,
+          py: 2
         }}>
           <Typography variant="h4" component="h1">
             Live Streaming
