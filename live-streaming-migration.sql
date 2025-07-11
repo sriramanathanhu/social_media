@@ -1,6 +1,13 @@
 -- Live Streaming Tables Migration
 -- Run this script to add live streaming functionality to existing database
 
+-- First, add missing user columns for role-based access
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin'));
+ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'pending', 'suspended'));
+
+-- Set the first user as admin (update this email to your admin email)
+-- UPDATE users SET role = 'admin' WHERE email = 'your-admin-email@example.com';
+
 -- Create live_streams table
 CREATE TABLE IF NOT EXISTS live_streams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
