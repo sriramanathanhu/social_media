@@ -59,6 +59,7 @@ interface StreamFormData {
     platform: string;
     streamKey: string;
     enabled: boolean;
+    customUrl?: string; // For custom RTMP servers
   }>;
 }
 
@@ -217,13 +218,14 @@ const CreateStreamDialog: React.FC<CreateStreamDialogProps> = ({
         republishingTargets: [...prev.republishingTargets, {
           platform,
           streamKey: '',
-          enabled: true
+          enabled: true,
+          customUrl: (platform === 'custom_rtmp' || platform === 'webtv') ? '' : undefined
         }]
       }));
     }
   };
 
-  const handleUpdateRepublishingTarget = (platform: string, field: 'streamKey' | 'enabled', value: string | boolean) => {
+  const handleUpdateRepublishingTarget = (platform: string, field: 'streamKey' | 'enabled' | 'customUrl', value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       republishingTargets: prev.republishingTargets.map(target =>
@@ -508,6 +510,20 @@ const CreateStreamDialog: React.FC<CreateStreamDialogProps> = ({
                       label="Enabled"
                     />
                   </Box>
+                  {/* Custom RTMP URL field for custom platforms */}
+                  {(target.platform === 'custom_rtmp' || target.platform === 'webtv') && (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Custom RTMP URL"
+                      value={target.customUrl || ''}
+                      onChange={(e) => handleUpdateRepublishingTarget(target.platform, 'customUrl', e.target.value)}
+                      placeholder="rtmp://your-server.com:1935/live"
+                      helperText="Enter the complete RTMP server URL"
+                      sx={{ mb: 2 }}
+                    />
+                  )}
+                  
                   <TextField
                     fullWidth
                     size="small"
@@ -516,10 +532,15 @@ const CreateStreamDialog: React.FC<CreateStreamDialogProps> = ({
                     onChange={(e) => handleUpdateRepublishingTarget(target.platform, 'streamKey', e.target.value)}
                     placeholder={`Enter ${platform?.name} stream key`}
                     type="password"
-                    helperText={`Get your stream key from ${platform?.name} dashboard`}
+                    helperText={(target.platform === 'custom_rtmp' || target.platform === 'webtv') ? 
+                      'Enter the stream key provided by your custom RTMP server' : 
+                      `Get your stream key from ${platform?.name} dashboard`}
                   />
+                  
                   <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-                    RTMP URL: {platform?.url}
+                    RTMP URL: {(target.platform === 'custom_rtmp' || target.platform === 'webtv') ? 
+                      (target.customUrl || 'Enter custom URL above') : 
+                      platform?.url}
                   </Typography>
                 </Box>
               );
