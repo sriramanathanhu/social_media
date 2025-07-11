@@ -84,6 +84,110 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// Mock live streaming endpoints
+app.get('/api/live', (req, res) => {
+  console.log('Fetching streams for user');
+  
+  // Mock empty streams response
+  res.json({
+    success: true,
+    streams: []
+  });
+});
+
+app.get('/api/live/sessions/active', (req, res) => {
+  console.log('Fetching active sessions');
+  
+  // Mock empty sessions response
+  res.json({
+    success: true,
+    sessions: []
+  });
+});
+
+app.post('/api/live', (req, res) => {
+  console.log('Creating stream:', req.body);
+  
+  // Mock stream creation
+  const mockStream = {
+    id: 'mock-stream-' + Date.now(),
+    title: req.body.title || 'Mock Stream',
+    description: req.body.description || '',
+    stream_key: Math.random().toString(36).substr(2, 16),
+    rtmp_url: 'rtmp://localhost:1935/live',
+    status: 'inactive',
+    created_at: new Date().toISOString(),
+    auto_post_enabled: req.body.autoPostEnabled || false,
+    auto_post_accounts: req.body.autoPostAccounts || [],
+    stats: {
+      session_count: 0,
+      total_duration: 0,
+      max_viewers: 0,
+      total_viewers: 0
+    },
+    republishing_count: 0,
+    active_republishing: 0
+  };
+  
+  res.status(201).json({
+    success: true,
+    stream: mockStream
+  });
+});
+
+app.get('/api/live/:id/rtmp-info', (req, res) => {
+  const { id } = req.params;
+  console.log('Getting RTMP info for stream:', id);
+  
+  // Mock RTMP info
+  res.json({
+    success: true,
+    rtmp_info: {
+      server: 'rtmp://localhost:1935/live',
+      stream_key: 'mock-key-' + Math.random().toString(36).substr(2, 16),
+      full_url: 'rtmp://localhost:1935/live/mock-key-' + Math.random().toString(36).substr(2, 16),
+      obs_settings: {
+        server: 'rtmp://localhost:1935/live',
+        stream_key: 'mock-key-' + Math.random().toString(36).substr(2, 16)
+      }
+    }
+  });
+});
+
+app.get('/api/live/nimble/status', (req, res) => {
+  console.log('Getting Nimble status');
+  
+  // Mock Nimble status
+  res.json({
+    success: true,
+    status: {
+      isMonitoring: false,
+      nimbleStatsURL: 'http://localhost:8082',
+      intervalMs: null
+    }
+  });
+});
+
+app.get('/api/live/nimble/config', (req, res) => {
+  console.log('Getting Nimble config');
+  
+  // Mock Nimble config
+  res.json({
+    success: true,
+    config: null
+  });
+});
+
+app.post('/api/live/nimble/config/update', (req, res) => {
+  console.log('Updating Nimble config');
+  
+  // Mock config update
+  res.json({
+    success: true,
+    message: 'Configuration updated successfully (mock)'
+  });
+});
+
 // Register route
 app.post('/api/auth/register', async (req, res) => {
   try {
