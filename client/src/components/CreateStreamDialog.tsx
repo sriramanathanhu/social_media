@@ -265,6 +265,16 @@ const CreateStreamDialog: React.FC<CreateStreamDialogProps> = ({
     { id: 'facebook', name: 'Facebook Live', url: 'rtmps://live-api-s.facebook.com:443/rtmp' },
     { id: 'twitter', name: 'Twitter/X Live', url: 'rtmp://ingest.pscp.tv:80/x' },
     { id: 'linkedin', name: 'LinkedIn Live', url: 'rtmps://live-api.linkedin.com/v1/broadcasts' },
+    
+    // Additional Platforms
+    { id: 'kick', name: 'Kick', url: 'rtmp://ingest.kick.com/live' },
+    { id: 'rumble', name: 'Rumble', url: 'rtmp://live.rumble.com/live' },
+    { id: 'dlive', name: 'DLive', url: 'rtmp://stream.dlive.tv/live' },
+    { id: 'trova', name: 'Trova', url: 'rtmp://live.trova.tv/live' },
+    
+    // Generic/Custom Options
+    { id: 'custom_rtmp', name: 'Custom RTMP Server', url: 'custom' },
+    { id: 'webtv', name: 'WebTV/Custom', url: 'custom' },
   ];
 
   return (
