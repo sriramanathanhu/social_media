@@ -200,26 +200,41 @@ const LivePage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Live Streaming
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant="outlined"
-            startIcon={<HelpIcon />}
-            onClick={() => setGuideOpen(true)}
-          >
-            How it Works
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateDialogOpen(true)}
-          >
-            Create Stream
-          </Button>
+    <Container maxWidth="lg" sx={{ mt: 6, mb: 4, pt: 2, position: 'relative', zIndex: 1 }}>
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2
+        }}>
+          <Typography variant="h4" component="h1">
+            Live Streaming
+          </Typography>
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 1,
+            flexDirection: { xs: 'column', sm: 'row' },
+            width: { xs: '100%', sm: 'auto' }
+          }}>
+            <Button
+              variant="outlined"
+              startIcon={<HelpIcon />}
+              onClick={() => setGuideOpen(true)}
+              sx={{ minWidth: 140 }}
+            >
+              How it Works
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setCreateDialogOpen(true)}
+              sx={{ minWidth: 140 }}
+            >
+              Create Stream
+            </Button>
+          </Box>
         </Box>
       </Box>
 
