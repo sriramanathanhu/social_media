@@ -1,5 +1,5 @@
 # Goal
-Multi-platform social media management system with scheduling capabilities for X, Mastodon, and Pinterest.
+Multi-platform social media management system with scheduling capabilities for X, Mastodon, Pinterest, and live streaming via Nimble Streamer.
 
 # Standard instructions for AI 
 This section maintains essential context of the project state across different chats and compactions. We maintain:
@@ -18,6 +18,7 @@ This section maintains essential context of the project state across different c
 - **Frontend**: React/TypeScript with Material-UI, Redux Toolkit
 - **Backend**: Node.js/Express with PostgreSQL
 - **Platforms**: X (Twitter), Mastodon, Pinterest
+- **Live Streaming**: Nimble Streamer integration with multi-platform republishing
 - **Authentication**: OAuth 2.0 flows for each platform
 
 # Testing Commands
@@ -30,6 +31,28 @@ This section maintains essential context of the project state across different c
 - Server Process: Node.js running on PID 128, port 10000
 - Database: `psql postgresql://socialmediadb_82lt_user:nPuC2nBBHB7oU0OhEqqX8E9hLIOz9zts@dpg-d1k3qker433s73c3k8cg-a/socialmediadb_82lt`
 - Project Path: `/opt/render/project/src`
+
+# Live Streaming Configuration (Nimble Streamer)
+- **Cloud Server**: 37.27.201.26:1935 (RTMP)
+- **Management API**: 37.27.201.26:8082 (Authenticated with salt-hash method)
+- **WMSPanel UUID**: 5f7ca354-fc54-83da-a4ae-b1ebf0980f9e
+- **Status**: RTMP working, Management API fully operational
+- **Authentication**: Token-based with MD5 salt-hash authentication
+- **Frontend**: Live streaming UI functional at /live route
+
+# Current Status
+- ✅ Nimble Streamer: Configured and accepting RTMP streams
+- ✅ OBS Integration: Working with app-based stream keys  
+- ✅ Frontend API: Fixed token handling and stream creation
+- ✅ App Management System: Independent streaming apps with custom RTMP paths
+- ✅ Stream Key Management: Multiple platform keys per app
+- ✅ Stream Creation V2: App/key pair selection with 3-step wizard
+- ✅ Stream Settings: Comprehensive dialog with deletion functionality
+- ✅ Multi-destination Streaming: One OBS instance to multiple platforms
+- ✅ Direct Nimble API Integration: Self-contained republishing without WMSPanel dependency
+- ✅ Real-time Republishing Control: Add/remove destinations via API
+- ✅ Production Ready: End-to-end streaming from OBS to YouTube working
+- ✅ Secure API Access: Salt-hash authentication implemented and tested
 
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.

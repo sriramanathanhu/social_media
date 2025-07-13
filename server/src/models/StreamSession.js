@@ -40,10 +40,8 @@ class StreamSession {
     console.log('StreamSession.findByStreamId called with streamId:', streamId);
     const result = await pool.query(
       `SELECT id, stream_id, user_id, session_key, started_at, ended_at, 
-              duration_seconds, peak_viewers, total_viewers, bytes_sent, 
-              bytes_received, avg_bitrate, dropped_frames, connection_quality,
-              published_to_social, social_post_ids, status, error_message, 
-              metadata, created_at, updated_at
+              duration_seconds, peak_viewers, viewer_count, bytes_sent, 
+              bytes_received, status, created_at, updated_at
        FROM stream_sessions 
        WHERE stream_id = $1 
        ORDER BY started_at DESC`,
@@ -57,10 +55,8 @@ class StreamSession {
   static async findById(id) {
     const result = await pool.query(
       `SELECT id, stream_id, user_id, session_key, started_at, ended_at, 
-              duration_seconds, peak_viewers, total_viewers, bytes_sent, 
-              bytes_received, avg_bitrate, dropped_frames, connection_quality,
-              published_to_social, social_post_ids, status, error_message, 
-              metadata, created_at, updated_at
+              duration_seconds, peak_viewers, viewer_count, bytes_sent, 
+              bytes_received, status, created_at, updated_at
        FROM stream_sessions 
        WHERE id = $1`,
       [id]
@@ -72,10 +68,8 @@ class StreamSession {
   static async findBySessionKey(sessionKey) {
     const result = await pool.query(
       `SELECT id, stream_id, user_id, session_key, started_at, ended_at, 
-              duration_seconds, peak_viewers, total_viewers, bytes_sent, 
-              bytes_received, avg_bitrate, dropped_frames, connection_quality,
-              published_to_social, social_post_ids, status, error_message, 
-              metadata, created_at, updated_at
+              duration_seconds, peak_viewers, viewer_count, bytes_sent, 
+              bytes_received, status, created_at, updated_at
        FROM stream_sessions 
        WHERE session_key = $1`,
       [sessionKey]
@@ -90,8 +84,7 @@ class StreamSession {
     let paramIndex = 2;
 
     const allowedStats = [
-      'peak_viewers', 'total_viewers', 'bytes_sent', 'bytes_received',
-      'avg_bitrate', 'dropped_frames', 'connection_quality', 'metadata'
+      'peak_viewers', 'viewer_count', 'bytes_sent', 'bytes_received'
     ];
 
     allowedStats.forEach(stat => {
@@ -115,7 +108,7 @@ class StreamSession {
       `UPDATE stream_sessions 
        SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP 
        WHERE id = $1 
-       RETURNING id, peak_viewers, total_viewers, connection_quality, updated_at`,
+       RETURNING id, peak_viewers, viewer_count, updated_at`,
       values
     );
 
@@ -157,8 +150,7 @@ class StreamSession {
 
     // Add any final stats
     const allowedStats = [
-      'peak_viewers', 'total_viewers', 'bytes_sent', 'bytes_received',
-      'avg_bitrate', 'dropped_frames', 'connection_quality'
+      'peak_viewers', 'viewer_count', 'bytes_sent', 'bytes_received'
     ];
 
     allowedStats.forEach(stat => {
@@ -195,7 +187,7 @@ class StreamSession {
   static async getActiveSessions(userId = null) {
     let query = `
       SELECT ss.id, ss.stream_id, ss.user_id, ss.session_key, ss.started_at,
-             ss.peak_viewers, ss.total_viewers, ss.connection_quality, ss.status,
+             ss.peak_viewers, ss.viewer_count, ss.status,
              ls.title, ls.stream_key as stream_stream_key
       FROM stream_sessions ss
       JOIN live_streams ls ON ss.stream_id = ls.id
@@ -217,8 +209,8 @@ class StreamSession {
   static async getSessionsByUser(userId, limit = 50, offset = 0) {
     const result = await pool.query(
       `SELECT ss.id, ss.stream_id, ss.session_key, ss.started_at, ss.ended_at,
-              ss.duration_seconds, ss.peak_viewers, ss.total_viewers, 
-              ss.connection_quality, ss.status, ls.title, ls.stream_key as stream_stream_key
+              ss.duration_seconds, ss.peak_viewers, ss.viewer_count, 
+              ss.status, ls.title, ls.stream_key as stream_stream_key
        FROM stream_sessions ss
        JOIN live_streams ls ON ss.stream_id = ls.id
        WHERE ss.user_id = $1

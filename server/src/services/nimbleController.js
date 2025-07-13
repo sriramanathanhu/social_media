@@ -1,19 +1,15 @@
-const fs = require('fs').promises;
-const path = require('path');
-const { exec } = require('child_process');
-const { promisify } = require('util');
-const execAsync = promisify(exec);
 const LiveStream = require('../models/LiveStream');
 const StreamRepublishing = require('../models/StreamRepublishing');
+const nimbleApiService = require('./nimbleApiService');
 
 class NimbleController {
   constructor() {
-    this.configPath = process.env.NIMBLE_CONFIG_PATH || path.join(__dirname, '../../../nimble/rules.conf');
-    this.nimbleHost = process.env.NIMBLE_HOST || 'localhost';
+    this.nimbleHost = process.env.NIMBLE_HOST || '37.27.201.26';
     this.nimblePort = process.env.NIMBLE_PORT || 1935;
     this.nimbleStatsPort = process.env.NIMBLE_STATS_PORT || 8082;
+    this.panelUUID = process.env.NIMBLE_PANEL_UUID;
     
-    console.log('NimbleController initialized with config path:', this.configPath);
+    console.log('NimbleController initialized with remote server:', this.nimbleHost);
   }
   
   /**
@@ -228,9 +224,29 @@ class NimbleController {
       
       console.log(`Created republishing record: ${republishing.id}`);
       
-      // Update Nimble configuration if stream is active
-      if (stream.status === 'live') {
-        await this.updateNimbleConfig();
+      // Configure remote Nimble server via direct API
+      try {
+        const nimbleRule = await nimbleApiService.createRepublishingRule({
+          sourceApp: stream.source_app || 'live',
+          sourceStream: stream.stream_key,
+          destinationUrl: this.getPlatformURL(destination.platform),
+          destinationPort: this.getPlatformPort(destination.platform),
+          destinationApp: this.getPlatformApp(destination.platform),
+          destinationStream: destination.streamKey
+        });
+        
+        console.log('Republishing rule added to Nimble server:', nimbleRule);
+        
+        // Store the Nimble rule ID for future reference
+        if (nimbleRule && nimbleRule.id) {
+          await StreamRepublishing.update(republishing.id, {
+            nimble_rule_id: nimbleRule.id
+          });
+        }
+        
+      } catch (nimbleError) {
+        console.warn('Failed to configure Nimble server:', nimbleError.message);
+        // Continue anyway - the database record is created for manual configuration
       }
       
       return republishing;

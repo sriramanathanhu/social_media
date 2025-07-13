@@ -12,8 +12,6 @@ class StreamRepublishing {
     const {
       streamId,
       userId,
-      sourceApp,
-      sourceStream,
       destinationName,
       destinationUrl,
       destinationPort = 1935,
@@ -32,12 +30,6 @@ class StreamRepublishing {
     if (!userId) {
       throw new Error('userId is required');
     }
-    if (!sourceApp) {
-      throw new Error('sourceApp is required');
-    }
-    if (!sourceStream) {
-      throw new Error('sourceStream is required');
-    }
     if (!destinationName) {
       throw new Error('destinationName is required');
     }
@@ -53,14 +45,14 @@ class StreamRepublishing {
 
     const result = await pool.query(
       `INSERT INTO stream_republishing 
-       (stream_id, user_id, source_app, source_stream, destination_name, 
+       (stream_id, user_id, destination_name, 
         destination_url, destination_port, destination_app, destination_stream, 
         destination_key, enabled, priority, retry_attempts) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
-       RETURNING id, stream_id, user_id, source_app, source_stream, destination_name,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+       RETURNING id, stream_id, user_id, destination_name,
                  destination_url, destination_port, destination_app, destination_stream,
                  enabled, priority, status, created_at`,
-      [streamId, userId, sourceApp, sourceStream, destinationName, destinationUrl,
+      [streamId, userId, destinationName, destinationUrl,
        destinationPort, destinationApp, destinationStream, destinationKey, 
        enabled, priority, retryAttempts]
     );
@@ -71,10 +63,10 @@ class StreamRepublishing {
   static async findByStreamId(streamId) {
     console.log('StreamRepublishing.findByStreamId called with streamId:', streamId);
     const result = await pool.query(
-      `SELECT id, stream_id, user_id, source_app, source_stream, destination_name,
+      `SELECT id, stream_id, user_id, destination_name,
               destination_url, destination_port, destination_app, destination_stream,
               destination_key, enabled, priority, retry_attempts, status, 
-              last_connected_at, last_error, connection_count, created_at, updated_at
+              last_error, created_at, updated_at
        FROM stream_republishing 
        WHERE stream_id = $1 
        ORDER BY priority ASC, created_at ASC`,
@@ -87,10 +79,10 @@ class StreamRepublishing {
 
   static async findById(id) {
     const result = await pool.query(
-      `SELECT id, stream_id, user_id, source_app, source_stream, destination_name,
+      `SELECT id, stream_id, user_id, destination_name,
               destination_url, destination_port, destination_app, destination_stream,
               destination_key, enabled, priority, retry_attempts, status, 
-              last_connected_at, last_error, connection_count, created_at, updated_at
+              last_error, created_at, updated_at
        FROM stream_republishing 
        WHERE id = $1`,
       [id]
@@ -102,10 +94,10 @@ class StreamRepublishing {
   static async findByUserId(userId) {
     console.log('StreamRepublishing.findByUserId called with userId:', userId);
     const result = await pool.query(
-      `SELECT sr.id, sr.stream_id, sr.user_id, sr.source_app, sr.source_stream, 
+      `SELECT sr.id, sr.stream_id, sr.user_id, 
               sr.destination_name, sr.destination_url, sr.destination_port, 
               sr.destination_app, sr.destination_stream, sr.enabled, sr.priority, 
-              sr.status, sr.last_connected_at, sr.connection_count, sr.created_at,
+              sr.status, sr.created_at,
               ls.title as stream_title, ls.status as stream_status
        FROM stream_republishing sr
        JOIN live_streams ls ON sr.stream_id = ls.id
@@ -138,7 +130,7 @@ class StreamRepublishing {
       `UPDATE stream_republishing 
        SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP 
        WHERE id = $1 
-       RETURNING id, status, last_connected_at, connection_count, updated_at`,
+       RETURNING id, status, updated_at`,
       values
     );
 
@@ -151,7 +143,7 @@ class StreamRepublishing {
     let paramIndex = 2;
 
     const allowedFields = [
-      'source_app', 'source_stream', 'destination_name', 'destination_url',
+      'destination_name', 'destination_url',
       'destination_port', 'destination_app', 'destination_stream', 
       'destination_key', 'enabled', 'priority', 'retry_attempts'
     ];
@@ -190,10 +182,10 @@ class StreamRepublishing {
 
   static async getActiveRepublishing(streamId = null) {
     let query = `
-      SELECT sr.id, sr.stream_id, sr.source_app, sr.source_stream,
+      SELECT sr.id, sr.stream_id,
              sr.destination_name, sr.destination_url, sr.destination_port,
              sr.destination_app, sr.destination_stream, sr.destination_key,
-             sr.priority, sr.connection_count, ls.title as stream_title
+             sr.priority, ls.title as stream_title
       FROM stream_republishing sr
       JOIN live_streams ls ON sr.stream_id = ls.id
       WHERE sr.enabled = true AND sr.status = 'active'
@@ -246,12 +238,10 @@ class StreamRepublishing {
   }
 
   // Platform-specific helper methods
-  static async createYouTubeRepublishing(streamId, userId, sourceApp, sourceStream, streamKey) {
+  static async createYouTubeRepublishing(streamId, userId, streamKey) {
     return this.create({
       streamId,
       userId,
-      sourceApp,
-      sourceStream,
       destinationName: 'YouTube Live',
       destinationUrl: 'rtmp://a.rtmp.youtube.com/live2',
       destinationPort: 1935,
@@ -262,12 +252,10 @@ class StreamRepublishing {
     });
   }
 
-  static async createTwitterRepublishing(streamId, userId, sourceApp, sourceStream, streamKey) {
+  static async createTwitterRepublishing(streamId, userId, streamKey) {
     return this.create({
       streamId,
       userId,
-      sourceApp,
-      sourceStream,
       destinationName: 'Twitter/X Live',
       destinationUrl: 'rtmp://ingest.pscp.tv:80/x',
       destinationPort: 80,
@@ -278,12 +266,10 @@ class StreamRepublishing {
     });
   }
 
-  static async createFacebookRepublishing(streamId, userId, sourceApp, sourceStream, streamKey) {
+  static async createFacebookRepublishing(streamId, userId, streamKey) {
     return this.create({
       streamId,
       userId,
-      sourceApp,
-      sourceStream,
       destinationName: 'Facebook Live',
       destinationUrl: 'rtmps://live-api-s.facebook.com:443/rtmp',
       destinationPort: 443,

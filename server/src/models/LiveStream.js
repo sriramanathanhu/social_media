@@ -50,14 +50,15 @@ class LiveStream {
     const result = await pool.query(
       `INSERT INTO live_streams 
        (user_id, title, description, stream_key, rtmp_url, source_app, source_stream,
-        destinations, quality_settings, auto_post_enabled, auto_post_accounts, 
-        auto_post_message, category, tags, is_public) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
+        app_id, app_key_id, destinations, quality_settings, auto_post_enabled, 
+        auto_post_accounts, auto_post_message, category, tags, is_public) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) 
        RETURNING id, user_id, title, description, stream_key, rtmp_url, source_app, 
-                 source_stream, status, created_at`,
+                 source_stream, app_id, app_key_id, status, created_at`,
       [userId, title, description, streamKey, rtmpUrl, sourceApp, sourceStream,
-       JSON.stringify(destinations), JSON.stringify(qualitySettings), autoPostEnabled, 
-       autoPostAccounts, autoPostMessage, category, tags, isPublic]
+       streamData.app_id, streamData.app_key_id, JSON.stringify(destinations), 
+       JSON.stringify(qualitySettings), autoPostEnabled, autoPostAccounts, 
+       autoPostMessage, category, tags, isPublic]
     );
 
     return result.rows[0];
@@ -221,8 +222,7 @@ class LiveStream {
          COUNT(ss.id) as session_count,
          SUM(ss.duration_seconds) as total_duration,
          MAX(ss.peak_viewers) as max_viewers,
-         SUM(ss.total_viewers) as total_viewers,
-         AVG(ss.connection_quality) as avg_quality
+         SUM(ss.viewer_count) as total_viewers
        FROM live_streams ls
        LEFT JOIN stream_sessions ss ON ls.id = ss.stream_id
        WHERE ls.id = $1

@@ -10,6 +10,7 @@ import AccountsPage from './pages/AccountsPage';
 import ComposePage from './pages/ComposePage';
 import PostsPage from './pages/PostsPage';
 import LivePage from './pages/LivePage';
+import StreamAppsPage from './pages/StreamAppsPage';
 import SettingsPage from './pages/SettingsPage';
 import UserManagement from './pages/UserManagement';
 import XApiDashboard from './pages/XApiDashboard';
@@ -72,6 +73,7 @@ const AppContent: React.FC = () => {
           <Route path="/compose" element={<ComposePage />} />
           <Route path="/posts" element={<PostsPage />} />
           <Route path="/live" element={<LivePage />} />
+          <Route path="/stream-apps" element={<StreamAppsPage />} />
           <Route 
             path="/users" 
             element={

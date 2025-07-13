@@ -22,6 +22,7 @@ import {
 } from '@mui/material';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
+import { liveStreamingAPI } from '../services/api';
 
 interface SocialAccount {
   id: string;
@@ -134,29 +135,16 @@ const CreateStreamDialog: React.FC<CreateStreamDialogProps> = ({
     setError(null);
 
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
-      const response = await fetch(`${API_BASE_URL}/live`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          // Ensure republishing targets are properly formatted for the backend
-          republishingTargets: formData.republishingTargets.filter(target => 
-            target.enabled && target.streamKey.trim()
-          )
-        }),
-      });
+      const streamData = {
+        ...formData,
+        // Ensure republishing targets are properly formatted for the backend
+        republishingTargets: formData.republishingTargets.filter(target => 
+          target.enabled && target.streamKey.trim()
+        )
+      };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create stream');
-      }
-
-      const data = await response.json();
-      console.log('Stream created successfully:', data);
+      const response = await liveStreamingAPI.createStream(streamData);
+      console.log('Stream created successfully:', response.data);
       
       onStreamCreated();
       handleClose();

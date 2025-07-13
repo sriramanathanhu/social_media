@@ -27,9 +27,10 @@ import {
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
-import CreateStreamDialog from '../components/CreateStreamDialog';
+import CreateStreamDialogV2 from '../components/CreateStreamDialogV2';
 import StreamingGuide from '../components/StreamingGuide';
 import StreamRTMPInfo from '../components/StreamRTMPInfo';
+import StreamSettingsDialog from '../components/StreamSettingsDialog';
 import NimbleStatus from '../components/NimbleStatus';
 
 interface LiveStream {
@@ -99,6 +100,7 @@ const LivePage: React.FC = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [rtmpInfoOpen, setRtmpInfoOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
 
   const { token } = useSelector((state: RootState) => state.auth);
@@ -187,6 +189,37 @@ const LivePage: React.FC = () => {
   const handleShowRTMPInfo = (streamId: string) => {
     setSelectedStreamId(streamId);
     setRtmpInfoOpen(true);
+  };
+
+  const handleShowSettings = (streamId: string) => {
+    setSelectedStreamId(streamId);
+    setSettingsOpen(true);
+  };
+
+  const handleDeleteStream = async (streamId: string) => {
+    if (!window.confirm('Are you sure you want to delete this stream? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const response = await fetch(`${API_BASE_URL}/live/${streamId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete stream');
+      }
+
+      // Refresh streams list
+      fetchStreams();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete stream');
+    }
   };
 
   if (loading) {
@@ -378,11 +411,22 @@ const LivePage: React.FC = () => {
                       >
                         OBS Setup
                       </Button>
-                      <Button size="small" startIcon={<SettingsIcon />}>
+                      <Button 
+                        size="small" 
+                        startIcon={<SettingsIcon />}
+                        onClick={() => handleShowSettings(stream.id)}
+                      >
                         Settings
                       </Button>
                       <Button size="small" startIcon={<AnalyticsIcon />}>
                         Analytics
+                      </Button>
+                      <Button 
+                        size="small" 
+                        color="error"
+                        onClick={() => handleDeleteStream(stream.id)}
+                      >
+                        Delete
                       </Button>
                     </Box>
                   </CardContent>
@@ -499,7 +543,7 @@ const LivePage: React.FC = () => {
       </TabPanel>
 
       {/* Create Stream Dialog */}
-      <CreateStreamDialog
+      <CreateStreamDialogV2
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
         onStreamCreated={fetchStreams}
@@ -520,6 +564,24 @@ const LivePage: React.FC = () => {
             setSelectedStreamId(null);
           }}
           streamId={selectedStreamId}
+        />
+      )}
+
+      {/* Stream Settings Dialog */}
+      {selectedStreamId && (
+        <StreamSettingsDialog
+          open={settingsOpen}
+          onClose={() => {
+            setSettingsOpen(false);
+            setSelectedStreamId(null);
+          }}
+          streamId={selectedStreamId}
+          onStreamUpdated={fetchStreams}
+          onStreamDeleted={() => {
+            fetchStreams();
+            setSettingsOpen(false);
+            setSelectedStreamId(null);
+          }}
         />
       )}
     </Container>

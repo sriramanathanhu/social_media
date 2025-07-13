@@ -169,4 +169,39 @@ export const groupsAPI = {
     api.delete(`/groups/accounts/${accountId}`),
 };
 
+export const liveStreamingAPI = {
+  getStreams: () =>
+    api.get('/live'),
+  
+  createStream: (streamData: any) =>
+    api.post('/live', streamData),
+  
+  getStream: (id: string) =>
+    api.get(`/live/${id}`),
+  
+  updateStream: (id: string, streamData: any) =>
+    api.put(`/live/${id}`, streamData),
+  
+  deleteStream: (id: string) =>
+    api.delete(`/live/${id}`),
+  
+  getStreamRTMPInfo: (id: string) =>
+    api.get(`/live/${id}/rtmp-info`),
+  
+  getActiveSessions: () =>
+    api.get('/live/sessions/active'),
+  
+  startStreamSession: (id: string) =>
+    api.post(`/live/${id}/sessions`),
+  
+  endStreamSession: (sessionId: string) =>
+    api.put(`/live/sessions/${sessionId}/end`),
+  
+  getNimbleStatus: () =>
+    api.get('/live/nimble/status'),
+  
+  updateNimbleConfig: () =>
+    api.post('/live/nimble/config/update'),
+};
+
 export default api;

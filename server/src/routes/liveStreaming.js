@@ -3,6 +3,10 @@ const { body } = require('express-validator');
 const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/admin');
 const liveStreamController = require('../controllers/liveStreamController');
+const nimbleApiService = require('../services/nimbleApiService');
+const liveStreamingService = require('../services/liveStreamingService');
+const LiveStream = require('../models/LiveStream');
+const StreamRepublishing = require('../models/StreamRepublishing');
 
 const router = express.Router();
 
@@ -45,6 +49,25 @@ router.get('/sessions/active',
   auth,
   liveStreamController.getActiveSessions
 );
+
+// Test Nimble API connectivity
+router.get('/nimble/test', auth, async (req, res) => {
+  try {
+    console.log('Testing Nimble API connection...');
+    const testResult = await nimbleApiService.testConnection();
+    
+    res.json({
+      success: testResult.success,
+      ...testResult
+    });
+  } catch (error) {
+    console.error('Nimble API test error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
 
 router.get('/:id',
   auth,
@@ -110,17 +133,15 @@ router.get('/:id/republishing',
 router.post('/:id/republishing',
   auth,
   [
-    body('sourceApp').notEmpty().withMessage('Source app is required'),
-    body('sourceStream').notEmpty().withMessage('Source stream is required'),
-    body('destinationName').notEmpty().withMessage('Destination name is required'),
-    body('destinationUrl').notEmpty().withMessage('Destination URL is required'),
-    body('destinationPort').optional().isNumeric(),
-    body('destinationApp').notEmpty().withMessage('Destination app is required'),
-    body('destinationStream').notEmpty().withMessage('Destination stream is required'),
-    body('destinationKey').optional().isString(),
+    body('destination_name').notEmpty().withMessage('Destination name is required'),
+    body('destination_url').notEmpty().withMessage('Destination URL is required'),
+    body('destination_port').optional().isNumeric(),
+    body('destination_app').notEmpty().withMessage('Destination app is required'),
+    body('destination_stream').notEmpty().withMessage('Destination stream is required'),
+    body('destination_key').optional().isString(),
     body('enabled').optional().isBoolean(),
     body('priority').optional().isNumeric(),
-    body('retryAttempts').optional().isNumeric()
+    body('retry_attempts').optional().isNumeric()
   ],
   liveStreamController.addRepublishing
 );
@@ -134,9 +155,7 @@ router.delete('/republishing/:republishingId',
 router.post('/:id/republishing/youtube',
   auth,
   [
-    body('streamKey').notEmpty().withMessage('YouTube stream key is required'),
-    body('sourceApp').optional().isString(),
-    body('sourceStream').optional().isString()
+    body('streamKey').notEmpty().withMessage('YouTube stream key is required')
   ],
   liveStreamController.addYouTubeRepublishing
 );
@@ -144,9 +163,7 @@ router.post('/:id/republishing/youtube',
 router.post('/:id/republishing/twitter',
   auth,
   [
-    body('streamKey').notEmpty().withMessage('Twitter stream key is required'),
-    body('sourceApp').optional().isString(),
-    body('sourceStream').optional().isString()
+    body('streamKey').notEmpty().withMessage('Twitter stream key is required')
   ],
   liveStreamController.addTwitterRepublishing
 );
@@ -174,5 +191,131 @@ router.get('/:id/rtmp-info',
   auth,
   liveStreamController.getStreamRTMPInfo
 );
+
+// Manual republishing control endpoints
+router.post('/:id/start', auth, async (req, res) => {
+  try {
+    console.log('Starting republishing for stream:', req.params.id);
+    console.log('req.user:', req.user);
+    
+    // Use direct model access like the working GET endpoint
+    console.log('Calling LiveStream.findById with:', req.params.id);
+    const stream = await LiveStream.findById(req.params.id);
+    console.log('LiveStream.findById result:', stream ? 'found' : 'null');
+    
+    if (!stream) {
+      console.log('Stream not found in database');
+      return res.status(404).json({
+        success: false,
+        message: 'Stream not found'
+      });
+    }
+    
+    if (stream.user_id !== req.user.id) {
+      console.log('Stream user_id mismatch:', stream.user_id, 'vs', req.user.id);
+      return res.status(404).json({
+        success: false,
+        message: 'Stream not found'
+      });
+    }
+    
+    console.log('Stream found:', stream.id, 'title:', stream.title);
+    
+    // Get republishing targets
+    const republishingTargets = await StreamRepublishing.findByStreamId(req.params.id);
+    console.log('Found republishing targets:', republishingTargets.length);
+    
+    // Update stream status to live
+    await LiveStream.updateStatus(req.params.id, 'live');
+    
+    // Configure republishing through direct Nimble API
+    const republishingResults = [];
+    for (const republishing of republishingTargets || []) {
+      if (republishing.enabled) {
+        try {
+          console.log(`Configuring republishing to ${republishing.destination_name}...`);
+          
+          // Add republishing rule via direct Nimble API
+          const nimbleRule = await nimbleApiService.createRepublishingRule({
+            sourceApp: stream.source_app || 'live',
+            sourceStream: stream.stream_key,
+            destinationUrl: republishing.destination_url,
+            destinationPort: republishing.destination_port || 1935,
+            destinationApp: republishing.destination_app,
+            destinationStream: republishing.destination_stream
+          });
+          
+          republishingResults.push({
+            destination: republishing.destination_name,
+            status: 'configured',
+            message: 'Republishing rule added successfully',
+            nimble_rule: nimbleRule
+          });
+          
+        } catch (nimbleError) {
+          console.warn(`Failed to configure ${republishing.destination_name}:`, nimbleError.message);
+          republishingResults.push({
+            destination: republishing.destination_name,
+            status: 'failed',
+            message: 'Failed to configure Nimble republishing',
+            error: nimbleError.message,
+            details: {
+              source_app: stream.source_app || 'live',
+              source_stream: stream.stream_key,
+              destination_url: republishing.destination_url,
+              destination_port: republishing.destination_port || 1935,
+              destination_app: republishing.destination_app,
+              destination_stream: republishing.destination_stream
+            }
+          });
+        }
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: 'Stream republishing activation initiated',
+      stream_key: stream.stream_key,
+      rtmp_url: stream.rtmp_url,
+      republishing_results: republishingResults
+    });
+    
+  } catch (error) {
+    console.error('Start republishing error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+router.post('/:id/stop', auth, async (req, res) => {
+  try {
+    console.log('Stopping republishing for stream:', req.params.id);
+    
+    const stream = await LiveStream.findById(req.params.id);
+    if (!stream || stream.user_id !== req.user.id) {
+      return res.status(404).json({
+        success: false,
+        message: 'Stream not found'
+      });
+    }
+    
+    // Update stream status to ended
+    await LiveStream.updateStatus(req.params.id, 'ended');
+    
+    res.json({
+      success: true,
+      message: 'Stream republishing stopped'
+    });
+    
+  } catch (error) {
+    console.error('Stop republishing error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
 
 module.exports = router;
