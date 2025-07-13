@@ -522,7 +522,7 @@ const getStreamRTMPInfo = async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
     
-    const nimbleHost = process.env.NIMBLE_HOST || 'localhost';
+    const nimbleHost = process.env.NIMBLE_HOST || '37.27.201.26';
     const nimblePort = process.env.NIMBLE_PORT || 1935;
     
     res.json({
