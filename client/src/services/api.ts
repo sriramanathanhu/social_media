@@ -5,6 +5,8 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
+  timeout: 30000, // 30 second timeout
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,10 +24,27 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.error('API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      code: error.code
+    });
+
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       window.location.hash = '#/login'; // Use hash routing
     }
+    
+    // Add network error detection
+    if (error.code === 'NETWORK_ERROR' || error.code === 'ECONNABORTED' || !error.response) {
+      console.error('Network connectivity issue detected');
+      error.isNetworkError = true;
+    }
+    
     return Promise.reject(error);
   }
 );

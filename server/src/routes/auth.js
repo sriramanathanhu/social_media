@@ -11,7 +11,7 @@ router.use(session({
   saveUninitialized: true,
   name: 'socialmedia.sid', // Custom session name
   cookie: {
-    secure: false, // Keep false for OAuth compatibility
+    secure: process.env.NODE_ENV === 'production', // Enable secure cookies in production
     httpOnly: false, // Set to false for OAuth debugging
     maxAge: 1000 * 60 * 60, // 1 hour for OAuth flow
     sameSite: 'none' // More permissive for cross-domain OAuth

@@ -38,7 +38,7 @@ app.use(session({
   resave: false,
   saveUninitialized: true, // Changed to true to ensure session is created
   cookie: {
-    secure: false, // Set to false for now to debug, should be true in production with proper HTTPS
+    secure: process.env.NODE_ENV === 'production', // Enable secure cookies in production
     httpOnly: false, // Set to false for cross-origin issues
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: 'none' // Allow cross-site cookies

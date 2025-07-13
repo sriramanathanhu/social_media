@@ -22,9 +22,18 @@ const initialState: AuthState = {
 
 export const login = createAsyncThunk(
   'auth/login',
-  async ({ email, password }: { email: string; password: string }) => {
-    const response = await authAPI.login(email, password);
-    return response.data;
+  async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
+    try {
+      const response = await authAPI.login(email, password);
+      return response.data;
+    } catch (error: any) {
+      // Handle network errors specifically
+      if (error.isNetworkError || error.code === 'NETWORK_ERROR' || !error.response) {
+        return rejectWithValue('Network error: Unable to connect to server. Please check your internet connection and try again.');
+      }
+      // Handle other errors
+      return rejectWithValue(error.response?.data?.error || error.message || 'Login failed');
+    }
   }
 );
 
@@ -85,7 +94,7 @@ const authSlice = createSlice({
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Login failed';
+        state.error = action.payload as string || action.error.message || 'Login failed';
       })
       .addCase(register.pending, (state) => {
         state.loading = true;
