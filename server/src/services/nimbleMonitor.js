@@ -4,7 +4,7 @@ const StreamRepublishing = require('../models/StreamRepublishing');
 
 class NimbleMonitor {
   constructor() {
-    this.nimbleHost = process.env.NIMBLE_HOST || 'localhost';
+    this.nimbleHost = process.env.NIMBLE_HOST || '37.27.201.26';
     this.nimbleStatsPort = process.env.NIMBLE_STATS_PORT || 8082;
     this.nimbleStatsURL = `http://${this.nimbleHost}:${this.nimbleStatsPort}`;
     this.monitoringInterval = null;

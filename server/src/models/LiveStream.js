@@ -43,7 +43,7 @@ class LiveStream {
     const streamKey = streamData.stream_key || crypto.randomBytes(16).toString('hex');
     
     // Generate RTMP URL for Nimble Streamer
-    const nimbleHost = process.env.NIMBLE_HOST || 'localhost';
+    const nimbleHost = process.env.NIMBLE_HOST || '37.27.201.26';
     const nimblePort = process.env.NIMBLE_PORT || 1935;
     const rtmpUrl = streamData.rtmp_url || `rtmp://${nimbleHost}:${nimblePort}/live`;
 
