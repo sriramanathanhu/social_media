@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/social_media/static/js/main.d3105984.js",
+    "main.js": "/social_media/static/js/main.d9ab7629.js",
     "index.html": "/social_media/index.html",
-    "main.d3105984.js.map": "/social_media/static/js/main.d3105984.js.map"
+    "main.d9ab7629.js.map": "/social_media/static/js/main.d9ab7629.js.map"
   },
   "entrypoints": [
-    "static/js/main.d3105984.js"
+    "static/js/main.d9ab7629.js"
   ]
 }
