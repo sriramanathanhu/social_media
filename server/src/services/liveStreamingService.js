@@ -47,12 +47,16 @@ class LiveStreamingService {
           throw new Error('Stream key is not active');
         }
         
-        // Use app's RTMP path and key
+        // Use app's RTMP path and DEFAULT key for OBS (not the selected republishing key)
         const nimbleHost = process.env.NIMBLE_HOST || '37.27.201.26';
         const nimblePort = process.env.NIMBLE_PORT || 1935;
         rtmpUrl = `rtmp://${nimbleHost}:${nimblePort}/${app.rtmp_app_path}`;
-        streamKey = appKey.stream_key;
+        
+        // ALWAYS use the app's default key for OBS streaming
+        streamKey = app.default_stream_key;
         sourceApp = app.rtmp_app_path;
+        
+        // The selected appKey will be used for republishing destinations
         
         // Increment usage count for the key
         await StreamAppKey.incrementUsage(streamData.app_key_id);
@@ -97,7 +101,35 @@ class LiveStreamingService {
       
       console.log('Live stream created:', stream.id, 'with key:', streamKey);
       
-      // Add republishing destinations if provided
+      // For app-based streams, automatically create republishing destination for the selected key
+      if (streamData.app_id && streamData.app_key_id && appKey.key_name.toLowerCase() !== 'default') {
+        // Determine platform from key name
+        const keyName = appKey.key_name.toLowerCase();
+        const keyValue = appKey.stream_key;
+        
+        let platform = null;
+        if (keyName.includes('youtube') || keyName.includes('yt')) {
+          platform = 'youtube';
+        } else if (keyName.includes('twitch')) {
+          platform = 'twitch';
+        } else if (keyName.includes('facebook') || keyName.includes('fb')) {
+          platform = 'facebook';
+        } else if (keyName.includes('twitter') || keyName.includes('x')) {
+          platform = 'twitter';
+        }
+        
+        if (platform) {
+          console.log(`Auto-creating ${platform} republishing destination with key:`, keyValue);
+          const republishingTarget = {
+            platform: platform,
+            streamKey: keyValue,
+            enabled: true
+          };
+          await this.addStreamRepublishing(stream.id, [republishingTarget]);
+        }
+      }
+      
+      // Add additional republishing destinations if provided
       if (streamData.republishingTargets && streamData.republishingTargets.length > 0) {
         await this.addStreamRepublishing(stream.id, streamData.republishingTargets);
       }
