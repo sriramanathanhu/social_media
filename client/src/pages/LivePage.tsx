@@ -196,6 +196,64 @@ const LivePage: React.FC = () => {
     setSettingsOpen(true);
   };
 
+  const handleStartStream = async (streamId: string) => {
+    try {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const response = await fetch(`${API_BASE_URL}/live/${streamId}/sessions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start stream');
+      }
+
+      // Refresh streams to update status
+      await fetchStreams();
+      await fetchActiveSessions();
+      
+      console.log('Stream started successfully');
+    } catch (err) {
+      console.error('Failed to start stream:', err);
+      setError(err instanceof Error ? err.message : 'Failed to start stream');
+    }
+  };
+
+  const handleStopStream = async (streamId: string) => {
+    try {
+      // Find the active session for this stream
+      const activeSession = activeSessions.find(session => session.stream_id === streamId);
+      if (!activeSession) {
+        throw new Error('No active session found for this stream');
+      }
+
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const response = await fetch(`${API_BASE_URL}/live/sessions/${activeSession.id}/end`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to stop stream');
+      }
+
+      // Refresh streams to update status
+      await fetchStreams();
+      await fetchActiveSessions();
+      
+      console.log('Stream stopped successfully');
+    } catch (err) {
+      console.error('Failed to stop stream:', err);
+      setError(err instanceof Error ? err.message : 'Failed to stop stream');
+    }
+  };
+
   const handleDeleteStream = async (streamId: string) => {
     if (!window.confirm('Are you sure you want to delete this stream? This action cannot be undone.')) {
       return;
@@ -390,6 +448,7 @@ const LivePage: React.FC = () => {
                           variant="contained"
                           color="error"
                           startIcon={<StartIcon />}
+                          onClick={() => handleStartStream(stream.id)}
                         >
                           Start Stream
                         </Button>
@@ -400,6 +459,7 @@ const LivePage: React.FC = () => {
                           variant="outlined"
                           color="error"
                           startIcon={<StopIcon />}
+                          onClick={() => handleStopStream(stream.id)}
                         >
                           Stop Stream
                         </Button>

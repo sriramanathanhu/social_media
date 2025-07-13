@@ -23,7 +23,7 @@ class LiveStreamingService {
       console.log('Creating live stream for user:', userId);
       console.log('Stream data:', streamData);
       
-      let streamKey, rtmpUrl, sourceApp;
+      let streamKey, rtmpUrl, sourceApp, app, appKey;
       
       // Check if this is an app-based stream or legacy stream
       if (streamData.app_id && streamData.app_key_id) {
@@ -32,13 +32,13 @@ class LiveStreamingService {
         const StreamAppKey = require('../models/StreamAppKey');
         
         // Verify app ownership
-        const app = await StreamApp.findById(streamData.app_id);
+        app = await StreamApp.findById(streamData.app_id);
         if (!app || app.user_id !== userId) {
           throw new Error('App not found or access denied');
         }
         
         // Verify key belongs to app
-        const appKey = await StreamAppKey.findById(streamData.app_key_id);
+        appKey = await StreamAppKey.findById(streamData.app_key_id);
         if (!appKey || appKey.app_id !== streamData.app_id) {
           throw new Error('Stream key not found or does not belong to this app');
         }
@@ -120,12 +120,41 @@ class LiveStreamingService {
         
         if (platform) {
           console.log(`Auto-creating ${platform} republishing destination with key:`, keyValue);
-          const republishingTarget = {
-            platform: platform,
-            streamKey: keyValue,
-            enabled: true
-          };
-          await this.addStreamRepublishing(stream.id, [republishingTarget]);
+          
+          // Create republishing record directly in database
+          const republishing = await StreamRepublishing.create({
+            streamId: stream.id,
+            userId,
+            sourceApp: sourceApp,
+            sourceStream: streamKey,
+            destinationName: platform,
+            destinationUrl: this.nimbleController.getPlatformURL(platform),
+            destinationPort: this.nimbleController.getPlatformPort(platform),
+            destinationApp: this.nimbleController.getPlatformApp(platform),
+            destinationStream: keyValue,
+            enabled: true,
+            priority: 1
+          });
+          
+          console.log(`Created republishing record for ${platform}:`, republishing.id);
+          
+          // Try to configure Nimble API (this may fail if API is disabled but that's ok)
+          try {
+            const nimbleApiService = require('./nimbleApiService');
+            const nimbleRule = await nimbleApiService.createRepublishingRule({
+              sourceApp: sourceApp,
+              sourceStream: streamKey,
+              destinationUrl: this.nimbleController.getPlatformURL(platform),
+              destinationPort: this.nimbleController.getPlatformPort(platform),
+              destinationApp: this.nimbleController.getPlatformApp(platform),
+              destinationStream: keyValue
+            });
+            
+            console.log('Nimble republishing rule created:', nimbleRule);
+          } catch (nimbleError) {
+            console.warn('Nimble API configuration failed (this is expected if API is disabled):', nimbleError.message);
+            // Continue anyway - the database record is sufficient for tracking
+          }
         }
       }
       
