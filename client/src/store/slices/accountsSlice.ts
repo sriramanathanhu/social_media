@@ -10,6 +10,8 @@ interface AccountsState {
   connectingX: boolean;
   connectingPinterest: boolean;
   connectingBluesky: boolean;
+  connectingFacebook: boolean;
+  connectingInstagram: boolean;
 }
 
 const initialState: AccountsState = {
@@ -20,6 +22,8 @@ const initialState: AccountsState = {
   connectingX: false,
   connectingPinterest: false,
   connectingBluesky: false,
+  connectingFacebook: false,
+  connectingInstagram: false,
 };
 
 export const fetchAccounts = createAsyncThunk(
@@ -58,6 +62,22 @@ export const connectBluesky = createAsyncThunk(
   'accounts/connectBluesky',
   async ({ handle, appPassword }: { handle: string; appPassword: string }) => {
     const response = await authAPI.connectBluesky(handle, appPassword);
+    return response.data;
+  }
+);
+
+export const connectFacebook = createAsyncThunk(
+  'accounts/connectFacebook',
+  async () => {
+    const response = await authAPI.connectFacebook();
+    return response.data;
+  }
+);
+
+export const connectInstagram = createAsyncThunk(
+  'accounts/connectInstagram',
+  async ({ facebookAccountId, instagramAccountId }: { facebookAccountId: string; instagramAccountId: string }) => {
+    const response = await authAPI.connectInstagram(facebookAccountId, instagramAccountId);
     return response.data;
   }
 );
@@ -153,6 +173,28 @@ const accountsSlice = createSlice({
       .addCase(connectBluesky.rejected, (state, action) => {
         state.connectingBluesky = false;
         state.error = action.error.message || 'Failed to connect Bluesky account';
+      })
+      .addCase(connectFacebook.pending, (state) => {
+        state.connectingFacebook = true;
+        state.error = null;
+      })
+      .addCase(connectFacebook.fulfilled, (state, action) => {
+        state.connectingFacebook = false;
+      })
+      .addCase(connectFacebook.rejected, (state, action) => {
+        state.connectingFacebook = false;
+        state.error = action.error.message || 'Failed to connect Facebook account';
+      })
+      .addCase(connectInstagram.pending, (state) => {
+        state.connectingInstagram = true;
+        state.error = null;
+      })
+      .addCase(connectInstagram.fulfilled, (state, action) => {
+        state.connectingInstagram = false;
+      })
+      .addCase(connectInstagram.rejected, (state, action) => {
+        state.connectingInstagram = false;
+        state.error = action.error.message || 'Failed to connect Instagram account';
       })
       .addCase(deleteAccount.pending, (state) => {
         state.loading = true;

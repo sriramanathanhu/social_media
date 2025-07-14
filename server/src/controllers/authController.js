@@ -7,6 +7,8 @@ const mastodonService = require('../services/mastodon');
 const xService = require('../services/x');
 const pinterestService = require('../services/pinterest');
 const blueskyService = require('../services/bluesky');
+const facebookService = require('../services/facebook');
+const instagramService = require('../services/instagram');
 const crypto = require('crypto');
 
 const generateToken = (userId) => {
@@ -831,6 +833,263 @@ const connectBluesky = async (req, res) => {
   }
 };
 
+const connectFacebook = async (req, res) => {
+  try {
+    console.log('Connecting Facebook account for user:', req.user.id);
+    
+    // Generate random state for OAuth security
+    const random = crypto.randomBytes(32).toString('hex');
+    const state = JSON.stringify({
+      userId: req.user.id,
+      random: random,
+      platform: 'facebook'
+    });
+    
+    const stateKey = `facebook_${random}`;
+    
+    // Store OAuth data in database
+    await OAuthState.create(
+      stateKey,
+      req.user.id,
+      'facebook',
+      JSON.stringify({
+        userId: req.user.id,
+        random: random,
+        platform: 'facebook'
+      }),
+      new Date(Date.now() + 15 * 60 * 1000) // 15 minutes expiry
+    );
+    
+    console.log('Facebook OAuth state stored with key:', stateKey);
+    
+    // Get authorization URL from Facebook service
+    const authUrl = await facebookService.getAuthUrl(state);
+    
+    res.json({
+      authUrl: authUrl,
+      state: stateKey
+    });
+  } catch (error) {
+    console.error('Facebook connect error:', error);
+    res.status(500).json({ error: 'Failed to initialize Facebook connection: ' + error.message });
+  }
+};
+
+const facebookCallback = async (req, res) => {
+  try {
+    const { code, state } = req.query;
+    
+    if (!code || !state) {
+      return res.status(400).json({ error: 'Missing authorization code or state' });
+    }
+    
+    // Parse state to get random value
+    const parsedState = JSON.parse(state);
+    const stateKey = `facebook_${parsedState.random}`;
+    
+    console.log('Looking for Facebook OAuth state with key:', stateKey);
+    const oauthState = await OAuthState.findByStateKey(stateKey);
+    
+    if (!oauthState) {
+      console.log('Facebook OAuth state not found in database');
+      return res.status(400).json({ error: 'Invalid or expired authorization state' });
+    }
+    
+    console.log('Facebook OAuth state found:', oauthState);
+    
+    // Clean up OAuth state data
+    await OAuthState.deleteByStateKey(stateKey);
+    
+    // Exchange code for access token
+    const tokenData = await facebookService.getAccessToken(code, state);
+    
+    // Verify credentials and get user info + pages
+    const credentialData = await facebookService.verifyCredentials(tokenData.access_token);
+    
+    console.log('Facebook credentials verified for user:', credentialData.user.name);
+    console.log('Found Facebook Pages:', credentialData.pages.length);
+    
+    // Create Facebook account record for the main account
+    const newFacebookAccount = await SocialAccount.create({
+      userId: oauthState.user_id,
+      platform: 'facebook',
+      instanceUrl: null,
+      username: credentialData.user.name,
+      displayName: credentialData.user.name,
+      avatarUrl: null,
+      accessToken: facebookService.encrypt(tokenData.access_token),
+      refreshToken: tokenData.refresh_token ? facebookService.encrypt(tokenData.refresh_token) : null,
+      tokenExpiresAt: tokenData.expires_in ? new Date(Date.now() + (tokenData.expires_in * 1000)) : null,
+      platformUserId: credentialData.user.id,
+      platformData: JSON.stringify({
+        pages: credentialData.pages.map(page => ({
+          id: page.id,
+          name: page.name,
+          category: page.category,
+          followers_count: page.followers_count
+        }))
+      })
+    });
+    
+    console.log('Facebook account created successfully:', newFacebookAccount);
+    
+    // Also check for Instagram accounts via Facebook
+    try {
+      const instagramData = await instagramService.verifyCredentials(tokenData.access_token);
+      
+      if (instagramData.accounts && instagramData.accounts.length > 0) {
+        console.log('Found Instagram accounts via Facebook:', instagramData.accounts.length);
+        
+        // Store Instagram accounts info for later connection
+        // We'll handle Instagram connection separately through a dedicated dialog
+      }
+    } catch (instagramError) {
+      console.log('No Instagram accounts found via Facebook (this is normal)');
+    }
+    
+    res.json({
+      success: true,
+      message: 'Facebook account connected successfully',
+      account: {
+        platform: 'facebook',
+        username: credentialData.user.name,
+        displayName: credentialData.user.name,
+        status: 'active',
+        pagesCount: credentialData.pages.length
+      }
+    });
+  } catch (error) {
+    console.error('Facebook callback error:', error);
+    
+    // Clean up OAuth state on error
+    try {
+      if (req.query.state) {
+        const parsedState = JSON.parse(req.query.state);
+        await OAuthState.deleteByStateKey(`facebook_${parsedState.random}`);
+      }
+    } catch (cleanupError) {
+      console.error('Error cleaning up Facebook OAuth state:', cleanupError);
+    }
+    
+    res.status(500).json({ error: 'Failed to connect Facebook account: ' + error.message });
+  }
+};
+
+const connectInstagram = async (req, res) => {
+  try {
+    console.log('Connecting Instagram account for user:', req.user.id);
+    
+    const { facebookAccountId } = req.body;
+    
+    if (!facebookAccountId) {
+      return res.status(400).json({ error: 'Facebook account ID is required to connect Instagram' });
+    }
+    
+    // Get the user's Facebook account
+    const facebookAccount = await SocialAccount.findByIdAndUserId(facebookAccountId, req.user.id);
+    
+    if (!facebookAccount || facebookAccount.platform !== 'facebook') {
+      return res.status(400).json({ error: 'Valid Facebook account not found' });
+    }
+    
+    // Decrypt Facebook access token
+    const facebookAccessToken = facebookService.decrypt(facebookAccount.access_token);
+    
+    // Get Instagram accounts via Facebook
+    const instagramAccounts = await instagramService.getInstagramAccounts(facebookAccessToken);
+    
+    if (instagramAccounts.length === 0) {
+      return res.status(400).json({ 
+        error: 'No Instagram Business accounts found. Please connect an Instagram Business account to your Facebook Page.' 
+      });
+    }
+    
+    // Return available Instagram accounts for user selection
+    res.json({
+      success: true,
+      message: 'Instagram accounts found',
+      instagramAccounts: instagramAccounts.map(account => ({
+        id: account.id,
+        username: account.username,
+        name: account.name,
+        followers_count: account.followers_count,
+        account_type: account.account_type,
+        page_id: account.page_id,
+        page_name: account.page_name
+      }))
+    });
+  } catch (error) {
+    console.error('Instagram connect error:', error);
+    res.status(500).json({ error: 'Failed to connect Instagram account: ' + error.message });
+  }
+};
+
+const instagramCallback = async (req, res) => {
+  try {
+    const { facebookAccountId, instagramAccountId } = req.body;
+    
+    if (!facebookAccountId || !instagramAccountId) {
+      return res.status(400).json({ error: 'Facebook account ID and Instagram account ID are required' });
+    }
+    
+    // Get the user's Facebook account
+    const facebookAccount = await SocialAccount.findByIdAndUserId(facebookAccountId, req.user.id);
+    
+    if (!facebookAccount || facebookAccount.platform !== 'facebook') {
+      return res.status(400).json({ error: 'Valid Facebook account not found' });
+    }
+    
+    // Decrypt Facebook access token
+    const facebookAccessToken = facebookService.decrypt(facebookAccount.access_token);
+    
+    // Get Instagram accounts to find the selected one
+    const instagramAccounts = await instagramService.getInstagramAccounts(facebookAccessToken);
+    const selectedAccount = instagramAccounts.find(acc => acc.id === instagramAccountId);
+    
+    if (!selectedAccount) {
+      return res.status(400).json({ error: 'Selected Instagram account not found' });
+    }
+    
+    // Create Instagram account record
+    const newInstagramAccount = await SocialAccount.create({
+      userId: req.user.id,
+      platform: 'instagram',
+      instanceUrl: null,
+      username: selectedAccount.username,
+      displayName: selectedAccount.name || selectedAccount.username,
+      avatarUrl: selectedAccount.profile_picture_url,
+      accessToken: facebookService.encrypt(selectedAccount.page_access_token),
+      refreshToken: null,
+      tokenExpiresAt: null,
+      platformUserId: selectedAccount.id,
+      platformData: JSON.stringify({
+        page_id: selectedAccount.page_id,
+        page_name: selectedAccount.page_name,
+        account_type: selectedAccount.account_type,
+        followers_count: selectedAccount.followers_count,
+        media_count: selectedAccount.media_count
+      })
+    });
+    
+    console.log('Instagram account created successfully:', newInstagramAccount);
+    
+    res.json({
+      success: true,
+      message: 'Instagram account connected successfully',
+      account: {
+        platform: 'instagram',
+        username: selectedAccount.username,
+        displayName: selectedAccount.name || selectedAccount.username,
+        status: 'active',
+        followers_count: selectedAccount.followers_count
+      }
+    });
+  } catch (error) {
+    console.error('Instagram callback error:', error);
+    res.status(500).json({ error: 'Failed to connect Instagram account: ' + error.message });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -842,6 +1101,10 @@ module.exports = {
   connectPinterest,
   pinterestCallback,
   connectBluesky,
+  connectFacebook,
+  facebookCallback,
+  connectInstagram,
+  instagramCallback,
   registerValidation,
   loginValidation,
   emergencyAdminPromote

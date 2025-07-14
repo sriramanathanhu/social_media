@@ -220,6 +220,22 @@ class SocialAccount {
 
     return result.rows;
   }
+
+  static async findByIdAndUserId(accountId, userId) {
+    console.log('Finding account by ID and user ID:', { accountId, userId });
+    
+    const result = await pool.query(
+      `SELECT id, user_id, platform, instance_url, username, display_name, 
+              avatar_url, access_token, refresh_token, token_expires_at, 
+              platform_user_id, platform_data, status, created_at, updated_at
+       FROM social_accounts 
+       WHERE id = $1 AND user_id = $2`,
+      [accountId, userId]
+    );
+
+    console.log('Account found:', result.rows.length > 0);
+    return result.rows[0] || null;
+  }
 }
 
 module.exports = SocialAccount;

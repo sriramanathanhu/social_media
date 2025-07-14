@@ -79,6 +79,15 @@ export const authAPI = {
   
   connectBluesky: (handle: string, appPassword: string) =>
     api.post('/auth/bluesky/connect', { handle, appPassword }),
+  
+  connectFacebook: () =>
+    api.post('/auth/facebook/connect'),
+  
+  facebookCallback: (code: string, state: string) =>
+    api.get(`/auth/facebook/callback?code=${code}&state=${state}`),
+  
+  connectInstagram: (facebookAccountId: string, instagramAccountId: string) =>
+    api.post('/auth/instagram/callback', { facebookAccountId, instagramAccountId }),
 };
 
 export const accountsAPI = {

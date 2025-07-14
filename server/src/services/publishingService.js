@@ -4,10 +4,37 @@ const mastodonService = require('./mastodon');
 const xService = require('./x');
 const pinterestService = require('./pinterest');
 const blueskyService = require('./bluesky');
+const facebookService = require('./facebook');
+const instagramService = require('./instagram');
 
 class PublishingService {
   async publishPost(userId, postData) {
-    const { content, targetAccountIds, mediaFiles = [], scheduledFor, postType = 'text' } = postData;
+    const { 
+      content, 
+      targetAccountIds, 
+      mediaFiles = [], 
+      scheduledFor, 
+      postType = 'text',
+      // Platform-specific data
+      facebookData = {},
+      instagramData = {},
+      pinterestTitle,
+      pinterestDescription,
+      pinterestBoard,
+      pinterestDestinationUrl
+    } = postData;
+    
+    // Prepare platform-specific data object
+    const platformSpecificData = {
+      facebook: facebookData,
+      instagram: instagramData,
+      pinterest: {
+        title: pinterestTitle,
+        description: pinterestDescription,
+        board: pinterestBoard,
+        destinationUrl: pinterestDestinationUrl
+      }
+    };
     
     console.log('Publishing post for user:', userId);
     console.log('Target account IDs:', targetAccountIds);
@@ -68,7 +95,7 @@ class PublishingService {
     // Immediate publishing
     for (const account of userAccounts) {
       try {
-        const result = await this.publishToAccount(account, content, mediaFiles, postType);
+        const result = await this.publishToAccount(account, content, mediaFiles, postType, platformSpecificData);
         publishResults.push({
           accountId: account.id,
           success: true,
@@ -102,7 +129,7 @@ class PublishingService {
     };
   }
 
-  async publishToAccount(account, content, mediaFiles = [], postType = 'text') {
+  async publishToAccount(account, content, mediaFiles = [], postType = 'text', platformSpecificData = {}) {
     switch (account.platform) {
       case 'mastodon':
         return await this.publishToMastodon(account, content, mediaFiles, postType);
@@ -112,6 +139,10 @@ class PublishingService {
         return await this.publishToPinterest(account, content, mediaFiles, postType);
       case 'bluesky':
         return await this.publishToBluesky(account, content, mediaFiles, postType);
+      case 'facebook':
+        return await this.publishToFacebook(account, content, mediaFiles, postType, platformSpecificData);
+      case 'instagram':
+        return await this.publishToInstagram(account, content, mediaFiles, postType, platformSpecificData);
       default:
         throw new Error(`Platform ${account.platform} not supported`);
     }
@@ -482,6 +513,86 @@ class PublishingService {
       platform: 'bluesky',
       success: result.success
     };
+  }
+
+  async publishToFacebook(account, content, mediaFiles = [], postType = 'text', platformSpecificData = {}) {
+    console.log('Publishing to Facebook account:', {
+      accountId: account.id,
+      username: account.username,
+      hasToken: !!account.access_token
+    });
+
+    try {
+      const result = await facebookService.publishPost(
+        account,
+        content,
+        mediaFiles,
+        postType,
+        platformSpecificData
+      );
+
+      console.log('Facebook post created successfully:', result);
+
+      // Mark account as active since posting was successful
+      await SocialAccount.updateLastUsed(account.id);
+
+      return {
+        id: result.platformPostId,
+        url: `https://facebook.com/${result.platformPostId}`,
+        platform: 'facebook',
+        success: result.success
+      };
+
+    } catch (error) {
+      console.error('Facebook posting failed:', {
+        error: error.message,
+        accountId: account.id
+      });
+
+      // Mark account as error if posting failed
+      await SocialAccount.updateStatus(account.id, 'error');
+      throw error;
+    }
+  }
+
+  async publishToInstagram(account, content, mediaFiles = [], postType = 'text', platformSpecificData = {}) {
+    console.log('Publishing to Instagram account:', {
+      accountId: account.id,
+      username: account.username,
+      hasToken: !!account.access_token
+    });
+
+    try {
+      const result = await instagramService.publishPost(
+        account,
+        content,
+        mediaFiles,
+        postType,
+        platformSpecificData
+      );
+
+      console.log('Instagram post created successfully:', result);
+
+      // Mark account as active since posting was successful
+      await SocialAccount.updateLastUsed(account.id);
+
+      return {
+        id: result.platformPostId,
+        url: `https://instagram.com/p/${result.platformPostId}`,
+        platform: 'instagram',
+        success: result.success
+      };
+
+    } catch (error) {
+      console.error('Instagram posting failed:', {
+        error: error.message,
+        accountId: account.id
+      });
+
+      // Mark account as error if posting failed
+      await SocialAccount.updateStatus(account.id, 'error');
+      throw error;
+    }
   }
 }
 

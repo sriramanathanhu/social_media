@@ -17,8 +17,6 @@ import {
   Avatar,
   IconButton,
   Stack,
-  Tabs,
-  Tab,
   Divider,
   MenuItem,
   Select,
@@ -57,41 +55,14 @@ interface AccountGroup {
   accounts?: any[];
 }
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`platform-tabpanel-${index}`}
-      aria-labelledby={`platform-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
-    </div>
-  );
-}
-
-function a11yProps(index: number) {
-  return {
-    id: `platform-tab-${index}`,
-    'aria-controls': `platform-tabpanel-${index}`,
-  };
-}
+// Removed TabPanel interface and functions - using compact grid now
 
 const ComposePost: React.FC = () => {
   const [content, setContent] = useState('');
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [selectedVideos, setSelectedVideos] = useState<File[]>([]);
-  const [tabValue, setTabValue] = useState(0);
+  // Removed tabValue since we're using a grid instead of tabs
   const [groups, setGroups] = useState<AccountGroup[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [isScheduled, setIsScheduled] = useState(false);
@@ -141,21 +112,11 @@ const ComposePost: React.FC = () => {
   const xAccounts = activeAccounts.filter(account => account.platform === 'x');
   const pinterestAccounts = activeAccounts.filter(account => account.platform === 'pinterest');
   const blueskyAccounts = activeAccounts.filter(account => account.platform === 'bluesky');
-  const allSupportedAccounts = [...mastodonAccounts, ...xAccounts, ...pinterestAccounts, ...blueskyAccounts];
+  const facebookAccounts = activeAccounts.filter(account => account.platform === 'facebook');
+  const instagramAccounts = activeAccounts.filter(account => account.platform === 'instagram');
+  const allSupportedAccounts = [...mastodonAccounts, ...xAccounts, ...pinterestAccounts, ...blueskyAccounts, ...facebookAccounts, ...instagramAccounts];
 
-  const platforms = [
-    { name: 'All', accounts: allSupportedAccounts, count: allSupportedAccounts.length },
-    { name: 'Mastodon', accounts: mastodonAccounts, count: mastodonAccounts.length },
-    { name: 'X', accounts: xAccounts, count: xAccounts.length },
-    { name: 'Pinterest', accounts: pinterestAccounts, count: pinterestAccounts.length },
-    { name: 'Bluesky', accounts: blueskyAccounts, count: blueskyAccounts.length }
-  ];
-
-  const currentPlatformAccounts = platforms[tabValue]?.accounts || [];
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
+  // Removed old tab-based platform selection logic
 
   const handleAccountChange = (accountId: string) => {
     setSelectedAccounts(prev => 
@@ -165,24 +126,7 @@ const ComposePost: React.FC = () => {
     );
   };
 
-  const handleSelectAll = () => {
-    const currentAccountIds = currentPlatformAccounts.map(account => account.id);
-    const allSelected = currentAccountIds.every(id => selectedAccounts.includes(id));
-    
-    if (allSelected) {
-      // Deselect all current platform accounts
-      setSelectedAccounts(prev => prev.filter(id => !currentAccountIds.includes(id)));
-    } else {
-      // Select all current platform accounts
-      setSelectedAccounts(prev => {
-        const newIds = currentAccountIds.filter(id => !prev.includes(id));
-        return [...prev, ...newIds];
-      });
-    }
-  };
-
-  const areAllCurrentSelected = currentPlatformAccounts.length > 0 && 
-    currentPlatformAccounts.every(account => selectedAccounts.includes(account.id));
+  // Removed old select all logic - now handled per platform in the grid
 
   const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -806,82 +750,231 @@ const ComposePost: React.FC = () => {
 
         {activeAccounts.length > 0 && (
           <Box sx={{ mb: 2 }}>
-            <FormLabel component="legend" sx={{ mb: 1 }}>Select Accounts</FormLabel>
+            <FormLabel component="legend" sx={{ mb: 2 }}>🎯 Select Platforms</FormLabel>
             
-            <Tabs value={tabValue} onChange={handleTabChange} aria-label="platform tabs">
-              {platforms.map((platform, index) => (
-                <Tab 
-                  key={platform.name}
-                  label={`${platform.name} (${platform.count})`}
-                  {...a11yProps(index)}
-                  disabled={platform.count === 0}
-                />
-              ))}
-            </Tabs>
+            {/* Compact Platform Grid */}
+            <Grid container spacing={1} sx={{ mb: 3 }}>
+              {/* Facebook */}
+              {facebookAccounts.length > 0 && (
+                <Grid item xs={6} sm={4} md={2}>
+                  <Card 
+                    sx={{ 
+                      p: 1, 
+                      cursor: 'pointer',
+                      border: facebookAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? 2 : 1,
+                      borderColor: facebookAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? '#1877F2' : 'divider',
+                      backgroundColor: facebookAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? 'rgba(24, 119, 242, 0.1)' : 'background.paper',
+                      '&:hover': { backgroundColor: 'rgba(24, 119, 242, 0.05)' }
+                    }}
+                    onClick={() => {
+                      const fbAccountIds = facebookAccounts.map(acc => acc.id.toString());
+                      const allSelected = fbAccountIds.every(id => selectedAccounts.includes(id));
+                      if (allSelected) {
+                        setSelectedAccounts(prev => prev.filter(id => !fbAccountIds.includes(id)));
+                      } else {
+                        setSelectedAccounts(prev => Array.from(new Set([...prev, ...fbAccountIds])));
+                      }
+                    }}
+                  >
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h6" sx={{ color: '#1877F2', mb: 0.5 }}>📘</Typography>
+                      <Typography variant="caption" fontWeight={500}>Facebook</Typography>
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        {facebookAccounts.length} account{facebookAccounts.length !== 1 ? 's' : ''}
+                      </Typography>
+                    </Box>
+                  </Card>
+                </Grid>
+              )}
 
-            {platforms.map((platform, index) => (
-              <TabPanel key={platform.name} value={tabValue} index={index}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    {selectedAccounts.filter(id => platform.accounts.some(acc => acc.id === id)).length} of {platform.count} selected
-                  </Typography>
-                  
-                  {platform.count > 0 && (
-                    <Button
-                      size="small"
-                      startIcon={areAllCurrentSelected ? <DeselectAllIcon /> : <SelectAllIcon />}
-                      onClick={handleSelectAll}
-                      variant="outlined"
-                    >
-                      {areAllCurrentSelected ? 'Deselect All' : 'Select All'}
-                    </Button>
-                  )}
+              {/* Instagram */}
+              {instagramAccounts.length > 0 && (
+                <Grid item xs={6} sm={4} md={2}>
+                  <Card 
+                    sx={{ 
+                      p: 1, 
+                      cursor: 'pointer',
+                      border: instagramAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? 2 : 1,
+                      borderColor: instagramAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? '#E4405F' : 'divider',
+                      backgroundColor: instagramAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? 'rgba(228, 64, 95, 0.1)' : 'background.paper',
+                      '&:hover': { backgroundColor: 'rgba(228, 64, 95, 0.05)' }
+                    }}
+                    onClick={() => {
+                      const igAccountIds = instagramAccounts.map(acc => acc.id.toString());
+                      const allSelected = igAccountIds.every(id => selectedAccounts.includes(id));
+                      if (allSelected) {
+                        setSelectedAccounts(prev => prev.filter(id => !igAccountIds.includes(id)));
+                      } else {
+                        setSelectedAccounts(prev => Array.from(new Set([...prev, ...igAccountIds])));
+                      }
+                    }}
+                  >
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h6" sx={{ color: '#E4405F', mb: 0.5 }}>📷</Typography>
+                      <Typography variant="caption" fontWeight={500}>Instagram</Typography>
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        {instagramAccounts.length} account{instagramAccounts.length !== 1 ? 's' : ''}
+                      </Typography>
+                    </Box>
+                  </Card>
+                </Grid>
+              )}
+
+              {/* X (Twitter) */}
+              {xAccounts.length > 0 && (
+                <Grid item xs={6} sm={4} md={2}>
+                  <Card 
+                    sx={{ 
+                      p: 1, 
+                      cursor: 'pointer',
+                      border: xAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? 2 : 1,
+                      borderColor: xAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? '#000000' : 'divider',
+                      backgroundColor: xAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? 'rgba(0, 0, 0, 0.1)' : 'background.paper',
+                      '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.05)' }
+                    }}
+                    onClick={() => {
+                      const xAccountIds = xAccounts.map(acc => acc.id.toString());
+                      const allSelected = xAccountIds.every(id => selectedAccounts.includes(id));
+                      if (allSelected) {
+                        setSelectedAccounts(prev => prev.filter(id => !xAccountIds.includes(id)));
+                      } else {
+                        setSelectedAccounts(prev => Array.from(new Set([...prev, ...xAccountIds])));
+                      }
+                    }}
+                  >
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h6" sx={{ color: '#000000', mb: 0.5 }}>🐦</Typography>
+                      <Typography variant="caption" fontWeight={500}>X</Typography>
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        {xAccounts.length} account{xAccounts.length !== 1 ? 's' : ''}
+                      </Typography>
+                    </Box>
+                  </Card>
+                </Grid>
+              )}
+
+              {/* Bluesky */}
+              {blueskyAccounts.length > 0 && (
+                <Grid item xs={6} sm={4} md={2}>
+                  <Card 
+                    sx={{ 
+                      p: 1, 
+                      cursor: 'pointer',
+                      border: blueskyAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? 2 : 1,
+                      borderColor: blueskyAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? '#0085ff' : 'divider',
+                      backgroundColor: blueskyAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? 'rgba(0, 133, 255, 0.1)' : 'background.paper',
+                      '&:hover': { backgroundColor: 'rgba(0, 133, 255, 0.05)' }
+                    }}
+                    onClick={() => {
+                      const bskyAccountIds = blueskyAccounts.map(acc => acc.id.toString());
+                      const allSelected = bskyAccountIds.every(id => selectedAccounts.includes(id));
+                      if (allSelected) {
+                        setSelectedAccounts(prev => prev.filter(id => !bskyAccountIds.includes(id)));
+                      } else {
+                        setSelectedAccounts(prev => Array.from(new Set([...prev, ...bskyAccountIds])));
+                      }
+                    }}
+                  >
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h6" sx={{ color: '#0085ff', mb: 0.5 }}>🟦</Typography>
+                      <Typography variant="caption" fontWeight={500}>Bluesky</Typography>
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        {blueskyAccounts.length} account{blueskyAccounts.length !== 1 ? 's' : ''}
+                      </Typography>
+                    </Box>
+                  </Card>
+                </Grid>
+              )}
+
+              {/* Mastodon */}
+              {mastodonAccounts.length > 0 && (
+                <Grid item xs={6} sm={4} md={2}>
+                  <Card 
+                    sx={{ 
+                      p: 1, 
+                      cursor: 'pointer',
+                      border: mastodonAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? 2 : 1,
+                      borderColor: mastodonAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? '#6364FF' : 'divider',
+                      backgroundColor: mastodonAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? 'rgba(99, 100, 255, 0.1)' : 'background.paper',
+                      '&:hover': { backgroundColor: 'rgba(99, 100, 255, 0.05)' }
+                    }}
+                    onClick={() => {
+                      const mastoAccountIds = mastodonAccounts.map(acc => acc.id.toString());
+                      const allSelected = mastoAccountIds.every(id => selectedAccounts.includes(id));
+                      if (allSelected) {
+                        setSelectedAccounts(prev => prev.filter(id => !mastoAccountIds.includes(id)));
+                      } else {
+                        setSelectedAccounts(prev => Array.from(new Set([...prev, ...mastoAccountIds])));
+                      }
+                    }}
+                  >
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h6" sx={{ color: '#6364FF', mb: 0.5 }}>🐘</Typography>
+                      <Typography variant="caption" fontWeight={500}>Mastodon</Typography>
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        {mastodonAccounts.length} account{mastodonAccounts.length !== 1 ? 's' : ''}
+                      </Typography>
+                    </Box>
+                  </Card>
+                </Grid>
+              )}
+
+              {/* Pinterest */}
+              {pinterestAccounts.length > 0 && (
+                <Grid item xs={6} sm={4} md={2}>
+                  <Card 
+                    sx={{ 
+                      p: 1, 
+                      cursor: 'pointer',
+                      border: pinterestAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? 2 : 1,
+                      borderColor: pinterestAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? '#BD081C' : 'divider',
+                      backgroundColor: pinterestAccounts.some(acc => selectedAccounts.includes(acc.id.toString())) ? 'rgba(189, 8, 28, 0.1)' : 'background.paper',
+                      '&:hover': { backgroundColor: 'rgba(189, 8, 28, 0.05)' }
+                    }}
+                    onClick={() => {
+                      const pinterestAccountIds = pinterestAccounts.map(acc => acc.id.toString());
+                      const allSelected = pinterestAccountIds.every(id => selectedAccounts.includes(id));
+                      if (allSelected) {
+                        setSelectedAccounts(prev => prev.filter(id => !pinterestAccountIds.includes(id)));
+                      } else {
+                        setSelectedAccounts(prev => Array.from(new Set([...prev, ...pinterestAccountIds])));
+                      }
+                    }}
+                  >
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h6" sx={{ color: '#BD081C', mb: 0.5 }}>📌</Typography>
+                      <Typography variant="caption" fontWeight={500}>Pinterest</Typography>
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        {pinterestAccounts.length} account{pinterestAccounts.length !== 1 ? 's' : ''}
+                      </Typography>
+                    </Box>
+                  </Card>
+                </Grid>
+              )}
+            </Grid>
+
+            {/* Selected Accounts Summary */}
+            {selectedAccounts.length > 0 && (
+              <Box sx={{ mb: 2, p: 2, bgcolor: 'primary.50', borderRadius: 1, border: 1, borderColor: 'primary.200' }}>
+                <Typography variant="subtitle2" color="primary" sx={{ mb: 1 }}>
+                  📤 Publishing to {selectedAccounts.length} account{selectedAccounts.length !== 1 ? 's' : ''}
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {allSupportedAccounts
+                    .filter(account => selectedAccounts.includes(account.id.toString()))
+                    .map(account => (
+                      <Chip
+                        key={account.id}
+                        size="small"
+                        label={`${account.displayName || account.username} (${account.platform})`}
+                        onDelete={() => handleAccountChange(account.id.toString())}
+                        avatar={<Avatar sx={{ width: 16, height: 16 }}>{(account.displayName || account.username).charAt(0)}</Avatar>}
+                      />
+                    ))
+                  }
                 </Box>
-
-                <FormGroup>
-                  {platform.accounts.map((account) => (
-                    <FormControlLabel
-                      key={account.id}
-                      control={
-                        <Checkbox
-                          checked={selectedAccounts.includes(account.id)}
-                          onChange={() => handleAccountChange(account.id)}
-                        />
-                      }
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Avatar
-                            src={account.avatar}
-                            alt={account.displayName || account.username}
-                            sx={{ width: 24, height: 24, mr: 1 }}
-                          >
-                            {(account.displayName || account.username).charAt(0).toUpperCase()}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="body2">
-                              {account.displayName || account.username}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              @{account.username}
-                            </Typography>
-                          </Box>
-                          <Chip
-                            label={account.platform === 'mastodon' ? 'Mastodon' : 
-                                  account.platform === 'x' ? 'X' : 
-                                  account.platform === 'pinterest' ? 'Pinterest' : 
-                                  account.platform === 'bluesky' ? 'Bluesky' : 
-                                  account.platform}
-                            size="small"
-                            sx={{ ml: 1 }}
-                            variant={tabValue === 0 ? "filled" : "outlined"}
-                          />
-                        </Box>
-                      }
-                    />
-                  ))}
-                </FormGroup>
-              </TabPanel>
-            ))}
+              </Box>
+            )}
           </Box>
         )}
 
