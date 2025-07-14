@@ -67,12 +67,26 @@ app.use('/api/live', require('./routes/liveStreaming'));
 app.use('/api/stream-apps', require('./routes/streamApps'));
 
 // Serve static files from the React app build directory
-app.use('/social_media', express.static(path.join(__dirname, '../../client/build')));
+const buildPath = path.join(__dirname, '../../client/build');
+const fs = require('fs');
 
-// Handle React routing, return all requests to React app
-app.get('/social_media/*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../client/build', 'index.html'));
-});
+// Check if build directory exists
+if (fs.existsSync(buildPath)) {
+  app.use('/social_media', express.static(buildPath));
+  
+  // Handle React routing, return all requests to React app
+  app.get('/social_media/*', (req, res) => {
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
+} else {
+  console.warn('Client build directory not found. Frontend will not be served.');
+  app.get('/social_media/*', (req, res) => {
+    res.status(503).json({ 
+      error: 'Frontend not available', 
+      message: 'Client build not found. Please run npm run build.' 
+    });
+  });
+}
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
