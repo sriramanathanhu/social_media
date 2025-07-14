@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const session = require('express-session');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -64,6 +65,14 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/groups', require('./routes/accountGroups'));
 app.use('/api/live', require('./routes/liveStreaming'));
 app.use('/api/stream-apps', require('./routes/streamApps'));
+
+// Serve static files from the React app build directory
+app.use('/social_media', express.static(path.join(__dirname, '../../client/build')));
+
+// Handle React routing, return all requests to React app
+app.get('/social_media/*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../client/build', 'index.html'));
+});
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

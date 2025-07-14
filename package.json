@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server/src/index.js",
     "dev": "nodemon server/src/index.js",
-    "test": "jest"
+    "test": "jest",
+    "build": "cd client && npm install && npm run build",
+    "postinstall": "cd client && npm install"
   },
   "dependencies": {
     "@atproto/api": "^0.15.23",

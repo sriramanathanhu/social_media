@@ -32,7 +32,7 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
   },
-  "homepage": "https://sriramanathanhu.github.io/social_media",
+  "homepage": "/social_media",
   "eslintConfig": {
     "extends": [
       "react-app",
