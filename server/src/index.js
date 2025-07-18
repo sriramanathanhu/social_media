@@ -15,6 +15,7 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  trustProxy: true // Trust proxy headers (important for Caddy)
 });
 
 app.use(helmet({
@@ -23,8 +24,8 @@ app.use(helmet({
 }));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://sriramanathanhu.github.io', 'https://socialmedia-p3ln.onrender.com'] 
-    : ['http://localhost:3000', 'http://localhost:3002'],
+    ? ['https://live.ecitizen.media', 'https://socialmedia.ecitizen.media', 'https://socialmedia-p3ln.onrender.com'] 
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -50,7 +51,7 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'Social Media Scheduler API',
     status: 'running',
-    endpoints: ['/health', '/api/auth', '/api/accounts', '/api/posts', '/api/live', '/api/stream-apps']
+    endpoints: ['/health', '/api/auth', '/api/accounts', '/api/posts', '/api/live', '/api/stream-apps', '/api/wordpress']
   });
 });
 
@@ -65,6 +66,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/groups', require('./routes/accountGroups'));
 app.use('/api/live', require('./routes/liveStreaming'));
 app.use('/api/stream-apps', require('./routes/streamApps'));
+app.use('/api/wordpress', require('./routes/wordpress'));
 
 // Serve static files from the React app build directory
 const buildPath = path.join(__dirname, '../../client/build');

@@ -73,6 +73,7 @@ const StreamAppKeysDialog: React.FC<StreamAppKeysDialogProps> = ({
     keyName: '',
     streamKey: '',
     description: '',
+    customRtmpUrl: '',
     isActive: true,
   });
 
@@ -130,6 +131,7 @@ const StreamAppKeysDialog: React.FC<StreamAppKeysDialogProps> = ({
           keyName: newKey.keyName.trim(),
           streamKey: newKey.streamKey.trim(),
           description: newKey.description.trim(),
+          customRtmpUrl: newKey.customRtmpUrl.trim(),
           isActive: newKey.isActive,
         }),
       });
@@ -139,7 +141,7 @@ const StreamAppKeysDialog: React.FC<StreamAppKeysDialogProps> = ({
         throw new Error(errorData.message || 'Failed to add key');
       }
 
-      setNewKey({ keyName: '', streamKey: '', description: '', isActive: true });
+      setNewKey({ keyName: '', streamKey: '', description: '', customRtmpUrl: '', isActive: true });
       setShowAddForm(false);
       fetchKeys();
     } catch (err) {
@@ -304,7 +306,29 @@ const StreamAppKeysDialog: React.FC<StreamAppKeysDialogProps> = ({
           </Button>
         </Box>
 
-        <Divider sx={{ mb: 2 }} />
+        {/* Platform RTMP URLs Reference */}
+        <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
+            📡 Platform RTMP URLs Reference
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Default RTMP URLs used for each platform:
+          </Typography>
+          <Box sx={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'text.secondary', lineHeight: 1.6 }}>
+            <div>• <strong>YouTube:</strong> rtmp://a.rtmp.youtube.com/live2</div>
+            <div>• <strong>Twitch:</strong> rtmp://live.twitch.tv/live</div>
+            <div>• <strong>Facebook:</strong> rtmps://live-api-s.facebook.com:443/rtmp</div>
+            <div>• <strong>Twitter/X:</strong> rtmp://ingest.pscp.tv:80/x</div>
+            <div>• <strong>Kick:</strong> rtmp://ingest.kick.com/live</div>
+            <div>• <strong>Rumble:</strong> rtmp://live.rumble.com/live</div>
+            <div>• <strong>Custom:</strong> Use "Custom RTMP URL" field below</div>
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            💡 For custom platforms or different servers, specify the custom RTMP URL when adding the key.
+          </Typography>
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
 
         {/* Current Keys */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -365,6 +389,17 @@ const StreamAppKeysDialog: React.FC<StreamAppKeysDialogProps> = ({
               margin="normal"
               size="small"
               placeholder="Optional description"
+            />
+
+            <TextField
+              fullWidth
+              label="Custom RTMP URL (Optional)"
+              value={newKey.customRtmpUrl}
+              onChange={(e) => setNewKey({ ...newKey, customRtmpUrl: e.target.value })}
+              margin="normal"
+              size="small"
+              placeholder="e.g., rtmp://live.platform.com/live"
+              helperText="Leave empty to use default RTMP URL for known platforms"
             />
 
             <FormControlLabel

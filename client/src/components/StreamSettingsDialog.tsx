@@ -385,32 +385,67 @@ const StreamSettingsDialog: React.FC<StreamSettingsDialogProps> = ({
           <Typography variant="subtitle2" gutterBottom>
             Add New Destination
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <TextField
-              label="Platform"
-              value={newTarget.platform}
-              onChange={(e) => setNewTarget({ ...newTarget, platform: e.target.value })}
-              size="small"
-              sx={{ mr: 1, minWidth: 120 }}
-              placeholder="e.g., YouTube, Twitch"
-            />
-            <TextField
-              label="Stream Key"
-              value={newTarget.streamKey}
-              onChange={(e) => setNewTarget({ ...newTarget, streamKey: e.target.value })}
-              size="small"
-              sx={{ flexGrow: 1, mr: 1 }}
-              placeholder="Paste your platform stream key"
-            />
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={handleAddRepublishingTarget}
-              disabled={!newTarget.platform || !newTarget.streamKey}
-            >
-              Add
-            </Button>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <TextField
+                label="Platform"
+                value={newTarget.platform}
+                onChange={(e) => setNewTarget({ ...newTarget, platform: e.target.value })}
+                size="small"
+                sx={{ minWidth: 120 }}
+                placeholder="e.g., YouTube, Twitch"
+              />
+              <TextField
+                label="Stream Key"
+                value={newTarget.streamKey}
+                onChange={(e) => setNewTarget({ ...newTarget, streamKey: e.target.value })}
+                size="small"
+                sx={{ flexGrow: 1 }}
+                placeholder="Paste your platform stream key"
+              />
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <TextField
+                label="RTMP URL (Optional)"
+                value={newTarget.destination_url}
+                onChange={(e) => setNewTarget({ ...newTarget, destination_url: e.target.value })}
+                size="small"
+                sx={{ flexGrow: 1 }}
+                placeholder="e.g., rtmp://live.platform.com/live"
+                helperText="Leave empty to use default for known platforms"
+              />
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={handleAddRepublishingTarget}
+                disabled={!newTarget.platform || !newTarget.streamKey}
+                sx={{ height: 'fit-content' }}
+              >
+                Add
+              </Button>
+            </Box>
           </Box>
+        </Box>
+
+        {/* Platform RTMP URLs Reference */}
+        <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
+            📡 Platform RTMP URLs Reference
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Default RTMP URLs used for known platforms:
+          </Typography>
+          <Box sx={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'text.secondary' }}>
+            <div>• <strong>YouTube:</strong> rtmp://a.rtmp.youtube.com/live2</div>
+            <div>• <strong>Twitch:</strong> rtmp://live.twitch.tv/live</div>
+            <div>• <strong>Facebook:</strong> rtmps://live-api-s.facebook.com:443/rtmp</div>
+            <div>• <strong>Kick:</strong> rtmp://ingest.kick.com/live</div>
+            <div>• <strong>Rumble:</strong> rtmp://live.rumble.com/live</div>
+            <div>• <strong>Custom:</strong> Enter your own RTMP URL above</div>
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            💡 For custom platforms or different servers, specify the RTMP URL manually.
+          </Typography>
         </Box>
 
         <Divider sx={{ my: 3 }} />

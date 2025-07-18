@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { SocialAccount, User, Post } from '../types';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -230,6 +230,67 @@ export const liveStreamingAPI = {
   
   updateNimbleConfig: () =>
     api.post('/live/nimble/config/update'),
+};
+
+export const wordpressAPI = {
+  // WordPress Site Management
+  connectSite: (siteData: { siteUrl: string; username: string; appPassword: string }) =>
+    api.post('/wordpress/connect', siteData),
+
+  getSites: () =>
+    api.get('/wordpress/sites'),
+
+  getSite: (id: string) =>
+    api.get(`/wordpress/sites/${id}`),
+
+  updateSite: (id: string, siteData: any) =>
+    api.put(`/wordpress/sites/${id}`, siteData),
+
+  deleteSite: (id: string) =>
+    api.delete(`/wordpress/sites/${id}`),
+
+  // Categories and Tags
+  getCategories: (siteId: string) =>
+    api.get(`/wordpress/sites/${siteId}/categories`),
+
+  getTags: (siteId: string) =>
+    api.get(`/wordpress/sites/${siteId}/tags`),
+
+  syncSiteData: (siteId: string) =>
+    api.post(`/wordpress/sites/${siteId}/sync`),
+
+  searchTags: (siteId: string, query: string) =>
+    api.get(`/wordpress/sites/${siteId}/tags/search`, { params: { q: query } }),
+
+  // Publishing
+  publishPost: (postData: {
+    siteId: number;
+    title: string;
+    content: string;
+    status?: string;
+    categories?: number[];
+    tags?: number[];
+    excerpt?: string;
+    scheduledFor?: string;
+  }) =>
+    api.post('/wordpress/publish', postData),
+
+  getPosts: (params?: { siteId?: string; page?: number; perPage?: number }) =>
+    api.get('/wordpress/posts', { params }),
+
+  updatePost: (postId: string, postData: any) =>
+    api.put(`/wordpress/posts/${postId}`, postData),
+
+  deletePost: (postId: string, siteId: number) =>
+    api.delete(`/wordpress/posts/${postId}`, { data: { siteId } }),
+
+  // Media Upload
+  uploadMedia: (siteId: string, formData: FormData) =>
+    api.post(`/wordpress/sites/${siteId}/media`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
 };
 
 export default api;

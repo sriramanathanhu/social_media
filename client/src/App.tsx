@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import AccountsPage from './pages/AccountsPage';
 import ComposePage from './pages/ComposePage';
 import PostsPage from './pages/PostsPage';
+import WordPressPage from './pages/WordPressPage';
 import LivePage from './pages/LivePage';
 import StreamAppsPage from './pages/StreamAppsPage';
 import SettingsPage from './pages/SettingsPage';
@@ -72,6 +73,7 @@ const AppContent: React.FC = () => {
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/compose" element={<ComposePage />} />
           <Route path="/posts" element={<PostsPage />} />
+          <Route path="/wordpress" element={<WordPressPage />} />
           <Route path="/live" element={<LivePage />} />
           <Route path="/stream-apps" element={<StreamAppsPage />} />
           <Route 

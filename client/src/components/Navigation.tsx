@@ -30,6 +30,7 @@ import {
   Twitter as TwitterIcon,
   Videocam as LiveIcon,
   Apps as AppsIcon,
+  Web as WordPressIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -58,6 +59,7 @@ const Navigation: React.FC = () => {
     { label: 'Accounts', path: '/accounts', icon: <AccountIcon /> },
     { label: 'Compose', path: '/compose', icon: <CreateIcon /> },
     { label: 'Posts', path: '/posts', icon: <PostsIcon /> },
+    { label: 'WordPress', path: '/wordpress', icon: <WordPressIcon /> },
     { label: 'Live', path: '/live', icon: <LiveIcon /> },
     { label: 'Stream Apps', path: '/stream-apps', icon: <AppsIcon /> },
     ...(user?.role === 'admin' ? [
