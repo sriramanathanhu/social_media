@@ -28,6 +28,7 @@ import {
   Save as SaveIcon,
 } from '@mui/icons-material';
 import { wordpressAPI } from '../services/api';
+import SimpleWYSIWYGEditor from './SimpleWYSIWYGEditor';
 
 interface WordPressSite {
   id: number;
@@ -245,18 +246,18 @@ const WordPressPublishDialog: React.FC<WordPressPublishDialogProps> = ({
               placeholder="Enter your post title"
             />
 
-            <TextField
-              fullWidth
-              label="Post Content"
-              value={formData.content}
-              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              margin="normal"
-              multiline
-              rows={8}
-              required
-              placeholder="Write your post content here..."
-              helperText="You can use HTML tags for formatting"
-            />
+            <Box sx={{ mt: 2, mb: 2 }}>
+              <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
+                Post Content *
+              </Typography>
+              <SimpleWYSIWYGEditor
+                value={formData.content}
+                onChange={(content) => setFormData({ ...formData, content })}
+                readOnly={loading}
+                placeholder="Write your post content here..."
+                height={400}
+              />
+            </Box>
 
             <TextField
               fullWidth

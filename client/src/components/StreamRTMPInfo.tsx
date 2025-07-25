@@ -65,7 +65,7 @@ const StreamRTMPInfo: React.FC<StreamRTMPInfoProps> = ({
     setError(null);
 
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live/${streamId}/rtmp-info`, {
         headers: {
           'Authorization': `Bearer ${token}`,

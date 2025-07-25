@@ -211,6 +211,7 @@ class NimbleController {
       const republishing = await StreamRepublishing.create({
         streamId,
         userId: stream.user_id,
+        platform: destination.platform,
         sourceApp: stream.source_app || 'live',
         sourceStream: stream.stream_key,
         destinationName: destination.platform,
@@ -218,6 +219,7 @@ class NimbleController {
         destinationPort: this.getPlatformPort(destination.platform),
         destinationApp: this.getPlatformApp(destination.platform),
         destinationStream: destination.streamKey,
+        destinationKey: destination.streamKey,
         enabled: destination.enabled !== false,
         priority: destination.priority || 1
       });

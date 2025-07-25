@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background: #e8f5e8; border: 1px solid #4caf50; color: #2e7d32; }
+        .error { background: #ffeaea; border: 1px solid #f44336; color: #c62828; }
+        .info { background: #e3f2fd; border: 1px solid #2196f3; color: #1565c0; }
+        input, button { padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #2196f3; color: white; cursor: pointer; }
+        button:hover { background: #1976d2; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Frontend Login Test</h1>
+        
+        <div class="section">
+            <h3>1. API Configuration Test</h3>
+            <div id="api-config-result"></div>
+            <button onclick="testApiConfig()">Test API Configuration</button>
+        </div>
+
+        <div class="section">
+            <h3>2. Backend Connectivity Test</h3>
+            <div id="backend-result"></div>
+            <button onclick="testBackendConnectivity()">Test Backend Connection</button>
+        </div>
+
+        <div class="section">
+            <h3>3. Login Form Test</h3>
+            <div>
+                <input type="email" id="email" placeholder="Email" value="admin@example.com">
+                <input type="password" id="password" placeholder="Password" value="admin123456">
+                <button onclick="testLogin()">Test Login</button>
+            </div>
+            <div id="login-result"></div>
+        </div>
+
+        <div class="section">
+            <h3>4. Frontend Health Check</h3>
+            <div id="frontend-result"></div>
+            <button onclick="testFrontendHealth()">Check Frontend Health</button>
+        </div>
+
+        <div class="section">
+            <h3>Test Results Summary</h3>
+            <div id="summary"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000/api';
+        let testResults = {};
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            element.innerHTML = `<div class="test-result ${className}">${message}</div>`;
+        }
+
+        function logAppend(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            element.innerHTML += `<div class="test-result ${className}">${message}</div>`;
+        }
+
+        async function testApiConfig() {
+            log('api-config-result', '🔍 Testing API configuration...');
+            
+            try {
+                // Test if we can reach the API endpoint
+                const response = await fetch(`${API_BASE_URL}/../health`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    testResults.apiConfig = true;
+                    logAppend('api-config-result', `✅ API configuration working!<br>Base URL: ${API_BASE_URL}<br>Health check: ${JSON.stringify(data)}`, 'success');
+                } else {
+                    testResults.apiConfig = false;
+                    logAppend('api-config-result', `❌ API health check failed: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                testResults.apiConfig = false;
+                logAppend('api-config-result', `❌ API configuration error: ${error.message}<br>Check if backend is running on localhost:5000`, 'error');
+            }
+            updateSummary();
+        }
+
+        async function testBackendConnectivity() {
+            log('backend-result', '🔗 Testing backend connectivity...');
+            
+            try {
+                // Test CORS preflight
+                const corsResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type'
+                    }
+                });
+                
+                logAppend('backend-result', `🔄 CORS preflight: ${corsResponse.status}`, corsResponse.ok ? 'success' : 'error');
+                
+                // Test basic API endpoint
+                const apiResponse = await fetch(`${API_BASE_URL}/../`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (apiResponse.ok) {
+                    const data = await apiResponse.json();
+                    testResults.backend = true;
+                    logAppend('backend-result', `✅ Backend connectivity working!<br><pre>${JSON.stringify(data, null, 2)}</pre>`, 'success');
+                } else {
+                    testResults.backend = false;
+                    logAppend('backend-result', `❌ Backend connectivity failed: ${apiResponse.status}`, 'error');
+                }
+            } catch (error) {
+                testResults.backend = false;
+                logAppend('backend-result', `❌ Backend connectivity error: ${error.message}`, 'error');
+            }
+            updateSummary();
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            log('login-result', '🔐 Testing login...');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    mode: 'cors',
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.token) {
+                    testResults.login = true;
+                    logAppend('login-result', `✅ Login successful!<br>Token: ${data.token.substring(0, 20)}...<br>User: ${data.user.email} (${data.user.role})`, 'success');
+                    
+                    // Store token for further tests
+                    localStorage.setItem('token', data.token);
+                    logAppend('login-result', '💾 Token stored in localStorage', 'info');
+                } else {
+                    testResults.login = false;
+                    logAppend('login-result', `❌ Login failed: ${JSON.stringify(data)}`, 'error');
+                }
+            } catch (error) {
+                testResults.login = false;
+                logAppend('login-result', `❌ Login error: ${error.message}`, 'error');
+            }
+            updateSummary();
+        }
+
+        async function testFrontendHealth() {
+            log('frontend-result', '🌐 Testing frontend health...');
+            
+            try {
+                // Test if React app is loaded
+                const reactExists = window.React !== undefined || document.querySelector('[data-reactroot]') !== null;
+                logAppend('frontend-result', `React app loaded: ${reactExists ? '✅ Yes' : '❌ No'}`, reactExists ? 'success' : 'error');
+                
+                // Test localStorage
+                try {
+                    localStorage.setItem('test', 'value');
+                    localStorage.removeItem('test');
+                    logAppend('frontend-result', '✅ localStorage working', 'success');
+                } catch {
+                    logAppend('frontend-result', '❌ localStorage not working', 'error');
+                }
+                
+                // Test if running on correct port
+                const correctPort = window.location.port === '3000';
+                logAppend('frontend-result', `Running on port 3000: ${correctPort ? '✅ Yes' : '❌ No (port ' + window.location.port + ')'}`, correctPort ? 'success' : 'error');
+                
+                testResults.frontend = true;
+                logAppend('frontend-result', '✅ Frontend health check completed', 'success');
+            } catch (error) {
+                testResults.frontend = false;
+                logAppend('frontend-result', `❌ Frontend health error: ${error.message}`, 'error');
+            }
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const summary = document.getElementById('summary');
+            const total = Object.keys(testResults).length;
+            const passed = Object.values(testResults).filter(Boolean).length;
+            
+            let summaryHTML = `<h4>Test Results: ${passed}/${total} passed</h4>`;
+            
+            Object.entries(testResults).forEach(([test, passed]) => {
+                summaryHTML += `<div class="test-result ${passed ? 'success' : 'error'}">${test}: ${passed ? '✅ PASS' : '❌ FAIL'}</div>`;
+            });
+            
+            if (total > 0 && passed === total) {
+                summaryHTML += '<div class="test-result success"><strong>🎉 All tests passed! Login should work in the main application.</strong></div>';
+            } else if (total > 0) {
+                summaryHTML += '<div class="test-result error"><strong>⚠️ Some tests failed. Check the individual test results above.</strong></div>';
+            }
+            
+            summary.innerHTML = summaryHTML;
+        }
+
+        // Auto-run basic tests on page load
+        window.onload = function() {
+            setTimeout(() => {
+                testApiConfig();
+                setTimeout(() => testBackendConnectivity(), 1000);
+                setTimeout(() => testFrontendHealth(), 2000);
+            }, 500);
+        };
+    </script>
+</body>
+</html>

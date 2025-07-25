@@ -14,8 +14,8 @@ class LiveStream {
       userId,
       title,
       description,
-      sourceApp = 'live',
-      sourceStream,
+      source_app: sourceApp = 'live',
+      source_stream: sourceStream,
       destinations = [],
       qualitySettings = {
         resolution: '1920x1080',

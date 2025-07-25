@@ -1,25 +1,29 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Provider, useDispatch } from 'react-redux';
 import { store } from './store';
-import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import AccountsPage from './pages/AccountsPage';
-import ComposePage from './pages/ComposePage';
-import PostsPage from './pages/PostsPage';
-import WordPressPage from './pages/WordPressPage';
-import LivePage from './pages/LivePage';
-import StreamAppsPage from './pages/StreamAppsPage';
-import SettingsPage from './pages/SettingsPage';
-import UserManagement from './pages/UserManagement';
-import XApiDashboard from './pages/XApiDashboard';
 import { Box, CircularProgress } from '@mui/material';
 import { useSelector } from 'react-redux';
 import { RootState, AppDispatch } from './store';
 import Navigation from './components/Navigation';
+import ErrorBoundary from './components/ErrorBoundary';
 import { validateToken } from './store/slices/authSlice';
+
+// Lazy load components for better performance
+const LoginPage = React.lazy(() => import('./pages/LoginPage'));
+const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
+const AccountsPage = React.lazy(() => import('./pages/AccountsPage'));
+const ComposePage = React.lazy(() => import('./pages/ComposePage'));
+const PostsPage = React.lazy(() => import('./pages/PostsPage'));
+const WordPressPage = React.lazy(() => import('./pages/WordPressPage'));
+const LivePage = React.lazy(() => import('./pages/LivePage'));
+const SystemMonitoring = React.lazy(() => import('./components/SystemMonitoring'));
+const StreamAppsPage = React.lazy(() => import('./pages/StreamAppsPage'));
+const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
+const UserManagement = React.lazy(() => import('./pages/UserManagement'));
+const XApiDashboard = React.lazy(() => import('./pages/XApiDashboard'));
 
 const theme = createTheme({
   palette: {
@@ -57,63 +61,87 @@ const AppContent: React.FC = () => {
 
   if (!token) {
     return (
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <ErrorBoundary>
+        <Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh"><CircularProgress /></Box>}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      <Navigation />
-      <Box component="main" sx={{ flexGrow: 1 }}>
-        <Routes>
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/accounts" element={<AccountsPage />} />
-          <Route path="/compose" element={<ComposePage />} />
-          <Route path="/posts" element={<PostsPage />} />
-          <Route path="/wordpress" element={<WordPressPage />} />
-          <Route path="/live" element={<LivePage />} />
-          <Route path="/stream-apps" element={<StreamAppsPage />} />
-          <Route 
-            path="/users" 
-            element={
-              user?.role === 'admin' ? (
-                <UserManagement />
-              ) : (
-                <Navigate to="/dashboard" replace />
-              )
-            } 
-          />
-          <Route 
-            path="/admin/x-api-dashboard" 
-            element={
-              user?.role === 'admin' ? (
-                <XApiDashboard />
-              ) : (
-                <Navigate to="/dashboard" replace />
-              )
-            } 
-          />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
+    <ErrorBoundary>
+      <Box sx={{ display: 'flex' }}>
+        <ErrorBoundary>
+          <Navigation />
+        </ErrorBoundary>
+        <Box component="main" sx={{ flexGrow: 1 }}>
+          <ErrorBoundary>
+            <Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh"><CircularProgress /></Box>}>
+              <Routes>
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/accounts" element={<AccountsPage />} />
+                <Route path="/compose" element={<ComposePage />} />
+                <Route path="/posts" element={<PostsPage />} />
+                <Route path="/wordpress" element={<WordPressPage />} />
+                <Route path="/live" element={<LivePage />} />
+                <Route path="/stream-apps" element={<StreamAppsPage />} />
+                <Route 
+                  path="/users" 
+                  element={
+                    user?.role === 'admin' ? (
+                      <UserManagement />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  } 
+                />
+                <Route 
+                  path="/admin/x-api-dashboard" 
+                  element={
+                    user?.role === 'admin' ? (
+                      <XApiDashboard />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  } 
+                />
+                <Route 
+                  path="/admin/monitoring" 
+                  element={
+                    user?.role === 'admin' ? (
+                      <SystemMonitoring />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  } 
+                />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
+        </Box>
       </Box>
-    </Box>
+    </ErrorBoundary>
   );
 };
 
 const App: React.FC = () => {
   return (
-    <Provider store={store}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Router>
-          <AppContent />
-        </Router>
-      </ThemeProvider>
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <Router>
+            <AppContent />
+          </Router>
+        </ThemeProvider>
+      </Provider>
+    </ErrorBoundary>
   );
 };
 

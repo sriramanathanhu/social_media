@@ -1,0 +1,64 @@
+# Example Nimble Streamer Configuration
+# Generated for multiple streams using the same app (gurupurnima)
+
+# This demonstrates how multiple streams can use the same source_application
+# but have unique source_stream identifiers for proper republishing
+
+push_publishing_rules = [
+  # ===== Morning Yoga Test Stream =====
+  {
+    name = "gurupurnima_morningyogatest_youtube"
+    source_application = "gurupurnima"
+    source_stream = "morningyogatest"
+    target_url = "rtmp://a.rtmp.youtube.com/live2/YOUR_YOUTUBE_KEY_1"
+  },
+  {
+    name = "gurupurnima_morningyogatest_facebook"
+    source_application = "gurupurnima"
+    source_stream = "morningyogatest"
+    target_url = "rtmp://live-api-s.facebook.com:80/rtmp/YOUR_FACEBOOK_KEY_1"
+  },
+
+  # ===== Evening Meditation Test Stream =====
+  {
+    name = "gurupurnima_eveningmeditationt_youtube"
+    source_application = "gurupurnima"
+    source_stream = "eveningmeditationt"
+    target_url = "rtmp://a.rtmp.youtube.com/live2/YOUR_YOUTUBE_KEY_2"
+  },
+  {
+    name = "gurupurnima_eveningmeditationt_twitch"
+    source_application = "gurupurnima"
+    source_stream = "eveningmeditationt"
+    target_url = "rtmp://live.twitch.tv/app/YOUR_TWITCH_KEY_2"
+  },
+
+  # ===== Workshop Test Stream =====
+  {
+    name = "gurupurnima_workshoptest_youtube"
+    source_application = "gurupurnima"
+    source_stream = "workshoptest"
+    target_url = "rtmp://a.rtmp.youtube.com/live2/YOUR_YOUTUBE_KEY_3"
+  },
+  {
+    name = "gurupurnima_workshoptest_facebook"
+    source_application = "gurupurnima"
+    source_stream = "workshoptest"
+    target_url = "rtmp://live-api-s.facebook.com:80/rtmp/YOUR_FACEBOOK_KEY_3"
+  },
+  {
+    name = "gurupurnima_workshoptest_custom"
+    source_application = "gurupurnima"
+    source_stream = "workshoptest"
+    target_url = "rtmp://custom.cdn.example.com/live/CUSTOM_KEY_3"
+  }
+]
+
+# OBS Setup Instructions:
+# =======================
+# For ALL streams above, use these SAME settings in OBS:
+#   RTMP URL: rtmp://37.27.201.26:1935/gurupurnima
+#   Stream Key: live
+#
+# Nimble will automatically route your stream to the correct 
+# republishing destinations based on which stream is active.

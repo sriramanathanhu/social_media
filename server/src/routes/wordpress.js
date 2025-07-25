@@ -89,6 +89,23 @@ router.post('/publish',
   wordpressController.publishPost
 );
 
+// Bulk publishing to multiple sites
+router.post('/publish-bulk',
+  auth,
+  [
+    body('siteIds').isArray({ min: 1 }).withMessage('Site IDs must be a non-empty array'),
+    body('siteIds.*').isInt().withMessage('Each site ID must be an integer'),
+    body('title').notEmpty().withMessage('Title is required'),
+    body('content').notEmpty().withMessage('Content is required'),
+    body('status').optional().isIn(['draft', 'publish', 'private']).withMessage('Invalid post status'),
+    body('categories').optional().isArray().withMessage('Categories must be an array'),
+    body('tags').optional().isArray().withMessage('Tags must be an array'),
+    body('excerpt').optional().isString().withMessage('Excerpt must be a string'),
+    body('scheduledFor').optional().isISO8601().withMessage('Scheduled date must be valid ISO 8601 date')
+  ],
+  wordpressController.publishPostBulk
+);
+
 router.get('/posts',
   auth,
   [

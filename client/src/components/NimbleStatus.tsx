@@ -78,7 +78,7 @@ const NimbleStatus: React.FC = () => {
 
   const fetchNimbleStatus = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live/nimble/status`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -103,7 +103,7 @@ const NimbleStatus: React.FC = () => {
   const fetchNimbleConfig = async () => {
     setConfigLoading(true);
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live/nimble/config`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -127,7 +127,7 @@ const NimbleStatus: React.FC = () => {
   const updateNimbleConfig = async () => {
     setUpdateLoading(true);
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live/nimble/config/update`, {
         method: 'POST',
         headers: {

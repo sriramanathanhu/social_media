@@ -1,0 +1,52 @@
+live.ecitizen.media, socialmedia.ecitizen.media {
+    # Automatic HTTPS with Let's Encrypt
+    
+    # Simple reverse proxy to frontend
+    reverse_proxy frontend:3000
+    
+    # API routes
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    
+    # Health check
+    handle /health {
+        reverse_proxy backend:5000
+    }
+    
+    # WebSocket support
+    handle /socket.io/* {
+        reverse_proxy backend:5000
+    }
+    
+    # Live streaming
+    handle /live/* {
+        reverse_proxy backend:5000
+    }
+    
+    # Enable compression
+    encode gzip
+    
+    # Security headers
+    header {
+        # Enable HSTS
+        Strict-Transport-Security max-age=31536000;
+        # Prevent MIME type sniffing
+        X-Content-Type-Options nosniff
+        # Prevent clickjacking
+        X-Frame-Options DENY
+        # XSS protection
+        X-XSS-Protection "1; mode=block"
+    }
+}
+
+claudeui.ecitizen.media {
+    reverse_proxy /api/* 127.0.0.1:3008
+    reverse_proxy /socket.io/* 127.0.0.1:3008
+    reverse_proxy 127.0.0.1:3009
+
+    encode zstd gzip
+    log {
+        output file /var/log/caddy/claudeui.log
+    }
+}

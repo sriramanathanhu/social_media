@@ -109,7 +109,7 @@ const CreateStreamDialogV2: React.FC<CreateStreamDialogV2Props> = ({
 
   const fetchApps = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/stream-apps`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -130,7 +130,7 @@ const CreateStreamDialogV2: React.FC<CreateStreamDialogV2Props> = ({
 
   const fetchAppKeys = async (appId: string) => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/stream-apps/${appId}/keys`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -151,7 +151,7 @@ const CreateStreamDialogV2: React.FC<CreateStreamDialogV2Props> = ({
 
   const fetchAccounts = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/accounts`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -180,7 +180,7 @@ const CreateStreamDialogV2: React.FC<CreateStreamDialogV2Props> = ({
     setError(null);
 
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live`, {
         method: 'POST',
         headers: {

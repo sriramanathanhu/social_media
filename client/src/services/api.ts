@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { SocialAccount, User, Post } from '../types';
+import logger from '../utils/logger';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
@@ -14,7 +15,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  console.log('API Request:', config.url, 'Token:', token ? 'present' : 'missing');
+  logger.apiRequest(config.url || '', config.method || 'GET', !!token);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -24,15 +25,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      message: error.message,
-      code: error.code
-    });
+    logger.apiError(error);
 
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
@@ -41,7 +34,7 @@ api.interceptors.response.use(
     
     // Add network error detection
     if (error.code === 'NETWORK_ERROR' || error.code === 'ECONNABORTED' || !error.response) {
-      console.error('Network connectivity issue detected');
+      logger.error('Network connectivity issue detected');
       error.isNetworkError = true;
     }
     
@@ -274,6 +267,18 @@ export const wordpressAPI = {
     scheduledFor?: string;
   }) =>
     api.post('/wordpress/publish', postData),
+
+  publishPostBulk: (postData: {
+    siteIds: number[];
+    title: string;
+    content: string;
+    status?: string;
+    categories?: number[];
+    tags?: number[];
+    excerpt?: string;
+    scheduledFor?: string;
+  }) =>
+    api.post('/wordpress/publish-bulk', postData),
 
   getPosts: (params?: { siteId?: string; page?: number; perPage?: number }) =>
     api.get('/wordpress/posts', { params }),

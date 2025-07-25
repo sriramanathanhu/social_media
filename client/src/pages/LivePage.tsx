@@ -113,7 +113,7 @@ const LivePage: React.FC = () => {
   const fetchStreams = async () => {
     try {
       setLoading(true);
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -136,7 +136,7 @@ const LivePage: React.FC = () => {
 
   const fetchActiveSessions = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live/sessions/active`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -198,7 +198,7 @@ const LivePage: React.FC = () => {
 
   const handleStartStream = async (streamId: string) => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live/${streamId}/sessions`, {
         method: 'POST',
         headers: {
@@ -230,7 +230,7 @@ const LivePage: React.FC = () => {
         throw new Error('No active session found for this stream');
       }
 
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live/sessions/${activeSession.id}/end`, {
         method: 'POST',
         headers: {
@@ -260,7 +260,7 @@ const LivePage: React.FC = () => {
     }
 
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live/${streamId}`, {
         method: 'DELETE',
         headers: {

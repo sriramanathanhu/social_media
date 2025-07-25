@@ -67,7 +67,7 @@ const ConnectInstagramDialog: React.FC<ConnectInstagramDialogProps> = ({
       setLoadingInstagramAccounts(true);
       try {
         // Call API to get Instagram accounts for this Facebook account
-        const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+        const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
         const token = localStorage.getItem('token');
         
         const response = await fetch(`${API_BASE_URL}/auth/instagram/connect`, {

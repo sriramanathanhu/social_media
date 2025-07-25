@@ -16,6 +16,7 @@ import {
   ListItemButton,
   useMediaQuery,
   useTheme,
+  Collapse,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -31,6 +32,12 @@ import {
   Videocam as LiveIcon,
   Apps as AppsIcon,
   Web as WordPressIcon,
+  ExpandLess,
+  ExpandMore,
+  Public as PublishingIcon,
+  LiveTv as LiveStreamIcon,
+  AdminPanelSettings as AdminIcon,
+  MonitorHeart as MonitorIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -40,6 +47,8 @@ import { logout, validateToken } from '../store/slices/authSlice';
 const Navigation: React.FC = () => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [menuAnchors, setMenuAnchors] = React.useState<{[key: string]: HTMLElement | null}>({});
+  const [openSubmenu, setOpenSubmenu] = React.useState<{[key: string]: boolean}>({});
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
@@ -47,26 +56,38 @@ const Navigation: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, loading } = useSelector((state: RootState) => state.auth);
 
-  // Debug logging for admin role - simplified approach
-  React.useEffect(() => {
-    console.log('Navigation - User object:', user);
-    console.log('Navigation - User role:', user?.role);
-    console.log('Navigation - Is admin:', user?.role === 'admin');
-  }, [user]); // Only log when user changes
-
   const menuItems = [
-    { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
-    { label: 'Accounts', path: '/accounts', icon: <AccountIcon /> },
-    { label: 'Compose', path: '/compose', icon: <CreateIcon /> },
-    { label: 'Posts', path: '/posts', icon: <PostsIcon /> },
+    { label: 'Home', path: '/dashboard', icon: <DashboardIcon /> },
+    { 
+      label: 'Publishing', 
+      icon: <PublishingIcon />,
+      children: [
+        { label: 'Accounts', path: '/accounts', icon: <AccountIcon /> },
+        { label: 'Compose', path: '/compose', icon: <CreateIcon /> },
+        { label: 'Posts', path: '/posts', icon: <PostsIcon /> },
+      ]
+    },
     { label: 'WordPress', path: '/wordpress', icon: <WordPressIcon /> },
-    { label: 'Live', path: '/live', icon: <LiveIcon /> },
-    { label: 'Stream Apps', path: '/stream-apps', icon: <AppsIcon /> },
-    ...(user?.role === 'admin' ? [
-      { label: 'Users', path: '/users', icon: <PeopleIcon /> },
-      { label: 'X API Dashboard', path: '/admin/x-api-dashboard', icon: <TwitterIcon /> }
-    ] : []),
-    { label: 'Settings', path: '/settings', icon: <SettingsIcon /> },
+    { 
+      label: 'Live Streaming', 
+      icon: <LiveStreamIcon />,
+      children: [
+        { label: 'Live', path: '/live', icon: <LiveIcon /> },
+        { label: 'Stream Apps', path: '/stream-apps', icon: <AppsIcon /> },
+      ]
+    },
+    ...(user?.role === 'admin' ? [{
+      label: 'Admin',
+      icon: <AdminIcon />,
+      children: [
+        { label: 'Users', path: '/users', icon: <PeopleIcon /> },
+        { label: 'X API Dashboard', path: '/admin/x-api-dashboard', icon: <TwitterIcon /> },
+        { label: 'System Monitor', path: '/admin/monitoring', icon: <MonitorIcon /> },
+        { label: 'Settings', path: '/settings', icon: <SettingsIcon /> },
+      ]
+    }] : [
+      { label: 'Settings', path: '/settings', icon: <SettingsIcon /> },
+    ]),
   ];
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -86,7 +107,71 @@ const Navigation: React.FC = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  const drawer = (
+  const handleSubmenuOpen = (event: React.MouseEvent<HTMLElement>, menuKey: string) => {
+    setMenuAnchors(prev => ({ ...prev, [menuKey]: event.currentTarget }));
+  };
+
+  const handleSubmenuClose = (menuKey: string) => {
+    setMenuAnchors(prev => ({ ...prev, [menuKey]: null }));
+  };
+
+  const handleMobileSubmenuToggle = (menuKey: string) => {
+    setOpenSubmenu(prev => ({ ...prev, [menuKey]: !prev[menuKey] }));
+  };
+
+  const renderDesktopMenu = () => (
+    <Box sx={{ display: 'flex', mr: 2 }}>
+      {menuItems.map((item) => (
+        <React.Fragment key={item.label}>
+          {item.children ? (
+            <>
+              <Button
+                color="inherit"
+                startIcon={item.icon}
+                onClick={(e) => handleSubmenuOpen(e, item.label)}
+                endIcon={<ExpandMore />}
+                sx={{ mx: 0.5 }}
+              >
+                {item.label}
+              </Button>
+              <Menu
+                anchorEl={menuAnchors[item.label]}
+                open={Boolean(menuAnchors[item.label])}
+                onClose={() => handleSubmenuClose(item.label)}
+              >
+                {item.children.map((child) => (
+                  <MenuItem
+                    key={child.path}
+                    onClick={() => {
+                      navigate(child.path);
+                      handleSubmenuClose(item.label);
+                    }}
+                  >
+                    <ListItemIcon>{child.icon}</ListItemIcon>
+                    <ListItemText>{child.label}</ListItemText>
+                  </MenuItem>
+                ))}
+              </Menu>
+            </>
+          ) : (
+            <Button
+              color="inherit"
+              startIcon={item.icon}
+              onClick={() => navigate(item.path)}
+              sx={{
+                mx: 0.5,
+                bgcolor: location.pathname === item.path ? 'rgba(255,255,255,0.1)' : 'transparent',
+              }}
+            >
+              {item.label}
+            </Button>
+          )}
+        </React.Fragment>
+      ))}
+    </Box>
+  );
+
+  const renderMobileMenu = () => (
     <Box sx={{ width: 250 }}>
       <Toolbar>
         <Typography variant="h6" noWrap component="div">
@@ -95,18 +180,51 @@ const Navigation: React.FC = () => {
       </Toolbar>
       <List>
         {menuItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => {
-                navigate(item.path);
-                setMobileOpen(false);
-              }}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.label} />
-            </ListItemButton>
-          </ListItem>
+          <React.Fragment key={item.label}>
+            {item.children ? (
+              <>
+                <ListItem disablePadding>
+                  <ListItemButton onClick={() => handleMobileSubmenuToggle(item.label)}>
+                    <ListItemIcon>{item.icon}</ListItemIcon>
+                    <ListItemText primary={item.label} />
+                    {openSubmenu[item.label] ? <ExpandLess /> : <ExpandMore />}
+                  </ListItemButton>
+                </ListItem>
+                <Collapse in={openSubmenu[item.label]} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {item.children.map((child) => (
+                      <ListItem key={child.path} disablePadding>
+                        <ListItemButton
+                          sx={{ pl: 4 }}
+                          selected={location.pathname === child.path}
+                          onClick={() => {
+                            navigate(child.path);
+                            setMobileOpen(false);
+                          }}
+                        >
+                          <ListItemIcon>{child.icon}</ListItemIcon>
+                          <ListItemText primary={child.label} />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Collapse>
+              </>
+            ) : (
+              <ListItem disablePadding>
+                <ListItemButton
+                  selected={location.pathname === item.path}
+                  onClick={() => {
+                    navigate(item.path);
+                    setMobileOpen(false);
+                  }}
+                >
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.label} />
+                </ListItemButton>
+              </ListItem>
+            )}
+          </React.Fragment>
         ))}
       </List>
     </Box>
@@ -129,27 +247,10 @@ const Navigation: React.FC = () => {
           )}
           
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Social Media Scheduler
+            Social Media Manager
           </Typography>
 
-          {!isMobile && (
-            <Box sx={{ display: 'flex', mr: 2 }}>
-              {menuItems.map((item) => (
-                <Button
-                  key={item.path}
-                  color="inherit"
-                  startIcon={item.icon}
-                  onClick={() => navigate(item.path)}
-                  sx={{
-                    mx: 0.5,
-                    bgcolor: location.pathname === item.path ? 'rgba(255,255,255,0.1)' : 'transparent',
-                  }}
-                >
-                  {item.label}
-                </Button>
-              ))}
-            </Box>
-          )}
+          {!isMobile && renderDesktopMenu()}
 
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <IconButton
@@ -180,7 +281,7 @@ const Navigation: React.FC = () => {
             '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 250 },
           }}
         >
-          {drawer}
+          {renderMobileMenu()}
         </Drawer>
       )}
 
@@ -199,19 +300,11 @@ const Navigation: React.FC = () => {
           horizontal: 'right',
         }}
       >
-        <Box sx={{ px: 2, py: 1, borderBottom: 1, borderColor: 'divider' }}>
-          <Typography variant="body2" color="text.secondary">
-            Signed in as
-          </Typography>
-          <Typography variant="body1" fontWeight="medium">
-            {user?.email}
-          </Typography>
-        </Box>
         <MenuItem onClick={handleLogout}>
           <ListItemIcon>
             <LogoutIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Sign Out</ListItemText>
+          <ListItemText>Logout</ListItemText>
         </MenuItem>
       </Menu>
     </>

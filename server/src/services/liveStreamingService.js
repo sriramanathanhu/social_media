@@ -52,7 +52,7 @@ class LiveStreamingService {
         const nimblePort = process.env.NIMBLE_PORT || 1935;
         rtmpUrl = `rtmp://${nimbleHost}:${nimblePort}/${app.rtmp_app_path}`;
         
-        // ALWAYS use the app's default key for OBS streaming
+        // Use app's default stream key for OBS streaming (all streams with same app use same key)
         streamKey = app.default_stream_key;
         sourceApp = app.rtmp_app_path;
         
@@ -73,6 +73,13 @@ class LiveStreamingService {
         console.log('Creating legacy stream with generated key');
       }
       
+      // Generate unique source_stream identifier from title
+      const sourceStream = streamData.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .slice(0, 20) // Limit length for Nimble compatibility
+        || `stream_${crypto.randomBytes(4).toString('hex')}`;
+      
       // Create stream in database
       const stream = await LiveStream.create({
         userId,
@@ -81,7 +88,7 @@ class LiveStreamingService {
         stream_key: streamKey,
         rtmp_url: rtmpUrl,
         source_app: sourceApp,
-        source_stream: streamKey,
+        source_stream: sourceStream,
         app_id: streamData.app_id || null,
         app_key_id: streamData.app_key_id || null,
         destinations: streamData.destinations || [],

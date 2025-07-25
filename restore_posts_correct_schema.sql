@@ -1,0 +1,25 @@
+-- Restore all posts from backup (correct schema mapping)
+DELETE FROM posts WHERE id BETWEEN 1 AND 50;
+
+-- Insert first 10 posts with correct schema mapping
+INSERT INTO posts (id, user_id, content, status, target_accounts, published_at, scheduled_for, error_message, created_at, updated_at, media_urls, post_type, is_scheduled) VALUES
+(1, 2, 'Nithyanandam', 'published', '[1]', '2025-07-05 14:00:16.996', NULL, NULL, '2025-07-05 14:00:16.405684', '2025-07-05 14:00:16.996848', '[]', 'text', false),
+(2, 2, 'Nithyanandam', 'failed', '[1]', NULL, NULL, 'Some accounts failed to publish', '2025-07-05 14:09:10.943592', '2025-07-05 14:09:11.286611', '[]', 'text', false),
+(3, 2, 'Nithyanandam', 'published', '[1]', '2025-07-05 14:11:07.53', NULL, NULL, '2025-07-05 14:11:07.100521', '2025-07-05 14:11:07.531836', '[]', 'text', false),
+(4, 2, 'Blessings', 'failed', '[2]', NULL, NULL, 'Some accounts failed to publish', '2025-07-05 14:15:02.107107', '2025-07-05 14:15:02.116709', '[]', 'text', false),
+(5, 2, 'NIthyanandam', 'published', '[2]', '2025-07-05 14:15:29.568', NULL, NULL, '2025-07-05 14:15:29.22552', '2025-07-05 14:15:29.572049', '[]', 'text', false),
+(6, 2, 'Blessings!!', 'published', '[2]', '2025-07-05 14:20:40.943', NULL, NULL, '2025-07-05 14:20:39.036221', '2025-07-05 14:20:40.946033', '[]', 'text', false),
+(7, 2, 'Nithyanandam', 'published', '[3]', '2025-07-05 14:55:15.601', NULL, NULL, '2025-07-05 14:55:15.192271', '2025-07-05 14:55:15.602733', '[]', 'text', false),
+(8, 2, 'Nithyanandam', 'failed', '[3, 2]', NULL, NULL, 'Some accounts failed to publish', '2025-07-05 15:05:38.86557', '2025-07-05 15:05:39.678403', '[]', 'text', false),
+(9, 2, 'Blessings!!', 'failed', '[3, 2]', NULL, NULL, 'Some accounts failed to publish', '2025-07-05 15:06:22.702678', '2025-07-05 15:06:23.174219', '[]', 'text', false),
+(10, 2, 'Blessings!!', 'failed', '[3, 2]', NULL, NULL, 'Some accounts failed to publish', '2025-07-05 15:08:27.379457', '2025-07-05 15:08:28.127271', '[]', 'text', false),
+(11, 2, 'Nithyanandam', 'failed', '[3, 2]', NULL, NULL, 'Some accounts failed to publish', '2025-07-05 15:09:49.289647', '2025-07-05 15:09:49.77555', '[]', 'text', false),
+(12, 2, 'Nithyanandam', 'failed', '[3, 2]', NULL, NULL, 'Some accounts failed to publish', '2025-07-05 15:13:28.736098', '2025-07-05 15:13:29.139572', '[]', 'text', false),
+(13, 2, 'Nithyanandam', 'published', '[4, 3]', '2025-07-05 15:14:44.601', NULL, NULL, '2025-07-05 15:14:43.875477', '2025-07-05 15:14:44.602168', '[]', 'text', false),
+(14, 2, 'Blessings!!', 'published', '[4, 3]', '2025-07-05 15:17:35.991', NULL, NULL, '2025-07-05 15:17:32.009023', '2025-07-05 15:17:35.991875', '[]', 'text', false),
+(15, 2, '🌀 Your voice is scripting your future — word by word.\r\n\r\n✨ One whisper can shape a paradise… or seal a dead end.\r\n\r\n🌺 The SPH  reveals: Sound is not speech — it''s creation .\r\n\r\n💥 If you''ve ever talked yourself out of your own dream, this is your turning point.\r\n\r\n🔗 https://medium.com/p/6ec23a68d54c — not just a link. A lifeline to who you could be.', 'published', '[5, 4, 3]', '2025-07-05 15:24:28.027', NULL, NULL, '2025-07-05 15:24:26.326086', '2025-07-05 15:24:28.027482', '[]', 'text', false),
+(16, 2, '👁️‍🗨️ "They looked perfect. But something felt...off."\r\nYour soul knew. Your body screamed. But your mind got fooled.\r\n\r\n🧠 The SPH reveals the ancient Hindu technique to read people before they betray you.\r\n\r\n💥 Never ignore your inner clarity again. This is how spiritual warriors see through masks.\r\n\r\n🔗 From deception to perception:\r\nhttps://medium.com/p/bc5a1fe4d7d1', 'published', '[5, 4, 3]', '2025-07-05 15:26:43.076', NULL, NULL, '2025-07-05 15:26:42.02849', '2025-07-05 15:26:43.075982', '[]', 'text', false),
+(17, 2, 'When you live in a laughing light mood, you will become Shiva. How to become Shiva? – just laugh. #AskNithyananda', 'published', '[8, 7, 5, 4, 3]', '2025-07-05 19:22:35.204', NULL, NULL, '2025-07-05 19:22:33.602663', '2025-07-05 19:22:35.205069', '[]', 'text', false),
+(18, 2, '🌍 05 JULY 2025 – Paramashivasena – UAN Delegate Training Summit | DAY 05 | SEASON 2 | WITH THE SUPREME PONTIFF OF HINDUISM (SPH) BHAGAVAN SRI NITHYANANDA PARAMASHIVAM', 'draft', '[5, 4, 3, 8, 7]', NULL, '2025-07-06 03:13:00', NULL, '2025-07-06 00:12:50.31172', '2025-07-06 00:12:50.31172', '[]', 'image', true),
+(19, 2, '🌍 05 JULY 2025 – Paramashivasena – UAN Delegate Training Summit | DAY 05 | SEASON 2 | WITH THE SUPREME PONTIFF OF HINDUISM (SPH) BHAGAVAN SRI NITHYANANDA PARAMASHIVAM', 'failed', '[5, 4, 3, 8, 7]', NULL, NULL, 'Some accounts failed to publish', '2025-07-06 00:34:00.570544', '2025-07-06 00:34:06.892461', '[]', 'image', false),
+(20, 2, '🌍 05 JULY 2025 – Paramashivasena – UAN Delegate Training Summit | DAY 05 | SEASON 2 | WITH THE SUPREME PONTIFF OF HINDUISM (SPH) BHAGAVAN SRI NITHYANANDA PARAMASHIVAM', 'failed', '[8, 7]', NULL, NULL, 'Some accounts failed to publish', '2025-07-06 00:40:34.114128', '2025-07-06 00:40:34.209879', '[]', 'image', false);

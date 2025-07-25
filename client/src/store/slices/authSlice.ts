@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { authAPI } from '../../services/api';
 import { User } from '../../types';
+import logger from '../../utils/logger';
 
 interface AuthState {
   user: User | null;
@@ -131,17 +132,12 @@ const authSlice = createSlice({
       })
       .addCase(validateToken.rejected, (state, action) => {
         state.loading = false;
-        // Handle different rejection scenarios
-        const token = localStorage.getItem('token');
-        if (!token || action.payload === 'No token found') {
-          // No token or invalid token - clear all auth data
-          state.token = null;
-          state.user = null;
-        } else {
-          // Network error or other issue - keep existing data if we have it
-          console.log('Token validation failed, but keeping existing user data');
-        }
+        // Always clear auth data on token validation failure to prevent inconsistent state
+        state.token = null;
+        state.user = null;
+        localStorage.removeItem('token');
         state.initialized = true;
+        logger.info('Token validation failed, cleared all auth data');
       });
   },
 });

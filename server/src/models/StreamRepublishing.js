@@ -20,7 +20,10 @@ class StreamRepublishing {
       destinationKey,
       enabled = true,
       priority = 1,
-      retryAttempts = 3
+      retryAttempts = 3,
+      sourceApp,
+      sourceStream,
+      platform
     } = republishingData;
 
     // Validate required fields
@@ -45,16 +48,16 @@ class StreamRepublishing {
 
     const result = await pool.query(
       `INSERT INTO stream_republishing 
-       (stream_id, user_id, destination_name, 
+       (stream_id, user_id, platform, destination_name, 
         destination_url, destination_port, destination_app, destination_stream, 
-        destination_key, enabled, priority, retry_attempts) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
-       RETURNING id, stream_id, user_id, destination_name,
+        destination_key, enabled, priority, retry_attempts, source_app, source_stream) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
+       RETURNING id, stream_id, user_id, platform, destination_name,
                  destination_url, destination_port, destination_app, destination_stream,
                  enabled, priority, status, created_at`,
-      [streamId, userId, destinationName, destinationUrl,
+      [streamId, userId, platform, destinationName, destinationUrl,
        destinationPort, destinationApp, destinationStream, destinationKey, 
-       enabled, priority, retryAttempts]
+       enabled, priority, retryAttempts, sourceApp, sourceStream]
     );
 
     return result.rows[0];

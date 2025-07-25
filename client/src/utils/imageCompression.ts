@@ -72,7 +72,10 @@ export const compressImage = async (file: File, options: CompressionOptions): Pr
               return;
             }
 
-            console.log(`Compressed image: ${blob.size} bytes (${(blob.size / 1024 / 1024).toFixed(2)}MB) at quality ${quality}`);
+            // Log compression progress in development only
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Compressed image: ${blob.size} bytes (${(blob.size / 1024 / 1024).toFixed(2)}MB) at quality ${quality}`);
+            }
 
             if (blob.size <= options.maxSizeBytes || quality <= options.minQuality) {
               // Success or reached minimum quality

@@ -91,7 +91,7 @@ const StreamAppKeysDialog: React.FC<StreamAppKeysDialogProps> = ({
   const fetchKeys = async () => {
     try {
       setLoading(true);
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/stream-apps/${appId}/keys`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -120,7 +120,7 @@ const StreamAppKeysDialog: React.FC<StreamAppKeysDialogProps> = ({
 
     try {
       setLoading(true);
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/stream-apps/${appId}/keys`, {
         method: 'POST',
         headers: {
@@ -154,7 +154,7 @@ const StreamAppKeysDialog: React.FC<StreamAppKeysDialogProps> = ({
   const handleUpdateKey = async (keyId: string) => {
     try {
       setLoading(true);
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/stream-apps/keys/${keyId}`, {
         method: 'PUT',
         headers: {
@@ -186,7 +186,7 @@ const StreamAppKeysDialog: React.FC<StreamAppKeysDialogProps> = ({
 
     try {
       setLoading(true);
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/stream-apps/keys/${keyId}`, {
         method: 'DELETE',
         headers: {

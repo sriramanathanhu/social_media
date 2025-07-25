@@ -228,45 +228,31 @@ router.post('/:id/start', auth, async (req, res) => {
     // Update stream status to live
     await LiveStream.updateStatus(req.params.id, 'live');
     
-    // Configure republishing through direct Nimble API
+    // Activate existing republishing rules (don't create new ones)
     const republishingResults = [];
     for (const republishing of republishingTargets || []) {
       if (republishing.enabled) {
         try {
-          console.log(`Configuring republishing to ${republishing.destination_name}...`);
+          console.log(`Activating republishing to ${republishing.destination_name}...`);
           
-          // Add republishing rule via direct Nimble API
-          const nimbleRule = await nimbleApiService.createRepublishingRule({
-            sourceApp: stream.source_app || 'live',
-            sourceStream: stream.stream_key,
-            destinationUrl: republishing.destination_url,
-            destinationPort: republishing.destination_port || 1935,
-            destinationApp: republishing.destination_app,
-            destinationStream: republishing.destination_stream
-          });
+          // Update republishing status to active in database
+          // Note: Nimble rules already exist from stream creation
+          await StreamRepublishing.updateStatus(republishing.id, 'active');
           
           republishingResults.push({
             destination: republishing.destination_name,
-            status: 'configured',
-            message: 'Republishing rule added successfully',
-            nimble_rule: nimbleRule
+            status: 'active',
+            message: 'Republishing activated successfully',
+            republishing_id: republishing.id
           });
           
-        } catch (nimbleError) {
-          console.warn(`Failed to configure ${republishing.destination_name}:`, nimbleError.message);
+        } catch (activationError) {
+          console.warn(`Failed to activate ${republishing.destination_name}:`, activationError.message);
           republishingResults.push({
             destination: republishing.destination_name,
             status: 'failed',
-            message: 'Failed to configure Nimble republishing',
-            error: nimbleError.message,
-            details: {
-              source_app: stream.source_app || 'live',
-              source_stream: stream.stream_key,
-              destination_url: republishing.destination_url,
-              destination_port: republishing.destination_port || 1935,
-              destination_app: republishing.destination_app,
-              destination_stream: republishing.destination_stream
-            }
+            message: 'Failed to activate republishing',
+            error: activationError.message
           });
         }
       }
@@ -301,8 +287,19 @@ router.post('/:id/stop', auth, async (req, res) => {
       });
     }
     
-    // Update stream status to ended
-    await LiveStream.updateStatus(req.params.id, 'ended');
+    // Update stream status to inactive (not ended) so it can be reused
+    await LiveStream.updateStatus(req.params.id, 'inactive');
+    
+    // Deactivate republishing targets
+    const republishingTargets = await StreamRepublishing.findByStreamId(req.params.id);
+    for (const republishing of republishingTargets || []) {
+      try {
+        await StreamRepublishing.updateStatus(republishing.id, 'inactive');
+        console.log(`Deactivated republishing to ${republishing.destination_name}`);
+      } catch (error) {
+        console.warn(`Failed to deactivate ${republishing.destination_name}:`, error.message);
+      }
+    }
     
     res.json({
       success: true,

@@ -7,10 +7,10 @@ const crypto = require('crypto');
 
 // Encrypt sensitive data
 function encrypt(text) {
-  const algorithm = 'aes-256-gcm';
-  const secretKey = process.env.ENCRYPTION_KEY || 'default-key-please-change-in-production';
+  const algorithm = 'aes-256-cbc';
+  const secretKey = crypto.createHash('sha256').update(process.env.ENCRYPTION_KEY || 'default-key-please-change-in-production').digest();
   const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipher(algorithm, secretKey);
+  const cipher = crypto.createCipheriv(algorithm, secretKey, iv);
   
   let encrypted = cipher.update(text, 'utf8', 'hex');
   encrypted += cipher.final('hex');
@@ -21,20 +21,37 @@ function encrypt(text) {
 // Decrypt sensitive data
 function decrypt(encryptedText) {
   try {
-    const algorithm = 'aes-256-gcm';
-    const secretKey = process.env.ENCRYPTION_KEY || 'default-key-please-change-in-production';
+    // Try new method first
+    const algorithm = 'aes-256-cbc';
+    const secretKey = crypto.createHash('sha256').update(process.env.ENCRYPTION_KEY || 'default-key-please-change-in-production').digest();
     const textParts = encryptedText.split(':');
     const iv = Buffer.from(textParts.shift(), 'hex');
     const encrypted = textParts.join(':');
-    const decipher = crypto.createDecipher(algorithm, secretKey);
+    const decipher = crypto.createDecipheriv(algorithm, secretKey, iv);
     
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     
     return decrypted;
   } catch (error) {
-    console.error('Decryption failed:', error.message);
-    throw new Error('Failed to decrypt password');
+    // Try legacy method as fallback
+    try {
+      console.log('Trying legacy decryption method...');
+      const algorithm = 'aes-256-gcm';
+      const secretKey = process.env.ENCRYPTION_KEY || 'default-key-please-change-in-production';
+      const textParts = encryptedText.split(':');
+      const encrypted = textParts.join(':');
+      const decipher = crypto.createDecipher(algorithm, secretKey);
+      
+      let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      
+      return decrypted;
+    } catch (legacyError) {
+      console.error('Both decryption methods failed:', error.message, legacyError.message);
+      console.error('Encrypted text format:', encryptedText);
+      throw new Error('Failed to decrypt password - please reconnect your WordPress site');
+    }
   }
 }
 
@@ -42,18 +59,26 @@ const wordpressController = {
   // Connect a new WordPress site
   async connectSite(req, res) {
     try {
+      console.log('WordPress connect attempt:', { siteUrl: req.body.siteUrl, username: req.body.username });
+      
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        console.error('Validation errors:', errors.array());
         return res.status(400).json({ errors: errors.array() });
       }
 
       const { siteUrl, username, appPassword } = req.body;
       const userId = req.user.id;
+      
+      console.log('Starting WordPress verification for:', siteUrl);
 
       // Verify the WordPress site and credentials
       const verification = await wordpressApiService.verifySite(siteUrl, username, appPassword);
+      
+      console.log('WordPress verification result:', verification);
 
       if (!verification.success) {
+        console.error('WordPress verification failed:', verification.error);
         return res.status(400).json({
           error: 'Failed to verify WordPress site',
           details: verification.error
@@ -575,14 +600,15 @@ const wordpressController = {
       // Save post to our database
       const post = await pool.query(
         `INSERT INTO posts 
-         (user_id, content, status, target_accounts, published_at, scheduled_for, 
+         (user_id, content, status, platforms, target_accounts, published_at, scheduled_for, 
           featured_image_url, excerpt, wp_categories, wp_tags, wp_post_id, wp_post_status) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
          RETURNING *`,
         [
           userId,
           content,
           wpPost.status === 'publish' ? 'published' : 'draft',
+          ['wordpress'],
           JSON.stringify([siteId]),
           wpPost.status === 'publish' ? new Date() : null,
           scheduledFor || null,
@@ -612,6 +638,143 @@ const wordpressController = {
       console.error('WordPress publish error:', error);
       res.status(500).json({
         error: 'Failed to publish to WordPress',
+        details: error.message
+      });
+    }
+  },
+
+  // Bulk publish to multiple WordPress sites
+  async publishPostBulk(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { 
+        siteIds, 
+        title, 
+        content, 
+        status = 'publish', 
+        categories = [], 
+        tags = [],
+        excerpt = '',
+        scheduledFor 
+      } = req.body;
+      
+      const userId = req.user.id;
+      const results = [];
+
+      console.log(`Starting bulk publish to ${siteIds.length} sites:`, siteIds);
+
+      // Process each site sequentially to avoid overwhelming the API
+      for (const siteId of siteIds) {
+        try {
+          // Get site credentials
+          const account = await pool.query(
+            'SELECT * FROM social_accounts WHERE id = $1 AND user_id = $2 AND platform = $3',
+            [siteId, userId, 'wordpress']
+          );
+
+          if (account.rows.length === 0) {
+            results.push({
+              siteId,
+              success: false,
+              error: 'WordPress site not found or access denied'
+            });
+            continue;
+          }
+
+          const accountData = account.rows[0];
+          const appPassword = decrypt(accountData.app_password);
+
+          // Publish to WordPress
+          const wpPost = await wordpressApiService.createPost(
+            accountData.site_url,
+            accountData.username,
+            appPassword,
+            {
+              title,
+              content,
+              status,
+              categories,
+              tags,
+              excerpt,
+              scheduledFor
+            }
+          );
+
+          // Save post to our database
+          const post = await pool.query(
+            `INSERT INTO posts 
+             (user_id, content, status, platforms, target_accounts, published_at, scheduled_for, 
+              featured_image_url, excerpt, wp_categories, wp_tags, wp_post_id, wp_post_status) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+             RETURNING *`,
+            [
+              userId,
+              content,
+              wpPost.status === 'publish' ? 'published' : 'draft',
+              ['wordpress'],
+              JSON.stringify([siteId]),
+              wpPost.status === 'publish' ? new Date() : null,
+              scheduledFor || null,
+              null, // featured_image_url
+              excerpt,
+              JSON.stringify(categories),
+              JSON.stringify(tags),
+              wpPost.id,
+              wpPost.status
+            ]
+          );
+
+          results.push({
+            siteId,
+            siteName: accountData.site_title,
+            success: true,
+            post: {
+              id: post.rows[0].id,
+              wpPostId: wpPost.id,
+              title: title,
+              status: wpPost.status,
+              url: wpPost.url,
+              publishedAt: wpPost.date
+            }
+          });
+
+          console.log(`Successfully published to site ${siteId} (${accountData.site_title})`);
+
+        } catch (siteError) {
+          console.error(`Failed to publish to site ${siteId}:`, siteError.message);
+          results.push({
+            siteId,
+            success: false,
+            error: siteError.message
+          });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.filter(r => !r.success).length;
+
+      // Always return 200 if we have results, even with partial failures
+      const statusCode = results.length > 0 ? 200 : 500;
+      
+      res.status(statusCode).json({
+        success: successCount > 0,
+        message: `Published to ${successCount} of ${siteIds.length} sites${failureCount > 0 ? ` (${failureCount} failed)` : ''}`,
+        results,
+        summary: {
+          total: siteIds.length,
+          successful: successCount,
+          failed: failureCount
+        }
+      });
+
+    } catch (error) {
+      console.error('WordPress bulk publish error:', error);
+      res.status(500).json({
+        error: 'Failed to publish to WordPress sites',
         details: error.message
       });
     }

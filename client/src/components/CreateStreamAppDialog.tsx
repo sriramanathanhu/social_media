@@ -57,7 +57,7 @@ const CreateStreamAppDialog: React.FC<CreateStreamAppDialogProps> = ({
       setLoading(true);
       setError(null);
 
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/stream-apps`, {
         method: 'POST',
         headers: {

@@ -11,7 +11,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { fetchPosts } from '../store/slices/postsSlice';
-import ComposePost from '../components/ComposePost';
+import ComposePostOptimized from '../components/ComposePost/ComposePostOptimized';
 import PostCard from '../components/PostCard';
 
 const ComposePage: React.FC = () => {
@@ -42,7 +42,7 @@ const ComposePage: React.FC = () => {
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
-          <ComposePost />
+          <ComposePostOptimized />
         </Grid>
         
         <Grid item xs={12} md={4}>
@@ -74,4 +74,4 @@ const ComposePage: React.FC = () => {
   );
 };
 
-export default ComposePage;
+export default React.memo(ComposePage);

@@ -84,7 +84,7 @@ const StreamSettingsDialog: React.FC<StreamSettingsDialogProps> = ({
   const fetchStreamData = async () => {
     try {
       setLoading(true);
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live/${streamId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -107,7 +107,7 @@ const StreamSettingsDialog: React.FC<StreamSettingsDialogProps> = ({
 
   const fetchRepublishingTargets = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live/${streamId}/republishing`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -131,7 +131,7 @@ const StreamSettingsDialog: React.FC<StreamSettingsDialogProps> = ({
 
     try {
       setLoading(true);
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live/${streamId}`, {
         method: 'PUT',
         headers: {
@@ -167,7 +167,7 @@ const StreamSettingsDialog: React.FC<StreamSettingsDialogProps> = ({
 
     try {
       setLoading(true);
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live/${streamId}`, {
         method: 'DELETE',
         headers: {
@@ -197,7 +197,7 @@ const StreamSettingsDialog: React.FC<StreamSettingsDialogProps> = ({
 
     try {
       setLoading(true);
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live/${streamId}/republishing`, {
         method: 'POST',
         headers: {
@@ -229,7 +229,7 @@ const StreamSettingsDialog: React.FC<StreamSettingsDialogProps> = ({
   const handleRemoveRepublishingTarget = async (targetId: string) => {
     try {
       setLoading(true);
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/live/republishing/${targetId}`, {
         method: 'DELETE',
         headers: {

@@ -214,7 +214,7 @@ class NimbleApiService {
     return this.createRepublishingRule({
       sourceApp,
       sourceStream,
-      destinationUrl: 'live-api-s.facebook.com',
+      destinationUrl: 'rtmps://live-api-s.facebook.com',
       destinationPort: 443,
       destinationApp: 'rtmp',
       destinationStream: facebookStreamKey

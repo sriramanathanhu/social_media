@@ -26,6 +26,30 @@ This section maintains essential context of the project state across different c
 - Backend: `cd server && npm test`
 - Linting: `cd client && npm run lint` and `cd server && npm run lint`
 
+# Database Management Guidelines
+**CRITICAL: All database changes must be incremental and preserve existing data**
+- **Schema Changes**: Use ALTER TABLE statements, never DROP/CREATE
+- **Data Migration**: Always backup before modifications
+- **Column Additions**: Use ALTER TABLE ADD COLUMN with DEFAULT values
+- **Index Changes**: CREATE INDEX IF NOT EXISTS, DROP INDEX IF EXISTS
+- **Constraint Changes**: Add constraints with NOT VALID, then validate separately
+- **Production Safety**: Test all migrations on development data first
+- **Rollback Plan**: Ensure every migration has a rollback script
+- **Zero Downtime**: Structure changes to avoid application downtime
+
+# Docker Volume Management
+**CRITICAL: Never delete Docker volumes - data persistence is essential**
+- **Volume Protection**: NEVER run `docker volume rm` or `docker volume prune`
+- **Data Persistence**: All data must survive `docker compose down` and restarts
+- **Manual Management**: Only the user will manually manage volume deletion
+- **Container Recreation**: Ensure all services can restart without data loss
+- **Volume Verification**: Always verify named volumes are properly configured for persistence
+
+## Current Volume Configuration
+- **postgres_data**: Named volume for PostgreSQL database persistence
+- **server/uploads**: Host mount for uploaded files persistence
+- **All data survives**: `docker compose down` and container recreation
+
 # Render SSH Access
 - SSH Connection: `ssh srv-d1k35rndiees73e10vsg@ssh.oregon.render.com`
 - Server Process: Node.js running on PID 128, port 10000

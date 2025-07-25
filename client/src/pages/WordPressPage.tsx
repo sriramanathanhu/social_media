@@ -24,12 +24,14 @@ import {
   Delete as DeleteIcon,
   Edit as EditIcon,
   Launch as LaunchIcon,
+  Publish as PublishIcon,
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { wordpressAPI } from '../services/api';
 import WordPressConnectDialog from '../components/WordPressConnectDialog';
 import WordPressPublishDialog from '../components/WordPressPublishDialog';
+import WordPressMultiSitePublishDialog from '../components/WordPressMultiSitePublishDialog';
 
 interface WordPressSite {
   id: number;
@@ -49,6 +51,7 @@ const WordPressPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [connectDialogOpen, setConnectDialogOpen] = useState(false);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [multiSitePublishDialogOpen, setMultiSitePublishDialogOpen] = useState(false);
   const [selectedSite, setSelectedSite] = useState<WordPressSite | null>(null);
   const [syncing, setSyncing] = useState<number | null>(null);
 
@@ -64,7 +67,21 @@ const WordPressPage: React.FC = () => {
     try {
       setLoading(true);
       const response = await wordpressAPI.getSites();
-      setSites(response.data.sites || []);
+      
+      // Transform snake_case API response to camelCase for TypeScript interface
+      const transformedSites = (response.data.sites || []).map((site: any) => ({
+        id: site.id,
+        siteUrl: site.site_url,
+        username: site.username,
+        displayName: site.display_name,
+        siteTitle: site.site_title,
+        status: site.status,
+        lastUsed: site.last_used,
+        createdAt: site.created_at,
+        updatedAt: site.updated_at,
+      }));
+      
+      setSites(transformedSites);
     } catch (err: any) {
       setError(err.response?.data?.details || 'Failed to fetch WordPress sites');
     } finally {
@@ -84,6 +101,10 @@ const WordPressPage: React.FC = () => {
   const handlePublishToSite = (site: WordPressSite) => {
     setSelectedSite(site);
     setPublishDialogOpen(true);
+  };
+
+  const handleMultiSitePublish = () => {
+    setMultiSitePublishDialogOpen(true);
   };
 
   const handleSyncSite = async (site: WordPressSite) => {
@@ -123,14 +144,14 @@ const WordPressPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+      <Container maxWidth="lg" sx={{ mt: 12, pt: 6, display: 'flex', justifyContent: 'center' }}>
         <CircularProgress />
       </Container>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 12, pt: 6, mb: 4 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -144,14 +165,34 @@ const WordPressPage: React.FC = () => {
             </Typography>
           </Box>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleConnectSite}
-          sx={{ bgcolor: '#21759b', '&:hover': { bgcolor: '#1e6ba8' } }}
-        >
-          Connect Site
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          {sites.length > 1 && (
+            <Button
+              variant="outlined"
+              startIcon={<PublishIcon />}
+              onClick={handleMultiSitePublish}
+              sx={{ 
+                borderColor: '#21759b', 
+                color: '#21759b',
+                '&:hover': { 
+                  borderColor: '#1e6ba8', 
+                  color: '#1e6ba8',
+                  bgcolor: 'rgba(33, 117, 155, 0.04)'
+                } 
+              }}
+            >
+              Publish to Multiple Sites
+            </Button>
+          )}
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleConnectSite}
+            sx={{ bgcolor: '#21759b', '&:hover': { bgcolor: '#1e6ba8' } }}
+          >
+            Connect Site
+          </Button>
+        </Box>
       </Box>
 
       {/* Error Alert */}
@@ -308,6 +349,16 @@ const WordPressPage: React.FC = () => {
         site={selectedSite}
         onPublished={() => {
           setPublishDialogOpen(false);
+          // Optionally refresh data or show success message
+        }}
+      />
+
+      <WordPressMultiSitePublishDialog
+        open={multiSitePublishDialogOpen}
+        onClose={() => setMultiSitePublishDialogOpen(false)}
+        sites={sites}
+        onPublished={() => {
+          setMultiSitePublishDialogOpen(false);
           // Optionally refresh data or show success message
         }}
       />

@@ -70,7 +70,7 @@ const StreamAppSettingsDialog: React.FC<StreamAppSettingsDialogProps> = ({
   const fetchAppData = async () => {
     try {
       setLoading(true);
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/stream-apps/${appId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -96,7 +96,7 @@ const StreamAppSettingsDialog: React.FC<StreamAppSettingsDialogProps> = ({
 
     try {
       setLoading(true);
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/stream-apps/${appId}`, {
         method: 'PUT',
         headers: {
@@ -134,7 +134,7 @@ const StreamAppSettingsDialog: React.FC<StreamAppSettingsDialogProps> = ({
 
     try {
       setLoading(true);
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
       const response = await fetch(`${API_BASE_URL}/stream-apps/${appId}`, {
         method: 'DELETE',
         headers: {

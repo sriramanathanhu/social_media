@@ -163,4 +163,4 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
   );
 };
 
-export default PostCard;
+export default React.memo(PostCard);

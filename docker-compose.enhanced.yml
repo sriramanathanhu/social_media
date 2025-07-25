@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    labels:
+      - "caching.service=true"
+      - "data-protection.enabled=true"
+    networks:
+      - social_media_network
+
+  # Redis Insight for monitoring (optional)
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    ports:
+      - "8001:8001"
+    environment:
+      - RIPORT=8001
+    volumes:
+      - redis_insight_data:/db
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - social_media_network
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: socialmedia
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_backup:/var/lib/postgresql/backup
+      - ./server/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "data-protection.critical=true"
+    networks:
+      - social_media_network
+
+  backend:
+    build: ./server
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: socialmedia
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-postgres}@postgres:5432/socialmedia?sslmode=disable
+      SESSION_SECRET: ${SESSION_SECRET:-your-secret-key-here}
+      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-here}
+      # Redis configuration
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_password}
+      REDIS_DB: 0
+      # Cache configuration
+      CACHE_TTL: 3600
+      SESSION_STORE: redis
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./server/uploads:/app/uploads
+      - ./client/build:/app/client/build
+    labels:
+      - "performance.caching=enabled"
+    networks:
+      - social_media_network
+
+  frontend:
+    build: ./client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    environment:
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:5000}
+      - REACT_APP_ENABLE_PERFORMANCE_MONITORING=true
+    networks:
+      - social_media_network
+
+  # Performance monitoring service
+  performance-monitor:
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    networks:
+      - social_media_network
+
+volumes:
+  postgres_data:
+    driver: local
+    labels:
+      - "data-protection.critical=true"
+  postgres_backup:
+    driver: local
+  redis_data:
+    driver: local
+    labels:
+      - "caching.data=true"
+  redis_insight_data:
+    driver: local
+
+networks:
+  social_media_network:
+    driver: bridge
+    labels:
+      - "performance.network=optimized"

@@ -1,0 +1,24 @@
+live.ecitizen.media {
+    # Simple reverse proxy to frontend
+    reverse_proxy localhost:3000
+    
+    # API routes
+    handle /api/* {
+        reverse_proxy localhost:5000
+    }
+    
+    # Health check
+    handle /health {
+        reverse_proxy localhost:5000
+    }
+    
+    # WebSocket support
+    handle /socket.io/* {
+        reverse_proxy localhost:5000
+    }
+    
+    # Live streaming
+    handle /live/* {
+        reverse_proxy localhost:5000
+    }
+}

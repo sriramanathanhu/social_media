@@ -42,13 +42,14 @@ class WordPressApiService {
       const user = usersResponse.data;
       const settings = settingsResponse.data;
 
-      // Check if user has required capabilities
-      const requiredCapabilities = ['publish_posts', 'upload_files'];
-      const userCapabilities = user.capabilities || {};
-      
-      const missingCapabilities = requiredCapabilities.filter(cap => !userCapabilities[cap]);
-      if (missingCapabilities.length > 0) {
-        throw new Error(`Missing required capabilities: ${missingCapabilities.join(', ')}`);
+      // Test actual publishing capability by checking posts endpoint
+      try {
+        await client.get('/posts?per_page=1');
+      } catch (postsError) {
+        if (postsError.response?.status === 401 || postsError.response?.status === 403) {
+          throw new Error('User does not have permission to access posts. Please ensure the user has Author or Editor role.');
+        }
+        // Continue if it's just a different error (like no posts found)
       }
 
       return {
@@ -66,7 +67,7 @@ class WordPressApiService {
           displayName: user.name,
           email: user.email,
           roles: user.roles || [],
-          capabilities: Object.keys(userCapabilities).filter(cap => userCapabilities[cap])
+          capabilities: user.capabilities ? Object.keys(user.capabilities).filter(cap => user.capabilities[cap]) : []
         }
       };
     } catch (error) {

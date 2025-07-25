@@ -1,0 +1,6 @@
+-- Restore live streams from backup
+DELETE FROM live_streams;
+
+INSERT INTO live_streams (id, user_id, title, description, stream_key, rtmp_url, source_app, source_stream, status, app_id, app_key_id, destinations, quality_settings, auto_post_enabled, auto_post_accounts, auto_post_message, category, tags, is_public, created_at, updated_at, started_at, ended_at, thumbnail_url) VALUES
+('c1a8b9c8-7946-4c98-88c5-4a2d4759d4b7', 2, 'RMN', '', 'darshan', 'rtmp://37.27.201.26:1935/live', 'live', NULL, 'inactive', 'ae00aa90-d946-4ed2-ad3b-925e3f1c0c97', 'ed3efe4f-f61f-480c-8bb4-843466e51605', '[]', '{"bitrate": 4000, "framerate": 30, "resolution": "1920x1080", "audio_bitrate": 128}', false, '{}', NULL, NULL, '{}', true, '2025-07-13 17:31:34.70556+00', '2025-07-13 17:31:34.70556+00', NULL, NULL, NULL),
+('25225966-1c23-4d00-943b-97d3395676ed', 2, 'RMN Test 2', '', 'live', 'rtmp://37.27.201.26:1935/socialmedia', 'live', NULL, 'inactive', 'd4832d1c-582c-42cd-b7d6-5ddcc00efffd', '8c6bdf90-2023-48a4-a16a-172a71c56e5d', '[]', '{"bitrate": 4000, "framerate": 30, "resolution": "1920x1080", "audio_bitrate": 128}', false, '{}', NULL, NULL, '{}', true, '2025-07-13 17:43:34.619909+00', '2025-07-13 17:44:26.612543+00', NULL, NULL, NULL);

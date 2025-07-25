@@ -2,6 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const authController = require('../controllers/authController');
 const auth = require('../middleware/auth');
+const { performanceCache } = require('../config/redis');
 
 const router = express.Router();
 
@@ -20,7 +21,32 @@ router.use(session({
 
 router.post('/register', authController.registerValidation, authController.register);
 router.post('/login', authController.loginValidation, authController.login);
-router.get('/profile', auth, authController.getProfile);
+// Enhanced profile route with caching
+router.get('/profile', auth, async (req, res) => {
+  try {
+    // Try to get from cache first
+    const cachedProfile = await performanceCache.getUser(req.user.id);
+    if (cachedProfile) {
+      res.set('X-Cache', 'HIT');
+      return res.json(cachedProfile);
+    }
+
+    // If not in cache, get from controller and cache result
+    const originalSend = res.json;
+    res.json = function(data) {
+      if (res.statusCode === 200) {
+        performanceCache.cacheUser(req.user.id, data, 900); // Cache for 15 minutes
+      }
+      res.set('X-Cache', 'MISS');
+      return originalSend.call(this, data);
+    };
+
+    return authController.getProfile(req, res);
+  } catch (error) {
+    console.error('Profile cache error:', error);
+    return authController.getProfile(req, res);
+  }
+});
 router.post('/emergency-admin-promote', authController.emergencyAdminPromote);
 router.post('/mastodon/connect', auth, authController.connectMastodon);
 router.get('/mastodon/callback', authController.mastodonCallback); // No auth middleware for OAuth callback

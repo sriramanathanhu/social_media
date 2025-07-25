@@ -59,17 +59,17 @@ const DebugInfo: React.FC = () => {
     const tests: any = {};
 
     // Test backend health
-    tests['Backend Health'] = await testEndpoint('health', 'https://socialmedia-p3ln.onrender.com/health', false);
+    tests['Backend Health'] = await testEndpoint('health', '/health', false);
     
     // Test API root
-    tests['API Root'] = await testEndpoint('api-root', 'https://socialmedia-p3ln.onrender.com/api', false);
+    tests['API Root'] = await testEndpoint('api-root', '/api', false);
     
     if (token) {
       // Test authenticated endpoints
-      tests['Profile'] = await testEndpoint('profile', 'https://socialmedia-p3ln.onrender.com/api/auth/profile');
-      tests['Accounts'] = await testEndpoint('accounts', 'https://socialmedia-p3ln.onrender.com/api/accounts');
-      tests['X API Status'] = await testEndpoint('x-api-status', 'https://socialmedia-p3ln.onrender.com/api/auth/x-api-status');
-      tests['Admin Users'] = await testEndpoint('admin-users', 'https://socialmedia-p3ln.onrender.com/api/admin/users');
+      tests['Profile'] = await testEndpoint('profile', '/api/auth/profile');
+      tests['Accounts'] = await testEndpoint('accounts', '/api/accounts');
+      tests['X API Status'] = await testEndpoint('x-api-status', '/api/auth/x-api-status');
+      tests['Admin Users'] = await testEndpoint('admin-users', '/api/admin/users');
     }
 
     setApiTests(tests);
@@ -229,7 +229,7 @@ const DebugInfo: React.FC = () => {
                   token: localStorage.getItem('token') ? 'present' : 'missing',
                   tokenLength: localStorage.getItem('token')?.length || 0
                 },
-                apiBaseUrl: process.env.REACT_APP_API_URL || 'https://socialmedia-p3ln.onrender.com/api'
+                apiBaseUrl: process.env.REACT_APP_API_URL || '/api'
               }, null, 2)}
             </Typography>
           </AccordionDetails>
