@@ -12,6 +12,7 @@ interface AccountsState {
   connectingBluesky: boolean;
   connectingFacebook: boolean;
   connectingInstagram: boolean;
+  connectingReddit: boolean;
 }
 
 const initialState: AccountsState = {
@@ -24,6 +25,7 @@ const initialState: AccountsState = {
   connectingBluesky: false,
   connectingFacebook: false,
   connectingInstagram: false,
+  connectingReddit: false,
 };
 
 export const fetchAccounts = createAsyncThunk(
@@ -78,6 +80,14 @@ export const connectInstagram = createAsyncThunk(
   'accounts/connectInstagram',
   async ({ facebookAccountId, instagramAccountId }: { facebookAccountId: string; instagramAccountId: string }) => {
     const response = await authAPI.connectInstagram(facebookAccountId, instagramAccountId);
+    return response.data;
+  }
+);
+
+export const connectReddit = createAsyncThunk(
+  'accounts/connectReddit',
+  async () => {
+    const response = await authAPI.connectReddit();
     return response.data;
   }
 );
@@ -195,6 +205,17 @@ const accountsSlice = createSlice({
       .addCase(connectInstagram.rejected, (state, action) => {
         state.connectingInstagram = false;
         state.error = action.error.message || 'Failed to connect Instagram account';
+      })
+      .addCase(connectReddit.pending, (state) => {
+        state.connectingReddit = true;
+        state.error = null;
+      })
+      .addCase(connectReddit.fulfilled, (state, action) => {
+        state.connectingReddit = false;
+      })
+      .addCase(connectReddit.rejected, (state, action) => {
+        state.connectingReddit = false;
+        state.error = action.error.message || 'Failed to connect Reddit account';
       })
       .addCase(deleteAccount.pending, (state) => {
         state.loading = true;

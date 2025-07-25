@@ -1,5 +1,5 @@
 # Goal
-Multi-platform social media management system with scheduling capabilities for X, Mastodon, Pinterest, and live streaming via Nimble Streamer.
+Multi-platform social media management system with scheduling capabilities for X, Mastodon, Pinterest, Reddit, and live streaming via Nimble Streamer.
 
 # Standard instructions for AI 
 This section maintains essential context of the project state across different chats and compactions. We maintain:
@@ -17,7 +17,7 @@ This section maintains essential context of the project state across different c
 # Project Structure
 - **Frontend**: React/TypeScript with Material-UI, Redux Toolkit
 - **Backend**: Node.js/Express with PostgreSQL
-- **Platforms**: X (Twitter), Mastodon, Pinterest
+- **Platforms**: X (Twitter), Mastodon, Pinterest, Reddit
 - **Live Streaming**: Nimble Streamer integration with multi-platform republishing
 - **Authentication**: OAuth 2.0 flows for each platform
 
@@ -77,6 +77,48 @@ This section maintains essential context of the project state across different c
 - ✅ Real-time Republishing Control: Add/remove destinations via API
 - ✅ Production Ready: End-to-end streaming from OBS to YouTube working
 - ✅ Secure API Access: Salt-hash authentication implemented and tested
+
+## Reddit Integration Status
+- ✅ Backend Reddit Service: OAuth 2.0 flow with token encryption, subreddit management, and posting
+- ✅ Database Schema: Reddit subreddits table and account integration created manually
+- ✅ Reddit Controller: Account management and post submission endpoints
+- ✅ Authentication Routes: Reddit OAuth connect and callback handlers
+- ✅ Frontend Reddit Page: Dedicated page following WordPress pattern
+- ✅ Redux Integration: Reddit actions and state management
+- ✅ UI Components: Connect dialog and publish dialog with full Reddit features
+- ✅ Navigation: Reddit tab added to main navigation menu
+- ✅ TypeScript Support: Extended interfaces for Reddit platform
+- ⚠️ **Server Restart Required**: Reddit API endpoints require server restart to become active
+
+### Reddit Integration Activation Steps
+To activate Reddit integration (server restart required):
+
+1. **Stop Current Server Process:**
+   ```bash
+   # Find the server process
+   ps aux | grep "node server"
+   # Kill the process (replace PID with actual process ID)
+   kill <PID>
+   ```
+
+2. **Start Server with Reddit Support:**
+   ```bash
+   cd /root/social_media
+   npm start
+   # OR for development
+   npm run dev
+   ```
+
+3. **Verify Reddit Endpoints:**
+   ```bash
+   curl http://localhost:5000/
+   # Should show /api/reddit in endpoints list
+   ```
+
+4. **Access Reddit Features:**
+   - Navigate to `/#/reddit` in browser
+   - Clear browser cache if needed (Ctrl+F5)
+   - Reddit tab should be visible in navigation menu
 
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.

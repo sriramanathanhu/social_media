@@ -18,6 +18,7 @@ const AccountsPage = React.lazy(() => import('./pages/AccountsPage'));
 const ComposePage = React.lazy(() => import('./pages/ComposePage'));
 const PostsPage = React.lazy(() => import('./pages/PostsPage'));
 const WordPressPage = React.lazy(() => import('./pages/WordPressPage'));
+const RedditPage = React.lazy(() => import('./pages/RedditPage'));
 const LivePage = React.lazy(() => import('./pages/LivePage'));
 const SystemMonitoring = React.lazy(() => import('./components/SystemMonitoring'));
 const StreamAppsPage = React.lazy(() => import('./pages/StreamAppsPage'));
@@ -87,6 +88,7 @@ const AppContent: React.FC = () => {
                 <Route path="/compose" element={<ComposePage />} />
                 <Route path="/posts" element={<PostsPage />} />
                 <Route path="/wordpress" element={<WordPressPage />} />
+                <Route path="/reddit" element={<RedditPage />} />
                 <Route path="/live" element={<LivePage />} />
                 <Route path="/stream-apps" element={<StreamAppsPage />} />
                 <Route 

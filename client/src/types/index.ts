@@ -9,13 +9,14 @@ export interface User {
 export interface SocialAccount {
   id: string;
   userId: string;
-  platform: 'mastodon' | 'x' | 'twitter' | 'pinterest' | 'bluesky' | 'soundcloud' | 'substack' | 'telegram' | 'deviantart' | 'facebook' | 'instagram';
+  platform: 'mastodon' | 'x' | 'twitter' | 'pinterest' | 'bluesky' | 'soundcloud' | 'substack' | 'telegram' | 'deviantart' | 'facebook' | 'instagram' | 'reddit';
   instanceUrl?: string;
   username: string;
   displayName?: string;
   avatar?: string;
   status: 'active' | 'expired' | 'error';
   createdAt: string;
+  updatedAt?: string;
   lastUsed?: string;
 }
 

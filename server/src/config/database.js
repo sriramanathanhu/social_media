@@ -229,6 +229,59 @@ const initializeDatabase = async () => {
       console.log('Column is_scheduled already exists or error adding:', error.message);
     }
 
+    // Create Reddit subreddits table for storing user's accessible subreddits
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS reddit_subreddits (
+        id SERIAL PRIMARY KEY,
+        account_id INTEGER REFERENCES social_accounts(id) ON DELETE CASCADE,
+        subreddit_name VARCHAR(255) NOT NULL,
+        display_name VARCHAR(255),
+        title VARCHAR(255),
+        description TEXT,
+        subscribers INTEGER DEFAULT 0,
+        submission_type VARCHAR(50) DEFAULT 'any',
+        can_submit BOOLEAN DEFAULT true,
+        is_moderator BOOLEAN DEFAULT false,
+        over_18 BOOLEAN DEFAULT false,
+        flair_enabled BOOLEAN DEFAULT false,
+        flair_list JSONB DEFAULT '[]',
+        rules JSONB DEFAULT '[]',
+        created_utc INTEGER,
+        last_synced TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(account_id, subreddit_name)
+      );
+    `);
+
+    // Add Reddit-specific columns to social_accounts table
+    try {
+      await pool.query(`
+        ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS reddit_karma INTEGER DEFAULT 0
+      `);
+      console.log('Added reddit_karma column to social_accounts table');
+    } catch (error) {
+      console.log('Column reddit_karma already exists or error adding:', error.message);
+    }
+
+    try {
+      await pool.query(`
+        ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS reddit_created_utc INTEGER
+      `);
+      console.log('Added reddit_created_utc column to social_accounts table');
+    } catch (error) {
+      console.log('Column reddit_created_utc already exists or error adding:', error.message);
+    }
+
+    try {
+      await pool.query(`
+        ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS reddit_is_gold BOOLEAN DEFAULT false
+      `);
+      console.log('Added reddit_is_gold column to social_accounts table');
+    } catch (error) {
+      console.log('Column reddit_is_gold already exists or error adding:', error.message);
+    }
+
     console.log('Database tables initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);

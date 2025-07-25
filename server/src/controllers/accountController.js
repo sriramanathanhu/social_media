@@ -1,6 +1,7 @@
 const SocialAccount = require('../models/SocialAccount');
 const mastodonService = require('../services/mastodon');
 const xService = require('../services/x');
+const redditService = require('../services/reddit');
 
 const getAccounts = async (req, res) => {
   try {
@@ -72,6 +73,15 @@ async function checkTokenStatus(account) {
         return { hasValidToken: true, error: null };
       } catch (decryptError) {
         console.log('- Mastodon token decryption failed:', decryptError.message);
+        return { hasValidToken: false, error: 'Token decryption failed: ' + decryptError.message };
+      }
+    } else if (account.platform === 'reddit') {
+      try {
+        const decryptedToken = redditService.decrypt(fullAccount.access_token);
+        console.log('- Reddit token decryption successful, length:', decryptedToken.length);
+        return { hasValidToken: true, error: null };
+      } catch (decryptError) {
+        console.log('- Reddit token decryption failed:', decryptError.message);
         return { hasValidToken: false, error: 'Token decryption failed: ' + decryptError.message };
       }
     } else {
@@ -176,6 +186,33 @@ const verifyAccount = async (req, res) => {
         });
       } catch (error) {
         console.error('X account verification failed for account:', id, 'Error:', error.message);
+        await SocialAccount.updateStatus(id, 'error');
+        res.status(400).json({ 
+          verified: false, 
+          error: 'Account verification failed: ' + error.message 
+        });
+      }
+    } else if (account.platform === 'reddit') {
+      try {
+        console.log('Verifying Reddit account:', id, 'for user:', req.user.id);
+        const decryptedToken = redditService.decrypt(account.access_token);
+        const userInfo = await redditService.verifyCredentials(decryptedToken);
+        
+        await SocialAccount.updateStatus(id, 'active');
+        await SocialAccount.updateLastUsed(id);
+        
+        res.json({ 
+          verified: true, 
+          account: {
+            ...account,
+            username: userInfo.name,
+            display_name: userInfo.name,
+            karma: userInfo.karma,
+            created_utc: userInfo.created_utc
+          }
+        });
+      } catch (error) {
+        console.error('Reddit account verification failed for account:', id, 'Error:', error.message);
         await SocialAccount.updateStatus(id, 'error');
         res.status(400).json({ 
           verified: false, 

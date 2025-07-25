@@ -32,6 +32,7 @@ import {
   Videocam as LiveIcon,
   Apps as AppsIcon,
   Web as WordPressIcon,
+  Reddit as RedditIcon,
   ExpandLess,
   ExpandMore,
   Public as PublishingIcon,
@@ -68,6 +69,7 @@ const Navigation: React.FC = () => {
       ]
     },
     { label: 'WordPress', path: '/wordpress', icon: <WordPressIcon /> },
+    { label: 'Reddit', path: '/reddit', icon: <RedditIcon /> },
     { 
       label: 'Live Streaming', 
       icon: <LiveStreamIcon />,

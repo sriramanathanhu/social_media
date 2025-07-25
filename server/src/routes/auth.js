@@ -59,6 +59,8 @@ router.post('/facebook/connect', auth, authController.connectFacebook);
 router.get('/facebook/callback', authController.facebookCallback); // No auth middleware for OAuth callback
 router.post('/instagram/connect', auth, authController.connectInstagram);
 router.post('/instagram/callback', auth, authController.instagramCallback);
+router.post('/reddit/connect', auth, authController.connectReddit);
+router.get('/reddit/callback', authController.redditCallback); // No auth middleware for OAuth callback
 
 // Get X API status and limits for dashboard
 router.get('/x-api-status', auth, async (req, res) => {

@@ -81,6 +81,12 @@ export const authAPI = {
   
   connectInstagram: (facebookAccountId: string, instagramAccountId: string) =>
     api.post('/auth/instagram/callback', { facebookAccountId, instagramAccountId }),
+  
+  connectReddit: () =>
+    api.post('/auth/reddit/connect'),
+  
+  redditCallback: (code: string, state: string) =>
+    api.get(`/auth/reddit/callback?code=${code}&state=${state}`),
 };
 
 export const accountsAPI = {
@@ -296,6 +302,33 @@ export const wordpressAPI = {
         'Content-Type': 'multipart/form-data',
       },
     }),
+};
+
+export const redditAPI = {
+  // Account Management
+  getAccountSubreddits: (accountId: string) =>
+    api.get(`/reddit/accounts/${accountId}/subreddits`),
+
+  syncAccountSubreddits: (accountId: string) =>
+    api.post(`/reddit/accounts/${accountId}/subreddits/sync`),
+
+  getSubredditInfo: (accountId: string, subredditName: string) =>
+    api.get(`/reddit/accounts/${accountId}/subreddits/${subredditName}/info`),
+
+  // Publishing
+  submitPost: (postData: {
+    accountId: number;
+    subreddit: string;
+    title: string;
+    type: 'text' | 'link';
+    content?: string;
+    url?: string;
+    flair?: string;
+    nsfw?: boolean;
+    spoiler?: boolean;
+    scheduledFor?: string;
+  }) =>
+    api.post('/reddit/post', postData),
 };
 
 export default api;

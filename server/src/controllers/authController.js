@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
+const pool = require('../config/database');
 const User = require('../models/User');
 const SocialAccount = require('../models/SocialAccount');
 const OAuthState = require('../models/OAuthState');
@@ -9,6 +10,7 @@ const pinterestService = require('../services/pinterest');
 const blueskyService = require('../services/bluesky');
 const facebookService = require('../services/facebook');
 const instagramService = require('../services/instagram');
+const redditService = require('../services/reddit');
 const crypto = require('crypto');
 
 const generateToken = (userId) => {
@@ -1090,6 +1092,162 @@ const instagramCallback = async (req, res) => {
   }
 };
 
+const connectReddit = async (req, res) => {
+  try {
+    console.log('Reddit connect request from user:', req.user.id);
+    
+    // Generate random string for OAuth state
+    const random = crypto.randomBytes(16).toString('hex');
+    const stateKey = `reddit_${random}`;
+    const state = JSON.stringify({
+      userId: req.user.id,
+      random: random,
+      platform: 'reddit'
+    });
+    
+    // Store OAuth data in database
+    await OAuthState.create(
+      stateKey,
+      req.user.id,
+      'reddit',
+      JSON.stringify({
+        userId: req.user.id,
+        random: random,
+        platform: 'reddit'
+      }),
+      new Date(Date.now() + 15 * 60 * 1000) // 15 minutes expiry
+    );
+    
+    console.log('Reddit OAuth state stored with key:', stateKey);
+    
+    // Get authorization URL from Reddit service
+    const authUrl = await redditService.getAuthUrl(state);
+    
+    res.json({
+      authUrl: authUrl,
+      state: stateKey
+    });
+  } catch (error) {
+    console.error('Reddit connect error:', error);
+    res.status(500).json({ error: 'Failed to initialize Reddit connection: ' + error.message });
+  }
+};
+
+const redditCallback = async (req, res) => {
+  try {
+    const { code, state } = req.query;
+    
+    if (!code || !state) {
+      return res.status(400).json({ error: 'Missing authorization code or state' });
+    }
+    
+    // Parse state to get random value
+    const parsedState = JSON.parse(state);
+    const stateKey = `reddit_${parsedState.random}`;
+    
+    console.log('Looking for Reddit OAuth state with key:', stateKey);
+    const oauthState = await OAuthState.findByStateKey(stateKey);
+    
+    if (!oauthState) {
+      console.log('Reddit OAuth state not found in database');
+      return res.status(400).json({ error: 'Invalid or expired authorization state' });
+    }
+    
+    console.log('Reddit OAuth state found:', oauthState);
+    
+    // Exchange code for access token
+    const tokenData = await redditService.getAccessToken(code);
+    console.log('Reddit access token received');
+    
+    // Get user information
+    const userInfo = await redditService.verifyCredentials(tokenData.accessToken);
+    console.log('Reddit user info received:', userInfo);
+    
+    // Check if account already exists
+    const existingAccounts = await SocialAccount.findByPlatformAndUser(
+      oauthState.user_id,
+      'reddit'
+    );
+    
+    const existingAccount = existingAccounts.find(acc => acc.username === userInfo.name);
+    
+    if (existingAccount) {
+      console.log('Reddit account already exists, updating tokens');
+      
+      // Update existing account with new tokens
+      await SocialAccount.updateTokens(
+        existingAccount.id,
+        redditService.encrypt(tokenData.accessToken),
+        tokenData.refreshToken ? redditService.encrypt(tokenData.refreshToken) : null,
+        tokenData.expiresIn ? new Date(Date.now() + tokenData.expiresIn * 1000) : null
+      );
+      
+      // Update Reddit-specific data
+      await pool.query(
+        `UPDATE social_accounts 
+         SET reddit_karma = $1, reddit_created_utc = $2, reddit_is_gold = $3, 
+             display_name = $4, status = 'active', updated_at = CURRENT_TIMESTAMP
+         WHERE id = $5`,
+        [userInfo.karma, userInfo.created_utc, userInfo.is_gold, userInfo.name, existingAccount.id]
+      );
+      
+      await SocialAccount.updateLastUsed(existingAccount.id);
+      
+      return res.json({
+        success: true,
+        message: 'Reddit account reconnected successfully',
+        account: {
+          platform: 'reddit',
+          username: userInfo.name,
+          karma: userInfo.karma,
+          status: 'active'
+        }
+      });
+    }
+    
+    // Create new account
+    console.log('Creating new Reddit account');
+    const newAccount = await SocialAccount.create({
+      userId: oauthState.user_id,
+      platform: 'reddit',
+      instanceUrl: null,
+      username: userInfo.name,
+      displayName: userInfo.name,
+      avatarUrl: null, // Reddit doesn't provide avatar URL in basic API
+      accessToken: redditService.encrypt(tokenData.accessToken),
+      refreshToken: tokenData.refreshToken ? redditService.encrypt(tokenData.refreshToken) : null,
+      tokenExpiresAt: tokenData.expiresIn ? new Date(Date.now() + tokenData.expiresIn * 1000) : null
+    });
+    
+    // Update Reddit-specific data
+    await pool.query(
+      `UPDATE social_accounts 
+       SET reddit_karma = $1, reddit_created_utc = $2, reddit_is_gold = $3
+       WHERE id = $4`,
+      [userInfo.karma, userInfo.created_utc, userInfo.is_gold, newAccount.id]
+    );
+    
+    console.log('Reddit account created successfully:', newAccount);
+    
+    // Clean up OAuth state
+    await OAuthState.delete(oauthState.id);
+    
+    res.json({
+      success: true,
+      message: 'Reddit account connected successfully',
+      account: {
+        platform: 'reddit',
+        username: userInfo.name,
+        karma: userInfo.karma,
+        status: 'active'
+      }
+    });
+  } catch (error) {
+    console.error('Reddit callback error:', error);
+    res.status(500).json({ error: 'Failed to connect Reddit account: ' + error.message });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -1105,6 +1263,8 @@ module.exports = {
   facebookCallback,
   connectInstagram,
   instagramCallback,
+  connectReddit,
+  redditCallback,
   registerValidation,
   loginValidation,
   emergencyAdminPromote
