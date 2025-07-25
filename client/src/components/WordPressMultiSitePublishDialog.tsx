@@ -44,7 +44,7 @@ import {
   SelectAll as SelectAllIcon,
 } from '@mui/icons-material';
 import { wordpressAPI } from '../services/api';
-import SimpleWYSIWYGEditor from './SimpleWYSIWYGEditor';
+import BasicWYSIWYGEditor from './BasicWYSIWYGEditor';
 
 interface WordPressSite {
   id: number;
@@ -374,12 +374,11 @@ const WordPressMultiSitePublishDialog: React.FC<WordPressMultiSitePublishDialogP
               <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
                 Content *
               </Typography>
-              <SimpleWYSIWYGEditor
+              <BasicWYSIWYGEditor
                 value={formData.content}
                 onChange={(content) => setFormData({ ...formData, content })}
                 readOnly={publishing}
                 placeholder="Write your blog post content here..."
-                height={400}
               />
             </Box>
 

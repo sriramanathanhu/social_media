@@ -28,7 +28,7 @@ import {
   Save as SaveIcon,
 } from '@mui/icons-material';
 import { wordpressAPI } from '../services/api';
-import SimpleWYSIWYGEditor from './SimpleWYSIWYGEditor';
+import BasicWYSIWYGEditor from './BasicWYSIWYGEditor';
 
 interface WordPressSite {
   id: number;
@@ -250,12 +250,11 @@ const WordPressPublishDialog: React.FC<WordPressPublishDialogProps> = ({
               <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
                 Post Content *
               </Typography>
-              <SimpleWYSIWYGEditor
+              <BasicWYSIWYGEditor
                 value={formData.content}
                 onChange={(content) => setFormData({ ...formData, content })}
                 readOnly={loading}
                 placeholder="Write your post content here..."
-                height={400}
               />
             </Box>
 
