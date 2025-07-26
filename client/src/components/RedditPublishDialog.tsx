@@ -32,6 +32,8 @@ import {
   Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 import { redditAPI } from '../services/api';
+import BasicWYSIWYGEditor from './BasicWYSIWYGEditor';
+import TurndownService from 'turndown';
 
 interface RedditAccount {
   id: string;
@@ -85,6 +87,16 @@ const RedditPublishDialog: React.FC<RedditPublishDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Initialize Turndown service for HTML to Markdown conversion
+  const turndownService = new TurndownService({
+    headingStyle: 'atx',
+    bulletListMarker: '-',
+    codeBlockStyle: 'fenced',
+    fence: '```',
+    emDelimiter: '*',
+    strongDelimiter: '**'
+  });
+
   useEffect(() => {
     if (open) {
       // Reset form when dialog opens
@@ -118,7 +130,11 @@ const RedditPublishDialog: React.FC<RedditPublishDialogProps> = ({
       return;
     }
 
-    if (postType === 'text' && !content.trim()) {
+    // Check if there's actual text content (not just HTML tags or empty paragraphs)
+    const textOnly = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    const hasTextContent = postType === 'text' && textOnly.length > 0;
+    
+    if (postType === 'text' && !hasTextContent) {
       setError('Text posts require content');
       return;
     }
@@ -132,12 +148,29 @@ const RedditPublishDialog: React.FC<RedditPublishDialogProps> = ({
       setLoading(true);
       setError(null);
       
+      // Convert HTML content to Markdown for Reddit
+      const processedContent = postType === 'text' ? 
+        turndownService.turndown(content.trim()) : 
+        undefined;
+      
+      // Debug logging
+      const textOnly = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+      console.log('Reddit submit debug:', {
+        postType,
+        contentLength: content?.length || 0,
+        contentPreview: content?.substring(0, 100),
+        textOnlyLength: textOnly.length,
+        textOnlyPreview: textOnly.substring(0, 100),
+        processedContentLength: processedContent?.length || 0,
+        processedContentPreview: processedContent?.substring(0, 100)
+      });
+
       const postData = {
         accountId: parseInt(account.id),
         subreddit: selectedSubreddit.subreddit_name,
         title: title.trim(),
         type: postType,
-        ...(postType === 'text' && { content: content.trim() }),
+        ...(postType === 'text' && { content: processedContent }),
         ...(postType === 'link' && { url: url.trim() }),
         ...(flair && { flair }),
         nsfw,
@@ -290,18 +323,20 @@ const RedditPublishDialog: React.FC<RedditPublishDialogProps> = ({
 
           {/* Content based on post type */}
           {postType === 'text' ? (
-            <TextField
-              fullWidth
-              multiline
-              rows={6}
-              label="Content *"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Write your post content here..."
-              helperText={`${content.length}/40000 characters`}
-              inputProps={{ maxLength: 40000 }}
-              sx={{ mb: 3 }}
-            />
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="body2" sx={{ mb: 1, fontWeight: 'medium' }}>
+                Content *
+              </Typography>
+              <BasicWYSIWYGEditor
+                value={content}
+                onChange={setContent}
+                placeholder="Write your post content here..."
+                height={250}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                {content.replace(/<[^>]*>/g, '').length}/40000 characters • Rich text will be converted to Reddit Markdown
+              </Typography>
+            </Box>
           ) : (
             <TextField
               fullWidth

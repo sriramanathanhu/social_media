@@ -9,7 +9,7 @@ class RedditService {
     this.secretKey = process.env.ENCRYPTION_KEY || 'default-secret-key-change-in-production';
     this.redirectUri = process.env.REDDIT_REDIRECT_URI || 
       (process.env.NODE_ENV === 'production' 
-        ? 'https://socialmedia-p3ln.onrender.com/api/auth/reddit/callback'
+        ? 'https://socialmedia.ecitizen.media/api/auth/reddit/callback'
         : 'http://localhost:5000/api/auth/reddit/callback');
     
     // Reddit API endpoints
@@ -290,7 +290,7 @@ class RedditService {
           description: data.public_description,
           subscribers: data.subscribers,
           submission_type: data.submission_type,
-          can_submit: !data.user_is_banned && data.user_can_post_in_sr,
+          can_submit: data.user_is_banned === true ? false : (data.user_can_post_in_sr !== false),
           is_moderator: data.user_is_moderator || false,
           over_18: data.over18 || false,
           created_utc: data.created_utc
@@ -308,11 +308,19 @@ class RedditService {
   // Submit a post to Reddit
   async submitPost(accessToken, subreddit, postData) {
     try {
-      console.log('Submitting post to Reddit:', {
+      console.log('=== REDDIT API SUBMISSION DEBUG ===');
+      console.log('Full postData object:', JSON.stringify(postData, null, 2));
+      console.log('Submission details:', {
         subreddit,
         type: postData.kind,
-        title: postData.title.substring(0, 50) + (postData.title.length > 50 ? '...' : '')
+        title: postData.title.substring(0, 50) + (postData.title.length > 50 ? '...' : ''),
+        hasText: !!postData.text,
+        textLength: postData.text?.length || 0,
+        textPreview: postData.text?.substring(0, 200) || 'NO_TEXT',
+        hasUrl: !!postData.url,
+        urlValue: postData.url || 'NO_URL'
       });
+      console.log('===================================');
 
       const submitData = new URLSearchParams({
         sr: subreddit,
@@ -325,14 +333,25 @@ class RedditService {
 
       // Add content based on post type
       if (postData.kind === 'self') {
-        submitData.append('text', postData.text || '');
+        const textContent = postData.text || '';
+        submitData.append('text', textContent);
+        console.log('🔹 Adding text content to Reddit API:', {
+          textLength: textContent.length,
+          textPreview: textContent.substring(0, 100) || 'EMPTY_TEXT'
+        });
       } else if (postData.kind === 'link') {
         submitData.append('url', postData.url);
+        console.log('🔹 Adding URL to Reddit API:', postData.url);
       }
 
       // Add flair if provided
       if (postData.flair_id) {
         submitData.append('flair_id', postData.flair_id);
+      }
+
+      console.log('🔹 Final URLSearchParams being sent to Reddit:');
+      for (const [key, value] of submitData.entries()) {
+        console.log(`  ${key}: ${key === 'text' ? value.substring(0, 100) + (value.length > 100 ? '...' : '') : value}`);
       }
 
       const response = await axios.post(`${this.apiBaseUrl}/api/submit`, submitData, {

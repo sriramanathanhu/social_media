@@ -120,16 +120,25 @@ const syncAccountSubreddits = async (req, res) => {
 // Post to Reddit
 const submitPost = async (req, res) => {
   try {
-    const { accountId, subreddit, title, content, postType, nsfw, spoiler, flairId } = req.body;
+    const { accountId, subreddit, title, content, url, type: postType, nsfw, spoiler, flairId } = req.body;
     
-    console.log('Submitting Reddit post:', {
+    console.log('=== REDDIT POST SUBMISSION DEBUG ===');
+    console.log('Raw request body:', JSON.stringify(req.body, null, 2));
+    console.log('Extracted values:', {
       accountId,
       subreddit,
       postType,
       title: title?.substring(0, 50) + (title?.length > 50 ? '...' : ''),
+      contentLength: content?.length || 0,
+      contentPreview: content?.substring(0, 200) || 'NO_CONTENT',
+      hasContent: !!content,
+      urlLength: url?.length || 0,
+      urlPreview: url?.substring(0, 100) || 'NO_URL',
+      hasUrl: !!url,
       nsfw,
       spoiler
     });
+    console.log('=====================================');
 
     // Validate required fields
     if (!accountId || !subreddit || !title) {
@@ -172,10 +181,12 @@ const submitPost = async (req, res) => {
       spoiler: spoiler || false
     };
 
-    if (postType === 'link' && content) {
-      postData.url = content;
+    if (postType === 'link' && url) {
+      postData.url = url;
+      console.log('Setting link post URL:', url);
     } else if (postType === 'text') {
       postData.text = content || '';
+      console.log('Setting text post content:', content?.substring(0, 100) || 'NO_CONTENT');
     }
 
     if (flairId) {

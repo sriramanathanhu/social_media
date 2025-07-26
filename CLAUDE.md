@@ -37,6 +37,19 @@ This section maintains essential context of the project state across different c
 - **Rollback Plan**: Ensure every migration has a rollback script
 - **Zero Downtime**: Structure changes to avoid application downtime
 
+## Post-Restoration Database Sequence Fix (CRITICAL)
+**ALWAYS run after any data restoration to prevent primary key violations:**
+```sql
+-- Fix all sequences after data restoration
+SELECT setval('social_accounts_id_seq', COALESCE((SELECT MAX(id) FROM social_accounts), 1), true);
+SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1), true);
+SELECT setval('posts_id_seq', COALESCE((SELECT MAX(id) FROM posts), 1), true);
+SELECT setval('api_credentials_id_seq', COALESCE((SELECT MAX(id) FROM api_credentials), 1), true);
+SELECT setval('live_streams_id_seq', COALESCE((SELECT MAX(id) FROM live_streams), 1), true);
+SELECT setval('stream_apps_id_seq', COALESCE((SELECT MAX(id) FROM stream_apps), 1), true);
+SELECT setval('stream_app_keys_id_seq', COALESCE((SELECT MAX(id) FROM stream_app_keys), 1), true);
+```
+
 # Docker Volume Management
 **CRITICAL: Never delete Docker volumes - data persistence is essential**
 - **Volume Protection**: NEVER run `docker volume rm` or `docker volume prune`
@@ -50,11 +63,26 @@ This section maintains essential context of the project state across different c
 - **server/uploads**: Host mount for uploaded files persistence
 - **All data survives**: `docker compose down` and container recreation
 
-# Render SSH Access
-- SSH Connection: `ssh srv-d1k35rndiees73e10vsg@ssh.oregon.render.com`
-- Server Process: Node.js running on PID 128, port 10000
-- Database: `psql postgresql://socialmediadb_82lt_user:nPuC2nBBHB7oU0OhEqqX8E9hLIOz9zts@dpg-d1k3qker433s73c3k8cg-a/socialmediadb_82lt`
-- Project Path: `/opt/render/project/src`
+# Security Guidelines
+**CRITICAL: Security best practices must be followed at all times**
+- **Database Security**: 
+  - NEVER use default database ports (5432) with standard usernames (postgres/admin)
+  - NEVER use weak passwords like 'admin123', 'postgres', or dictionary words
+  - ALWAYS use strong, randomly generated passwords (32+ characters, alphanumeric + symbols)
+  - ALWAYS change default database users and create application-specific users with limited privileges
+  - ALWAYS use non-standard ports for database services to reduce attack surface
+- **Password Policy**:
+  - NEVER create simple admin passwords in production
+  - ALWAYS use secure password generation for all admin accounts
+  - ENFORCE minimum password complexity: 16+ chars, mixed case, numbers, special chars
+- **Network Security**:
+  - NEVER expose databases directly on standard ports
+  - ALWAYS use firewalls and restrict database access to application servers only
+  - CONSIDER using VPN or private networks for sensitive database connections
+- **Access Control**:
+  - ALWAYS implement principle of least privilege
+  - REGULARLY audit and rotate credentials
+  - LOG all administrative access and database operations
 
 # Live Streaming Configuration (Nimble Streamer)
 - **Cloud Server**: 37.27.201.26:1935 (RTMP)
@@ -80,15 +108,254 @@ This section maintains essential context of the project state across different c
 
 ## Reddit Integration Status
 - ✅ Backend Reddit Service: OAuth 2.0 flow with token encryption, subreddit management, and posting
-- ✅ Database Schema: Reddit subreddits table and account integration created manually
+- ✅ Database Schema: Reddit subreddits table and account integration
 - ✅ Reddit Controller: Account management and post submission endpoints
 - ✅ Authentication Routes: Reddit OAuth connect and callback handlers
-- ✅ Frontend Reddit Page: Dedicated page following WordPress pattern
+- ✅ Frontend Reddit Page: Dedicated page following WordPress pattern with WYSIWYG editor
 - ✅ Redux Integration: Reddit actions and state management
 - ✅ UI Components: Connect dialog and publish dialog with full Reddit features
 - ✅ Navigation: Reddit tab added to main navigation menu
 - ✅ TypeScript Support: Extended interfaces for Reddit platform
-- ⚠️ **Server Restart Required**: Reddit API endpoints require server restart to become active
+- ✅ OAuth Flow: Complete Reddit OAuth integration working end-to-end
+- ✅ WYSIWYG Editor: Rich text editor with HTML to Markdown conversion for Reddit compatibility
+- ✅ Database Schema Fix: Fixed missing api_credentials columns causing OAuth 500 errors (July 26, 2025)
+
+### Reddit Integration Troubleshooting Guide
+**Common issues and solutions for Reddit OAuth integration:**
+
+1. **"column 'status' does not exist" Error:**
+   ```sql
+   ALTER TABLE api_credentials ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active';
+   ALTER TABLE api_credentials ADD COLUMN IF NOT EXISTS created_by INTEGER;
+   ```
+
+2. **"duplicate key value violates unique constraint" Error:**
+   ```sql
+   -- Fix sequence values after data restoration
+   SELECT setval('social_accounts_id_seq', COALESCE((SELECT MAX(id) FROM social_accounts), 1), true);
+   ```
+
+3. **Missing Reddit-specific columns:**
+   ```sql
+   ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS reddit_karma INTEGER DEFAULT 0;
+   ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS reddit_created_utc INTEGER;
+   ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS reddit_is_gold BOOLEAN DEFAULT false;
+   ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS platform_user_id VARCHAR(255);
+   ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS platform_data JSONB DEFAULT '{}';
+   ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+   ```
+
+4. **Missing reddit_subreddits table columns:**
+   ```sql
+   ALTER TABLE reddit_subreddits ADD COLUMN IF NOT EXISTS flair_enabled BOOLEAN DEFAULT false;
+   ALTER TABLE reddit_subreddits ADD COLUMN IF NOT EXISTS flair_list JSONB DEFAULT '[]';
+   ALTER TABLE reddit_subreddits ADD COLUMN IF NOT EXISTS rules JSONB DEFAULT '[]';
+   ALTER TABLE reddit_subreddits ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+   ALTER TABLE reddit_subreddits ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+   ```
+
+5. **"No subreddits available in publish dialog" Error:**
+   ```sql
+   -- Fix NULL can_submit values that prevent subreddits from showing in publish dialog
+   UPDATE reddit_subreddits SET can_submit = true WHERE can_submit IS NULL;
+   ```
+
+6. **"Reddit post content missing - only title posted" Error:**
+   - **Cause**: Multiple issues in frontend-backend parameter handling
+   - **Fix**: Complete backend controller fixes:
+   ```javascript
+   // In server/src/controllers/redditController.js line 123 - Add url parameter
+   const { accountId, subreddit, title, content, url, type: postType, nsfw, spoiler, flairId } = req.body;
+   
+   // Lines 184-190 - Fix post data logic
+   if (postType === 'link' && url) {
+     postData.url = url;  // Use url field for link posts
+     console.log('Setting link post URL:', url);
+   } else if (postType === 'text') {
+     postData.text = content || '';  // Use content field for text posts
+     console.log('Setting text post content:', content?.substring(0, 100) || 'NO_CONTENT');
+   }
+   ```
+
+7. **"WYSIWYG Editor content not being processed correctly" Error:**
+   - **Cause**: ReactQuill editor may save empty content as HTML tags like `<p><br></p>`
+   - **Fix**: Enhanced content validation in frontend:
+   ```javascript
+   // Check text-only content, not just HTML
+   const textOnly = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+   const hasTextContent = postType === 'text' && textOnly.length > 0;
+   ```
+   - **Debug**: Check browser console for "Reddit submit debug" logs to see content processing
+
+**Post-fix checklist:**
+- [ ] Restart backend container: `docker restart social_media-backend-1`
+- [ ] Test Reddit connection from UI
+- [ ] Verify no database errors in logs: `docker logs social_media-backend-1 --tail 20`
+
+## Reddit Content Debug Instructions
+
+**To debug Reddit content issues, follow these steps:**
+
+1. **Open Browser Developer Tools:**
+   - Navigate to your social media app at `http://localhost:3000`
+   - Open Developer Tools (F12)
+   - Go to Console tab
+
+2. **Test Reddit Post Submission:**
+   - Go to Reddit page and click Publish on your account
+   - Fill in both title and content using the WYSIWYG editor
+   - Check console for "Reddit submit debug" logs before clicking submit
+   - Submit the post and check logs
+
+3. **Check Backend Logs:**
+   ```bash
+   # Watch backend logs in real-time
+   docker logs social_media-backend-1 -f
+   
+   # Or check recent logs
+   docker logs social_media-backend-1 --tail 50 | grep -A 20 -B 5 "REDDIT.*DEBUG"
+   ```
+
+4. **Expected Log Output:**
+   - Frontend: "Reddit submit debug" with content details
+   - Backend: "REDDIT POST SUBMISSION DEBUG" with request body
+   - Backend: "REDDIT API SUBMISSION DEBUG" with processed data
+   - Backend: "Adding text content to Reddit API" with final content
+
+5. **Common Issues Found in Logs:**
+   - `textOnlyLength: 0` → WYSIWYG editor has only HTML tags
+   - `contentLength: 0` → No content sent from frontend
+   - `hasContent: false` → Backend not receiving content
+   - `textPreview: "NO_TEXT"` → Content lost during processing
+
+# Feature Rebuild Guide
+**Essential checklist for rebuilding features after data loss/restoration:**
+
+## 1. Post-Restoration Database Fixes (ALWAYS FIRST)
+```bash
+# Connect to database
+docker exec social_media-postgres-1 psql -U postgres -d socialmedia
+
+# Fix all sequences (prevents primary key violations)
+SELECT setval('social_accounts_id_seq', COALESCE((SELECT MAX(id) FROM social_accounts), 1), true);
+SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1), true);
+SELECT setval('posts_id_seq', COALESCE((SELECT MAX(id) FROM posts), 1), true);
+SELECT setval('api_credentials_id_seq', COALESCE((SELECT MAX(id) FROM api_credentials), 1), true);
+SELECT setval('live_streams_id_seq', COALESCE((SELECT MAX(id) FROM live_streams), 1), true);
+```
+
+## 2. Reddit Integration Rebuild
+**Files to check/restore:**
+- `server/src/services/reddit.js` - Reddit API service
+- `server/src/controllers/authController.js` - Reddit OAuth handlers
+- `server/src/models/ApiCredentials.js` - API credentials model
+- `client/src/pages/RedditPage.tsx` - Frontend Reddit page
+- `client/src/components/ConnectRedditDialog.tsx` - Connection dialog
+
+**Database schema requirements:**
+```sql
+-- api_credentials table
+ALTER TABLE api_credentials ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active';
+ALTER TABLE api_credentials ADD COLUMN IF NOT EXISTS created_by INTEGER;
+
+-- social_accounts Reddit columns
+ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS reddit_karma INTEGER DEFAULT 0;
+ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS reddit_created_utc INTEGER;
+ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS reddit_is_gold BOOLEAN DEFAULT false;
+ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS platform_user_id VARCHAR(255);
+ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS platform_data JSONB DEFAULT '{}';
+ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
+-- reddit_subreddits table
+ALTER TABLE reddit_subreddits ADD COLUMN IF NOT EXISTS flair_enabled BOOLEAN DEFAULT false;
+ALTER TABLE reddit_subreddits ADD COLUMN IF NOT EXISTS flair_list JSONB DEFAULT '[]';
+ALTER TABLE reddit_subreddits ADD COLUMN IF NOT EXISTS rules JSONB DEFAULT '[]';
+ALTER TABLE reddit_subreddits ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE reddit_subreddits ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+```
+
+## 3. WordPress Integration Rebuild
+**Required columns after restoration:**
+```sql
+ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS site_url VARCHAR(255);
+ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS app_password TEXT;
+ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS site_title VARCHAR(255);
+ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS api_version VARCHAR(10) DEFAULT 'v2';
+```
+
+## 4. General Integration Pattern
+**For any platform integration (X, Pinterest, Mastodon, etc.):**
+
+1. **Check backend service file exists:** `server/src/services/[platform].js`
+2. **Verify controller integration:** Check `authController.js` has platform handlers
+3. **Frontend components:** Ensure platform page and dialogs exist
+4. **Database schema:** Add platform-specific columns as needed
+5. **Environment variables:** Verify API keys are configured
+6. **Test integration:** Always test OAuth flow end-to-end
+
+## 5. Live Streaming Rebuild
+**Critical components:**
+- Nimble Streamer configuration (37.27.201.26:1935)
+- Stream apps and keys restoration
+- Frontend live streaming UI
+- RTMP endpoint configuration
+
+**Database tables to restore:**
+- `live_streams`
+- `stream_apps` 
+- `stream_app_keys`
+
+## 6. Post-Rebuild Verification
+```bash
+# Restart all containers
+docker restart social_media-backend-1 social_media-frontend-1
+
+# Check logs for errors
+docker logs social_media-backend-1 --tail 50
+
+# Test all platform connections from UI
+# Verify data persistence after container restarts
+```
+
+## Complete Data Restoration Status (July 25, 2025)
+**✅ ALL BUSINESS-CRITICAL DATA SUCCESSFULLY RESTORED FROM BACKUP**
+
+### Core Platform Data
+- ✅ **Users (6 accounts)**: All admin and user accounts restored with original credentials
+- ✅ **Social Media Accounts (11 platforms)**: 
+  - Mastodon (3): SriNithyanandaTamil, SriNithyananda, nithyanandayoga
+  - X/Twitter (2): kailasanation, NithyanandaAi
+  - Pinterest (1): ramanathaananda  
+  - Bluesky (2): nithyanandayoga.bsky.social, sphnithyananda.bsky.social
+  - WordPress (2): unitedancientnations.org, usktanzania.org
+- ✅ **Posts (5 content items)**: Published and failed posts with complete metadata restored
+
+### WordPress Integration
+- ✅ **WordPress Sites (2 connected)**:
+  - "United Ancient Nations" - https://unitedancientnations.org/
+  - "Sovereign Order of KAILASA Nithyananda" - https://usktanzania.org/
+- ✅ **WordPress Categories (14)**: Diplomatic Mission, Featured News, Ghana, Kenya, Tanzania, etc.
+- ✅ **WordPress Tags (14)**: africa, Kailasa, Nithyananda, NGO, Service, etc.
+- ✅ **WordPress Management**: Full publish, sync, and admin functionality restored
+
+### Live Streaming Infrastructure  
+- ✅ **Stream Apps (2)**: "Social Media Public Stream", "socialmedia"
+- ✅ **Stream Keys (3)**: YouTube keys and primary stream configurations
+- ✅ **Live Streams (2)**: "RMN" and "RMN Test 2" with RTMP configurations
+- ✅ **Nimble Streamer Integration**: 37.27.201.26:1935 RTMP working
+
+### Platform Status
+- ✅ **User Access**: Primary admin account `sri.ramanatha@uskfoundation.or.ke` fully functional
+- ✅ **All Features Working**: Account management, posting, WordPress publishing, live streaming
+- ✅ **Reddit Integration**: Available for new connections (not in backup - feature added later)
+- 🔒 **Ransomware Recovery**: Data recovered from automated backup after ransomware attack
+
+### Final Verification Completed
+- ✅ **WordPress Sites**: Both sites visible and functional in /wordpress page
+- ✅ **Social Accounts**: All 11 accounts visible in /accounts page  
+- ✅ **Posts**: All 5 posts visible in /posts page
+- ✅ **Live Streaming**: Infrastructure restored in database
+- ✅ **Reddit**: Ready for new connections (clean slate as expected)
 
 ### Reddit Integration Activation Steps
 To activate Reddit integration (server restart required):

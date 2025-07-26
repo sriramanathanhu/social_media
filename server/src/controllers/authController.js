@@ -1105,17 +1105,15 @@ const connectReddit = async (req, res) => {
       platform: 'reddit'
     });
     
-    // Store OAuth data in database
+    // Store OAuth data in database - corrected parameter order
     await OAuthState.create(
       stateKey,
       req.user.id,
       'reddit',
-      JSON.stringify({
-        userId: req.user.id,
-        random: random,
-        platform: 'reddit'
-      }),
-      new Date(Date.now() + 15 * 60 * 1000) // 15 minutes expiry
+      null, // instance_url
+      process.env.REDDIT_CLIENT_ID,
+      process.env.REDDIT_CLIENT_SECRET,
+      state // extra_data
     );
     
     console.log('Reddit OAuth state stored with key:', stateKey);
@@ -1123,10 +1121,8 @@ const connectReddit = async (req, res) => {
     // Get authorization URL from Reddit service
     const authUrl = await redditService.getAuthUrl(state);
     
-    res.json({
-      authUrl: authUrl,
-      state: stateKey
-    });
+    console.log('🔗 Reddit OAuth URL generated:', authUrl);
+    res.json({ authUrl });
   } catch (error) {
     console.error('Reddit connect error:', error);
     res.status(500).json({ error: 'Failed to initialize Reddit connection: ' + error.message });
@@ -1163,20 +1159,23 @@ const redditCallback = async (req, res) => {
     const userInfo = await redditService.verifyCredentials(tokenData.accessToken);
     console.log('Reddit user info received:', userInfo);
     
-    // Check if account already exists
-    const existingAccounts = await SocialAccount.findByPlatformAndUser(
+    // Check if account already exists using the correct method that includes username
+    const existingAccount = await SocialAccount.findByPlatformUserAndUsername(
       oauthState.user_id,
-      'reddit'
+      'reddit',
+      null, // Reddit doesn't have instance URLs
+      userInfo.name
     );
     
-    const existingAccount = existingAccounts.find(acc => acc.username === userInfo.name);
+    // findByPlatformUserAndUsername returns an array, get first match
+    const existingAccountRecord = existingAccount.length > 0 ? existingAccount[0] : null;
     
-    if (existingAccount) {
+    if (existingAccountRecord) {
       console.log('Reddit account already exists, updating tokens');
       
       // Update existing account with new tokens
       await SocialAccount.updateTokens(
-        existingAccount.id,
+        existingAccountRecord.id,
         redditService.encrypt(tokenData.accessToken),
         tokenData.refreshToken ? redditService.encrypt(tokenData.refreshToken) : null,
         tokenData.expiresIn ? new Date(Date.now() + tokenData.expiresIn * 1000) : null
@@ -1188,21 +1187,59 @@ const redditCallback = async (req, res) => {
          SET reddit_karma = $1, reddit_created_utc = $2, reddit_is_gold = $3, 
              display_name = $4, status = 'active', updated_at = CURRENT_TIMESTAMP
          WHERE id = $5`,
-        [userInfo.karma, userInfo.created_utc, userInfo.is_gold, userInfo.name, existingAccount.id]
+        [userInfo.karma, userInfo.created_utc, userInfo.is_gold, userInfo.name, existingAccountRecord.id]
       );
       
-      await SocialAccount.updateLastUsed(existingAccount.id);
+      await SocialAccount.updateLastUsed(existingAccountRecord.id);
       
-      return res.json({
-        success: true,
-        message: 'Reddit account reconnected successfully',
-        account: {
-          platform: 'reddit',
-          username: userInfo.name,
-          karma: userInfo.karma,
-          status: 'active'
+      // Fetch and update user's subreddits
+      try {
+        console.log('Fetching Reddit subreddits for existing account:', existingAccountRecord.id);
+        const subreddits = await redditService.getUserSubreddits(tokenData.accessToken);
+        
+        // Store/update subreddits in database
+        for (const subreddit of subreddits) {
+          await pool.query(
+            `INSERT INTO reddit_subreddits 
+             (account_id, subreddit_name, display_name, title, description, 
+              subscribers, submission_type, can_submit, is_moderator, 
+              over_18, created_utc) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+             ON CONFLICT (account_id, subreddit_name) 
+             DO UPDATE SET 
+               display_name = EXCLUDED.display_name,
+               title = EXCLUDED.title,
+               description = EXCLUDED.description,
+               subscribers = EXCLUDED.subscribers,
+               submission_type = EXCLUDED.submission_type,
+               can_submit = EXCLUDED.can_submit,
+               is_moderator = EXCLUDED.is_moderator,
+               over_18 = EXCLUDED.over_18,
+               last_synced = CURRENT_TIMESTAMP`,
+            [
+              existingAccountRecord.id,
+              subreddit.name,
+              subreddit.display_name,
+              subreddit.title,
+              subreddit.description,
+              subreddit.subscribers,
+              subreddit.submission_type,
+              subreddit.can_submit,
+              subreddit.is_moderator,
+              subreddit.over_18,
+              subreddit.created_utc
+            ]
+          );
         }
-      });
+        
+        console.log(`Successfully updated ${subreddits.length} subreddits for Reddit account ${existingAccountRecord.id}`);
+      } catch (subredditError) {
+        console.error('Failed to fetch/store Reddit subreddits for existing account:', subredditError);
+        // Don't fail the entire OAuth flow if subreddit fetching fails
+      }
+      
+      // Redirect to frontend instead of JSON response
+      return res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://socialmedia.ecitizen.media' : 'http://localhost:3000'}/#/accounts?connected=reddit`);
     }
     
     // Create new account
@@ -1216,7 +1253,8 @@ const redditCallback = async (req, res) => {
       avatarUrl: null, // Reddit doesn't provide avatar URL in basic API
       accessToken: redditService.encrypt(tokenData.accessToken),
       refreshToken: tokenData.refreshToken ? redditService.encrypt(tokenData.refreshToken) : null,
-      tokenExpiresAt: tokenData.expiresIn ? new Date(Date.now() + tokenData.expiresIn * 1000) : null
+      tokenExpiresAt: tokenData.expiresIn ? new Date(Date.now() + tokenData.expiresIn * 1000) : null,
+      status: 'active'
     });
     
     // Update Reddit-specific data
@@ -1229,19 +1267,57 @@ const redditCallback = async (req, res) => {
     
     console.log('Reddit account created successfully:', newAccount);
     
-    // Clean up OAuth state
-    await OAuthState.delete(oauthState.id);
-    
-    res.json({
-      success: true,
-      message: 'Reddit account connected successfully',
-      account: {
-        platform: 'reddit',
-        username: userInfo.name,
-        karma: userInfo.karma,
-        status: 'active'
+    // Fetch and store user's subreddits
+    try {
+      console.log('Fetching Reddit subreddits for account:', newAccount.id);
+      const subreddits = await redditService.getUserSubreddits(tokenData.accessToken);
+      
+      // Store subreddits in database
+      for (const subreddit of subreddits) {
+        await pool.query(
+          `INSERT INTO reddit_subreddits 
+           (account_id, subreddit_name, display_name, title, description, 
+            subscribers, submission_type, can_submit, is_moderator, 
+            over_18, created_utc) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+           ON CONFLICT (account_id, subreddit_name) 
+           DO UPDATE SET 
+             display_name = EXCLUDED.display_name,
+             title = EXCLUDED.title,
+             description = EXCLUDED.description,
+             subscribers = EXCLUDED.subscribers,
+             submission_type = EXCLUDED.submission_type,
+             can_submit = EXCLUDED.can_submit,
+             is_moderator = EXCLUDED.is_moderator,
+             over_18 = EXCLUDED.over_18,
+             last_synced = CURRENT_TIMESTAMP`,
+          [
+            newAccount.id,
+            subreddit.name,
+            subreddit.display_name,
+            subreddit.title,
+            subreddit.description,
+            subreddit.subscribers,
+            subreddit.submission_type,
+            subreddit.can_submit,
+            subreddit.is_moderator,
+            subreddit.over_18,
+            subreddit.created_utc
+          ]
+        );
       }
-    });
+      
+      console.log(`Successfully stored ${subreddits.length} subreddits for Reddit account ${newAccount.id}`);
+    } catch (subredditError) {
+      console.error('Failed to fetch/store Reddit subreddits:', subredditError);
+      // Don't fail the entire OAuth flow if subreddit fetching fails
+    }
+    
+    // Clean up OAuth state
+    await OAuthState.deleteByStateKey(stateKey);
+    
+    // Redirect to frontend with success message
+    res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://socialmedia.ecitizen.media' : 'http://localhost:3000'}/#/accounts?connected=reddit`);
   } catch (error) {
     console.error('Reddit callback error:', error);
     res.status(500).json({ error: 'Failed to connect Reddit account: ' + error.message });
