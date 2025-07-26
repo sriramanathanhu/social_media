@@ -160,7 +160,7 @@ const RedditPublishDialog: React.FC<RedditPublishDialogProps> = ({
       setError(null);
       
       // Process content based on content mode
-      let processedContent;
+      let processedContent: string | undefined;
       if (postType === 'text') {
         if (contentMode === 'rich') {
           // Convert HTML content to Markdown for Reddit
@@ -169,6 +169,8 @@ const RedditPublishDialog: React.FC<RedditPublishDialogProps> = ({
           // Use markdown content directly
           processedContent = content.trim();
         }
+      } else {
+        processedContent = undefined;
       }
       
       // Debug logging
