@@ -120,6 +120,16 @@ SELECT setval('stream_app_keys_id_seq', COALESCE((SELECT MAX(id) FROM stream_app
 - ✅ WYSIWYG Editor: Rich text editor with HTML to Markdown conversion for Reddit compatibility
 - ✅ Database Schema Fix: Fixed missing api_credentials columns causing OAuth 500 errors (July 26, 2025)
 
+### Reddit Publishing Features (July 26, 2025)
+- ✅ **Dual Content Modes**: Rich text (WYSIWYG) and direct Markdown input options
+- ✅ **Subreddit Visibility Fix**: Fixed NULL can_submit values preventing subreddits from showing in publish dialog
+- ✅ **Content Submission Fix**: Resolved issue where only titles were posted (content was missing)
+- ✅ **Markdown Editor**: Dedicated markdown text area with monospace font and syntax examples
+- ✅ **Format Switching**: Radio buttons to switch between Rich Text and Markdown modes
+- ✅ **Smart Validation**: Content validation adapts to selected input mode (HTML vs Markdown)
+- ✅ **Character Counting**: Accurate character counts for both Rich Text and Markdown modes
+- ✅ **Content Processing**: Proper handling of Rich Text → Markdown conversion and direct Markdown input
+
 ### Reddit Integration Troubleshooting Guide
 **Common issues and solutions for Reddit OAuth integration:**
 
@@ -159,6 +169,7 @@ SELECT setval('stream_app_keys_id_seq', COALESCE((SELECT MAX(id) FROM stream_app
    -- Fix NULL can_submit values that prevent subreddits from showing in publish dialog
    UPDATE reddit_subreddits SET can_submit = true WHERE can_submit IS NULL;
    ```
+   **Note**: This commonly occurs after data restoration when can_submit values become NULL
 
 6. **"Reddit post content missing - only title posted" Error:**
    - **Cause**: Multiple issues in frontend-backend parameter handling

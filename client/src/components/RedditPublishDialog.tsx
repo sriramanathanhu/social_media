@@ -75,6 +75,7 @@ const RedditPublishDialog: React.FC<RedditPublishDialogProps> = ({
   onPublished,
 }) => {
   const [postType, setPostType] = useState<'text' | 'link'>('text');
+  const [contentMode, setContentMode] = useState<'rich' | 'markdown'>('rich');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [url, setUrl] = useState('');
@@ -101,6 +102,7 @@ const RedditPublishDialog: React.FC<RedditPublishDialogProps> = ({
     if (open) {
       // Reset form when dialog opens
       setPostType('text');
+      setContentMode('rich');
       setTitle('');
       setContent('');
       setUrl('');
@@ -130,9 +132,18 @@ const RedditPublishDialog: React.FC<RedditPublishDialogProps> = ({
       return;
     }
 
-    // Check if there's actual text content (not just HTML tags or empty paragraphs)
-    const textOnly = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-    const hasTextContent = postType === 'text' && textOnly.length > 0;
+    // Check if there's actual text content based on content mode
+    let hasTextContent = false;
+    if (postType === 'text') {
+      if (contentMode === 'rich') {
+        // For rich text, check if there's actual text content (not just HTML tags)
+        const textOnly = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+        hasTextContent = textOnly.length > 0;
+      } else {
+        // For markdown, check if there's any non-whitespace content
+        hasTextContent = content.trim().length > 0;
+      }
+    }
     
     if (postType === 'text' && !hasTextContent) {
       setError('Text posts require content');
@@ -148,21 +159,27 @@ const RedditPublishDialog: React.FC<RedditPublishDialogProps> = ({
       setLoading(true);
       setError(null);
       
-      // Convert HTML content to Markdown for Reddit
-      const processedContent = postType === 'text' ? 
-        turndownService.turndown(content.trim()) : 
-        undefined;
+      // Process content based on content mode
+      let processedContent;
+      if (postType === 'text') {
+        if (contentMode === 'rich') {
+          // Convert HTML content to Markdown for Reddit
+          processedContent = turndownService.turndown(content.trim());
+        } else {
+          // Use markdown content directly
+          processedContent = content.trim();
+        }
+      }
       
       // Debug logging
-      const textOnly = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
       console.log('Reddit submit debug:', {
         postType,
-        contentLength: content?.length || 0,
-        contentPreview: content?.substring(0, 100),
-        textOnlyLength: textOnly.length,
-        textOnlyPreview: textOnly.substring(0, 100),
+        contentMode,
+        originalContentLength: content?.length || 0,
+        originalContentPreview: content?.substring(0, 100),
         processedContentLength: processedContent?.length || 0,
-        processedContentPreview: processedContent?.substring(0, 100)
+        processedContentPreview: processedContent?.substring(0, 100),
+        hasProcessedContent: !!processedContent
       });
 
       const postData = {
@@ -324,17 +341,77 @@ const RedditPublishDialog: React.FC<RedditPublishDialogProps> = ({
           {/* Content based on post type */}
           {postType === 'text' ? (
             <Box sx={{ mb: 3 }}>
-              <Typography variant="body2" sx={{ mb: 1, fontWeight: 'medium' }}>
-                Content *
-              </Typography>
-              <BasicWYSIWYGEditor
-                value={content}
-                onChange={setContent}
-                placeholder="Write your post content here..."
-                height={250}
-              />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                  Content *
+                </Typography>
+                <RadioGroup
+                  row
+                  value={contentMode}
+                  onChange={(e) => setContentMode(e.target.value as 'rich' | 'markdown')}
+                  sx={{ gap: 1 }}
+                >
+                  <FormControlLabel
+                    value="rich"
+                    control={<Radio size="small" />}
+                    label="Rich Text"
+                    sx={{ 
+                      '& .MuiFormControlLabel-label': { fontSize: '0.875rem' },
+                      '& .MuiRadio-root': { padding: '4px' }
+                    }}
+                  />
+                  <FormControlLabel
+                    value="markdown"
+                    control={<Radio size="small" />}
+                    label="Markdown"
+                    sx={{ 
+                      '& .MuiFormControlLabel-label': { fontSize: '0.875rem' },
+                      '& .MuiRadio-root': { padding: '4px' }
+                    }}
+                  />
+                </RadioGroup>
+              </Box>
+              
+              {contentMode === 'rich' ? (
+                <BasicWYSIWYGEditor
+                  value={content}
+                  onChange={setContent}
+                  placeholder="Write your post content here..."
+                  height={250}
+                />
+              ) : (
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={12}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Write your post content in Markdown format...
+
+**Bold text**
+*Italic text*
+[Link text](https://example.com)
+`Code`
+```
+Code block
+```
+
+- List item
+- List item"
+                  sx={{ 
+                    '& .MuiInputBase-input': { 
+                      fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                      fontSize: '0.875rem'
+                    }
+                  }}
+                />
+              )}
+              
               <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                {content.replace(/<[^>]*>/g, '').length}/40000 characters • Rich text will be converted to Reddit Markdown
+                {contentMode === 'rich' 
+                  ? `${content.replace(/<[^>]*>/g, '').length}/40000 characters • Rich text will be converted to Reddit Markdown`
+                  : `${content.length}/40000 characters • Direct Markdown format`
+                }
               </Typography>
             </Box>
           ) : (
@@ -456,7 +533,11 @@ const RedditPublishDialog: React.FC<RedditPublishDialogProps> = ({
             variant="contained"
             onClick={handleSubmit}
             disabled={loading || !title.trim() || !selectedSubreddit || 
-              (postType === 'text' && !content.trim()) || 
+              (postType === 'text' && (
+                contentMode === 'rich' 
+                  ? !content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+                  : !content.trim()
+              )) || 
               (postType === 'link' && !url.trim())}
             startIcon={loading ? <CircularProgress size={16} /> : <RedditIcon />}
             sx={{ bgcolor: '#ff4500', '&:hover': { bgcolor: '#e03d00' } }}

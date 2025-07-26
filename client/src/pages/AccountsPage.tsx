@@ -24,6 +24,7 @@ import {
   Pinterest as PinterestIcon,
   Group as GroupIcon,
   Cloud as BlueskyIcon,
+  Reddit as RedditIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
@@ -33,6 +34,7 @@ import ConnectMastodonDialog from '../components/ConnectMastodonDialog';
 import ConnectXDialog from '../components/ConnectXDialog';
 import ConnectPinterestDialog from '../components/ConnectPinterestDialog';
 import ConnectBlueskyDialog from '../components/ConnectBlueskyDialog';
+import ConnectRedditDialog from '../components/ConnectRedditDialog';
 import AccountGroups from '../components/AccountGroups';
 
 const AccountsPage: React.FC = () => {
@@ -43,6 +45,7 @@ const AccountsPage: React.FC = () => {
   const [connectXDialogOpen, setConnectXDialogOpen] = useState(false);
   const [connectPinterestDialogOpen, setConnectPinterestDialogOpen] = useState(false);
   const [connectBlueskyDialogOpen, setConnectBlueskyDialogOpen] = useState(false);
+  const [connectRedditDialogOpen, setConnectRedditDialogOpen] = useState(false);
   const [fabMenuAnchor, setFabMenuAnchor] = useState<null | HTMLElement>(null);
   const [currentTab, setCurrentTab] = useState(0);
 
@@ -90,10 +93,16 @@ const AccountsPage: React.FC = () => {
     handleFabMenuClose();
   };
 
+  const handleConnectReddit = () => {
+    setConnectRedditDialogOpen(true);
+    handleFabMenuClose();
+  };
+
   const mastodonAccounts = accounts.filter(account => account.platform === 'mastodon');
   const xAccounts = accounts.filter(account => account.platform === 'x');
   const pinterestAccounts = accounts.filter(account => account.platform === 'pinterest');
   const blueskyAccounts = accounts.filter(account => account.platform === 'bluesky');
+  const redditAccounts = accounts.filter(account => account.platform === 'reddit');
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -275,6 +284,43 @@ const AccountsPage: React.FC = () => {
                 </Paper>
               </Grid>
 
+              {/* Reddit Accounts */}
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <RedditIcon sx={{ mr: 1, color: '#ff4500' }} />
+                    <Typography variant="h6">Reddit Accounts</Typography>
+                  </Box>
+                  
+                  {redditAccounts.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        No Reddit accounts connected
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        startIcon={<AddIcon />}
+                        onClick={handleConnectReddit}
+                        sx={{ borderColor: '#ff4500', color: '#ff4500', '&:hover': { borderColor: '#ff4500', backgroundColor: 'rgba(255, 69, 0, 0.04)' } }}
+                      >
+                        Connect Reddit Account
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box>
+                      {redditAccounts.map((account) => (
+                        <AccountCard
+                          key={account.id}
+                          account={account}
+                          onDelete={handleDeleteAccount}
+                          onVerify={handleVerifyAccount}
+                        />
+                      ))}
+                    </Box>
+                  )}
+                </Paper>
+              </Grid>
+
               {/* Other Platforms (Coming Soon) */}
               <Grid item xs={12}>
                 <Paper sx={{ p: 3 }}>
@@ -343,6 +389,12 @@ const AccountsPage: React.FC = () => {
           </ListItemIcon>
           <ListItemText>Connect Bluesky</ListItemText>
         </MenuItem>
+        <MenuItem onClick={handleConnectReddit}>
+          <ListItemIcon>
+            <RedditIcon fontSize="small" sx={{ color: '#ff4500' }} />
+          </ListItemIcon>
+          <ListItemText>Connect Reddit</ListItemText>
+        </MenuItem>
       </Menu>
 
       {/* Connect Mastodon Dialog */}
@@ -367,6 +419,16 @@ const AccountsPage: React.FC = () => {
       <ConnectBlueskyDialog
         open={connectBlueskyDialogOpen}
         onClose={() => setConnectBlueskyDialogOpen(false)}
+      />
+
+      {/* Connect Reddit Dialog */}
+      <ConnectRedditDialog
+        open={connectRedditDialogOpen}
+        onClose={() => setConnectRedditDialogOpen(false)}
+        onAccountConnected={() => {
+          setConnectRedditDialogOpen(false);
+          dispatch(fetchAccounts());
+        }}
       />
       </Container>
     </Box>

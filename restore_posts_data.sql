@@ -1,0 +1,9 @@
+-- Restore posts data
+DELETE FROM posts;
+
+INSERT INTO posts (id, user_id, content, media_urls, platforms, scheduled_time, status, post_results, created_at, updated_at, target_accounts, scheduled_for, post_type, is_scheduled, published_at, error_message, featured_image_url, excerpt, wp_categories, wp_tags, wp_post_id, wp_post_status) VALUES 
+(1, 2, 'Nithyanandam', '{}', '{mastodon}', '2025-07-05 14:00:16.996+00', 'published', '{"results": "success"}', '2025-07-05 14:00:16.405684+00', '2025-07-24 21:14:00.912932+00', '[]', '2025-07-05 14:00:16.996+00', 'text', false, NULL, NULL, NULL, NULL, '[]', '[]', NULL, NULL),
+(2, 2, 'Nithyanandam', '{}', '{mastodon}', NULL, 'failed', '{"error": "Some accounts failed to publish"}', '2025-07-05 14:09:10.943592+00', '2025-07-24 21:14:00.912932+00', '[]', NULL, 'text', false, NULL, NULL, NULL, NULL, '[]', '[]', NULL, NULL),
+(3, 2, 'Nithyanandam', '{}', '{mastodon}', '2025-07-05 14:11:07.53+00', 'published', '{"results": "success"}', '2025-07-05 14:11:07.100521+00', '2025-07-24 21:14:00.912932+00', '[]', '2025-07-05 14:11:07.53+00', 'text', false, NULL, NULL, NULL, NULL, '[]', '[]', NULL, NULL),
+(4, 2, 'Blessings', '{}', '{mastodon}', NULL, 'failed', '{"error": "Some accounts failed to publish"}', '2025-07-05 14:15:02.107107+00', '2025-07-24 21:14:00.912932+00', '[]', NULL, 'text', false, NULL, NULL, NULL, NULL, '[]', '[]', NULL, NULL),
+(5, 2, 'NIthyanandam', '{}', '{mastodon}', '2025-07-05 14:15:29.568+00', 'published', '{"results": "success"}', '2025-07-05 14:15:29.22552+00', '2025-07-24 21:14:00.912932+00', '[]', '2025-07-05 14:15:29.568+00', 'text', false, NULL, NULL, NULL, NULL, '[]', '[]', NULL, NULL);

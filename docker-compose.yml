@@ -32,6 +32,9 @@ services:
       DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-postgres}@postgres:5432/socialmedia?sslmode=disable
       SESSION_SECRET: ${SESSION_SECRET:-your-secret-key-here}
       JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-here}
+      REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID}
+      REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET}
+      REDDIT_REDIRECT_URI: ${REDDIT_REDIRECT_URI}
     ports:
       - "5000:5000"
     depends_on:
