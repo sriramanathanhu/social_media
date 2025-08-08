@@ -171,32 +171,76 @@ SELECT setval('stream_app_keys_id_seq', COALESCE((SELECT MAX(id) FROM stream_app
    ```
    **Note**: This commonly occurs after data restoration when can_submit values become NULL
 
-6. **"Reddit post content missing - only title posted" Error:**
-   - **Cause**: Multiple issues in frontend-backend parameter handling
-   - **Fix**: Complete backend controller fixes:
-   ```javascript
-   // In server/src/controllers/redditController.js line 123 - Add url parameter
-   const { accountId, subreddit, title, content, url, type: postType, nsfw, spoiler, flairId } = req.body;
+6. **"Reddit post content missing - only title posted" Error (RESOLVED July 26, 2025):**
+   - **Root Cause**: WYSIWYG to Markdown conversion occasionally producing empty results when HTML contains complex formatting
+   - **Comprehensive Solution Implemented**:
    
-   // Lines 184-190 - Fix post data logic
-   if (postType === 'link' && url) {
-     postData.url = url;  // Use url field for link posts
-     console.log('Setting link post URL:', url);
-   } else if (postType === 'text') {
-     postData.text = content || '';  // Use content field for text posts
-     console.log('Setting text post content:', content?.substring(0, 100) || 'NO_CONTENT');
+   **A. Content Validation and Fallback System:**
+   ```typescript
+   // Frontend content processing with validation and fallback
+   if (contentMode === 'rich') {
+     const rawHtml = content.trim();
+     const convertedMarkdown = turndownService.turndown(rawHtml);
+     const finalContent = convertedMarkdown.trim();
+     
+     // If conversion resulted in empty content, use plain text fallback
+     if (!finalContent || finalContent.length === 0) {
+       const tempDiv = document.createElement('div');
+       tempDiv.innerHTML = rawHtml;
+       const plainText = tempDiv.textContent || tempDiv.innerText || '';
+       processedContent = plainText.trim();
+       console.warn('Turndown conversion failed, using plain text fallback');
+     } else {
+       processedContent = finalContent;
+     }
    }
    ```
-
-7. **"WYSIWYG Editor content not being processed correctly" Error:**
-   - **Cause**: ReactQuill editor may save empty content as HTML tags like `<p><br></p>`
-   - **Fix**: Enhanced content validation in frontend:
+   
+   **B. Enhanced Debug Logging System:**
+   - **Frontend**: Comprehensive logging of content processing stages
+   - **Backend**: Detailed tracing of Reddit API submission data
+   - **Debug Output**: Shows conversion details, validation results, and API parameters
+   
+   **C. Backend Parameter Handling:**
    ```javascript
-   // Check text-only content, not just HTML
-   const textOnly = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-   const hasTextContent = postType === 'text' && textOnly.length > 0;
+   // Complete backend controller implementation
+   const { accountId, subreddit, title, content, url, type: postType, nsfw, spoiler, flairId } = req.body;
+   
+   if (postType === 'link' && url) {
+     postData.url = url;
+   } else if (postType === 'text') {
+     postData.text = content || '';
+   }
    ```
-   - **Debug**: Check browser console for "Reddit submit debug" logs to see content processing
+   
+   **D. Multi-Stage Validation:**
+   - Pre-submission content validation
+   - Post-conversion result verification
+   - Plain text fallback for failed conversions
+   - Enhanced error detection and recovery
+   
+   **Status**: Content submission now works reliably in both Rich Text and Markdown modes with automatic fallback handling
+
+   **E. Reddit API Compliance Enhancement (July 26, 2025):**
+   - **Modhash Support**: Added automatic modhash retrieval for Reddit API compliance
+   - **Enhanced Error Handling**: Comprehensive Reddit API response validation
+   - **Content Validation**: Multi-stage content validation in both frontend and backend
+   - **Debug Logging**: Complete submission pipeline tracing for troubleshooting
+   - **API Response Analysis**: Detailed logging of Reddit API responses and errors
+   
+   **F. Production-Ready Implementation:**
+   ```javascript
+   // Enhanced Reddit API submission with modhash
+   const modhash = await this.getModhash(accessToken);
+   if (modhash) {
+     submitData.append('uh', modhash);
+   }
+   
+   // Comprehensive content validation
+   if (req.body.type === 'text' && (!req.body.content || req.body.content.trim().length === 0)) {
+     return res.status(400).json({ error: 'Text posts require content' });
+   }
+   ```
 
 **Post-fix checklist:**
 - [ ] Restart backend container: `docker restart social_media-backend-1`
