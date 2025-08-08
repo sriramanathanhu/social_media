@@ -11,6 +11,7 @@ const blueskyService = require('../services/bluesky');
 const facebookService = require('../services/facebook');
 const instagramService = require('../services/instagram');
 const redditService = require('../services/reddit');
+const eventbriteService = require('../services/eventbrite');
 const crypto = require('crypto');
 
 const generateToken = (userId) => {
@@ -1324,6 +1325,166 @@ const redditCallback = async (req, res) => {
   }
 };
 
+// Eventbrite OAuth functions
+const connectEventbrite = async (req, res) => {
+  try {
+    console.log('Eventbrite connect initiated');
+    console.log('Request user object:', req.user);
+    console.log('User ID:', req.user ? req.user.id : 'UNDEFINED');
+    
+    if (!req.user || !req.user.id) {
+      console.error('No user found in request - authentication failed');
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    // Generate authorization URL and state
+    const authData = eventbriteService.generateAuthUrl();
+    
+    // Store OAuth state in database
+    const stateKey = `eventbrite_${authData.state}`;
+    await OAuthState.create(
+      stateKey,
+      req.user.id,
+      'eventbrite',
+      null, // Eventbrite doesn't have instance URLs
+      null, // client_id stored in env
+      null, // client_secret stored in env
+      null  // Eventbrite doesn't use PKCE
+    );
+    
+    console.log('Eventbrite OAuth state stored with key:', stateKey);
+    
+    res.json({
+      authUrl: authData.url
+    });
+  } catch (error) {
+    console.error('Eventbrite connect error:', error);
+    res.status(500).json({ error: 'Failed to connect to Eventbrite: ' + error.message });
+  }
+};
+
+const eventbriteCallback = async (req, res) => {
+  try {
+    console.log('Eventbrite callback received');
+    console.log('Query params:', req.query);
+    
+    const { code, state } = req.query;
+    
+    if (!code || !state) {
+      console.log('Missing code or state in Eventbrite callback');
+      return res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://socialmedia.ecitizen.media' : 'http://localhost:3000'}/#/accounts?error=missing_parameters`);
+    }
+    
+    const stateKey = `eventbrite_${state}`;
+    console.log('Looking for Eventbrite OAuth state with key:', stateKey);
+    const oauthState = await OAuthState.findByStateKey(stateKey);
+    
+    if (!oauthState) {
+      console.log('Eventbrite OAuth state not found in database');
+      return res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://socialmedia.ecitizen.media' : 'http://localhost:3000'}/#/accounts?error=session_expired`);
+    }
+    
+    console.log('Eventbrite OAuth state found:', oauthState);
+    console.log('OAuth state user_id:', oauthState.user_id);
+    
+    if (!oauthState.user_id) {
+      console.error('OAuth state missing user_id');
+      return res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://socialmedia.ecitizen.media' : 'http://localhost:3000'}/#/accounts?error=invalid_session`);
+    }
+    
+    // Exchange code for access token
+    const tokenData = await eventbriteService.getAccessToken(code);
+    console.log('Eventbrite token received');
+    
+    // Get user profile
+    const userProfile = await eventbriteService.getUserProfile(tokenData.access_token);
+    console.log('Eventbrite user profile FULL:', userProfile);
+    console.log('Eventbrite user profile fields:', {
+      id: userProfile.id,
+      name: userProfile.name,
+      email: userProfile.email,
+      emails: userProfile.emails
+    });
+    
+    // Get user organizations
+    const organizations = await eventbriteService.getUserOrganizations(tokenData.access_token);
+    const organization = organizations[0] || { id: userProfile.id, name: userProfile.name };
+    
+    // Extract email and username with fallbacks
+    const email = userProfile.emails?.[0]?.email || userProfile.email || null;
+    const username = email || `eventbrite_${userProfile.id}`;
+    
+    // Check for existing account  
+    const existingAccount = await SocialAccount.findByPlatformUserAndUsername(
+      oauthState.user_id,
+      'eventbrite',
+      null, // instanceUrl - not used for Eventbrite
+      username
+    );
+    
+    // findByPlatformUserAndUsername returns an array, get first match
+    const existingAccountRecord = existingAccount.length > 0 ? existingAccount[0] : null;
+    
+    if (existingAccountRecord) {
+      console.log('Updating existing Eventbrite account:', existingAccountRecord.id);
+      
+      // Update the existing account
+      await SocialAccount.updateTokens(
+        existingAccountRecord.id,
+        tokenData.access_token,
+        tokenData.refresh_token || null,
+        tokenData.expires_in ? new Date(Date.now() + tokenData.expires_in * 1000) : null
+      );
+      
+      // Update Eventbrite-specific fields and status
+      await SocialAccount.updateStatus(existingAccountRecord.id, 'active');
+      await SocialAccount.updateLastUsed(existingAccountRecord.id);
+      
+      // Update Eventbrite-specific fields via direct query
+      await pool.query(
+        `UPDATE social_accounts 
+         SET eventbrite_user_id = $1, eventbrite_organization_id = $2, 
+             eventbrite_email = $3, eventbrite_name = $4, display_name = $5,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $6`,
+        [userProfile.id, organization.id, email, userProfile.name, userProfile.name, existingAccountRecord.id]
+      );
+    } else {
+      console.log('Creating new Eventbrite account');
+      
+      // Create new account
+      const accountData = {
+        user_id: oauthState.user_id,
+        platform: 'eventbrite',
+        username: username,
+        display_name: userProfile.name,
+        avatar_url: userProfile.image_id ? 
+          `https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F${userProfile.image_id}%2Fuser%2F1%2Foriginal.jpg` : null,
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token || null,
+        token_expires_at: tokenData.expires_in ? 
+          new Date(Date.now() + tokenData.expires_in * 1000) : null,
+        status: 'active',
+        eventbrite_user_id: userProfile.id,
+        eventbrite_organization_id: organization.id,
+        eventbrite_email: email,
+        eventbrite_name: userProfile.name
+      };
+      
+      await SocialAccount.create(accountData);
+    }
+    
+    // Clean up OAuth state
+    await OAuthState.deleteByStateKey(stateKey);
+    
+    // Redirect to frontend with success message
+    res.redirect(`${process.env.NODE_ENV === 'production' ? 'https://socialmedia.ecitizen.media' : 'http://localhost:3000'}/#/accounts?connected=eventbrite`);
+  } catch (error) {
+    console.error('Eventbrite callback error:', error);
+    res.status(500).json({ error: 'Failed to connect Eventbrite account: ' + error.message });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -1341,6 +1502,8 @@ module.exports = {
   instagramCallback,
   connectReddit,
   redditCallback,
+  connectEventbrite,
+  eventbriteCallback,
   registerValidation,
   loginValidation,
   emergencyAdminPromote
