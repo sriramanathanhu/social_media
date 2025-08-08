@@ -164,7 +164,22 @@ const RedditPublishDialog: React.FC<RedditPublishDialogProps> = ({
       if (postType === 'text') {
         if (contentMode === 'rich') {
           // Convert HTML content to Markdown for Reddit
-          processedContent = turndownService.turndown(content.trim());
+          const rawHtml = content.trim();
+          const convertedMarkdown = turndownService.turndown(rawHtml);
+          
+          // Validate conversion result
+          const finalContent = convertedMarkdown.trim();
+          
+          // If conversion resulted in empty content, try to extract plain text
+          if (!finalContent || finalContent.length === 0) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = rawHtml;
+            const plainText = tempDiv.textContent || tempDiv.innerText || '';
+            processedContent = plainText.trim();
+            console.warn('Turndown conversion resulted in empty content, using plain text fallback:', plainText.substring(0, 100));
+          } else {
+            processedContent = finalContent;
+          }
         } else {
           // Use markdown content directly
           processedContent = content.trim();
@@ -173,16 +188,39 @@ const RedditPublishDialog: React.FC<RedditPublishDialogProps> = ({
         processedContent = undefined;
       }
       
-      // Debug logging
-      console.log('Reddit submit debug:', {
+      // Enhanced debug logging
+      console.log('=== FRONTEND REDDIT SUBMIT DEBUG ===');
+      console.log('Input data:', {
         postType,
         contentMode,
         originalContentLength: content?.length || 0,
-        originalContentPreview: content?.substring(0, 100),
-        processedContentLength: processedContent?.length || 0,
-        processedContentPreview: processedContent?.substring(0, 100),
-        hasProcessedContent: !!processedContent
+        originalContentPreview: content?.substring(0, 200) || 'NO_CONTENT',
+        originalContentType: typeof content,
+        hasOriginalContent: !!content
       });
+      
+      console.log('Processed data:', {
+        processedContentLength: processedContent?.length || 0,
+        processedContentPreview: processedContent?.substring(0, 200) || 'NO_PROCESSED_CONTENT',
+        processedContentType: typeof processedContent,
+        hasProcessedContent: !!processedContent,
+        willIncludeContent: postType === 'text' && !!processedContent
+      });
+      
+      console.log('Conversion details:', {
+        contentMode,
+        isRichTextMode: contentMode === 'rich',
+        isMarkdownMode: contentMode === 'markdown',
+        contentContainsHTML: content?.includes('<') || false,
+        contentContainsTags: content?.match(/<[^>]+>/g)?.length || 0
+      });
+      
+      console.log('Final validation:', {
+        postTypeIsText: postType === 'text',
+        hasValidContent: !!processedContent && processedContent.length > 0,
+        contentWillBeSent: postType === 'text' && !!processedContent
+      });
+      console.log('=====================================');
 
       const postData = {
         accountId: parseInt(account.id),

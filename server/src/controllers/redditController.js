@@ -123,7 +123,40 @@ const submitPost = async (req, res) => {
     const { accountId, subreddit, title, content, url, type: postType, nsfw, spoiler, flairId } = req.body;
     
     console.log('=== REDDIT POST SUBMISSION DEBUG ===');
+    console.log('Request URL:', req.url);
+    console.log('Request method:', req.method);
+    console.log('Content-Type header:', req.headers['content-type']);
+    console.log('Body keys:', Object.keys(req.body));
     console.log('Raw request body:', JSON.stringify(req.body, null, 2));
+    console.log('Body size (bytes):', JSON.stringify(req.body).length);
+    console.log('Content field analysis:');
+    console.log('- content exists in body:', req.body.hasOwnProperty('content'));
+    console.log('- content type:', typeof req.body.content);
+    console.log('- content value:', req.body.content);
+    console.log('- content is null:', req.body.content === null);
+    console.log('- content is undefined:', req.body.content === undefined);
+    console.log('- content is empty string:', req.body.content === '');
+    console.log('- content after trim:', req.body.content?.trim?.());
+    
+    // Validate content for text posts
+    if (req.body.type === 'text' && (!req.body.content || req.body.content.trim().length === 0)) {
+      console.error('❌ CRITICAL: Text post submitted without content!');
+      console.error('Request body keys:', Object.keys(req.body));
+      console.error('Content value debug:', {
+        raw: req.body.content,
+        trimmed: req.body.content?.trim(),
+        length: req.body.content?.length || 0
+      });
+      return res.status(400).json({ 
+        error: 'Text posts require content. Content field was empty or missing.',
+        debug: {
+          contentReceived: !!req.body.content,
+          contentType: typeof req.body.content,
+          contentLength: req.body.content?.length || 0
+        }
+      });
+    }
+    
     console.log('Extracted values:', {
       accountId,
       subreddit,
@@ -185,13 +218,32 @@ const submitPost = async (req, res) => {
       postData.url = url;
       console.log('Setting link post URL:', url);
     } else if (postType === 'text') {
-      postData.text = content || '';
-      console.log('Setting text post content:', content?.substring(0, 100) || 'NO_CONTENT');
+      const textContent = content || '';
+      postData.text = textContent;
+      console.log('Setting text post content:', textContent?.substring(0, 100) || 'NO_CONTENT');
+      console.log('Text content length:', textContent.length);
+      
+      // Double-check that text content is not empty
+      if (!textContent || textContent.trim().length === 0) {
+        console.error('❌ ERROR: Attempting to submit text post with empty content!');
+        console.error('Original content value:', content);
+        console.error('Processed content value:', textContent);
+        return res.status(400).json({ 
+          error: 'Cannot submit text post with empty content',
+          debug: { originalContent: content, processedContent: textContent }
+        });
+      }
     }
 
     if (flairId) {
       postData.flair_id = flairId;
     }
+
+    console.log('=== FINAL POST DATA TO REDDIT ===');
+    console.log('postData object:', JSON.stringify(postData, null, 2));
+    console.log('postData.text value:', postData.text);
+    console.log('postData.text length:', postData.text?.length || 0);
+    console.log('=================================');
 
     // Submit post to Reddit
     const result = await redditService.submitPost(accessToken, subreddit, postData);

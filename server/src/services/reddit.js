@@ -305,6 +305,40 @@ class RedditService {
     }
   }
 
+  // Get modhash for submission
+  async getModhash(accessToken) {
+    try {
+      console.log('Fetching Reddit modhash...');
+      const response = await axios.get(`${this.apiBaseUrl}/api/v1/me`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'User-Agent': this.userAgent
+        }
+      });
+      
+      // Try to get modhash from user data or try alternative method
+      let modhash = response.data.modhash;
+      
+      if (!modhash) {
+        // Alternative: Get modhash from Reddit's main page
+        console.log('Attempting alternative modhash retrieval...');
+        const meResponse = await axios.get(`${this.apiBaseUrl}/api/v1/me.json`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'User-Agent': this.userAgent
+          }
+        });
+        modhash = meResponse.data?.data?.modhash;
+      }
+      
+      console.log('Modhash retrieved:', modhash ? 'YES' : 'NO');
+      return modhash;
+    } catch (error) {
+      console.error('Failed to get modhash:', error.response?.data || error.message);
+      return null; // Continue without modhash if it fails
+    }
+  }
+
   // Submit a post to Reddit
   async submitPost(accessToken, subreddit, postData) {
     try {
@@ -322,6 +356,9 @@ class RedditService {
       });
       console.log('===================================');
 
+      // Get modhash for submission (may be required by Reddit)
+      const modhash = await this.getModhash(accessToken);
+
       const submitData = new URLSearchParams({
         sr: subreddit,
         kind: postData.kind, // 'self' for text, 'link' for URL
@@ -330,6 +367,12 @@ class RedditService {
         spoiler: postData.spoiler || false,
         api_type: 'json'
       });
+
+      // Add modhash if available
+      if (modhash) {
+        submitData.append('uh', modhash);
+        console.log('🔹 Added modhash to submission');
+      }
 
       // Add content based on post type
       if (postData.kind === 'self') {
@@ -354,6 +397,7 @@ class RedditService {
         console.log(`  ${key}: ${key === 'text' ? value.substring(0, 100) + (value.length > 100 ? '...' : '') : value}`);
       }
 
+      console.log('🔹 Making submission request to Reddit API...');
       const response = await axios.post(`${this.apiBaseUrl}/api/submit`, submitData, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -362,13 +406,26 @@ class RedditService {
         }
       });
 
+      console.log('🔹 Reddit API Response Status:', response.status);
+      console.log('🔹 Reddit API Response Data:', JSON.stringify(response.data, null, 2));
+
+      // Check for errors in Reddit's response
       if (response.data.json && response.data.json.errors && response.data.json.errors.length > 0) {
         const errors = response.data.json.errors;
+        console.error('Reddit API returned errors:', errors);
         throw new Error(`Reddit API error: ${errors.map(err => err.join(': ')).join(', ')}`);
       }
 
+      // Check if submission was successful
+      if (!response.data.json || !response.data.json.data) {
+        console.error('Reddit API unexpected response format:', response.data);
+        throw new Error('Reddit API returned unexpected response format');
+      }
+
       const postInfo = response.data.json.data;
-      console.log('Reddit post submitted successfully:', postInfo.url);
+      console.log('🔹 Reddit post submitted successfully!');
+      console.log('🔹 Post URL:', postInfo.url);
+      console.log('🔹 Post Permalink:', postInfo.permalink);
 
       return {
         id: postInfo.id,
