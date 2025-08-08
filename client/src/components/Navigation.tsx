@@ -33,6 +33,7 @@ import {
   Apps as AppsIcon,
   Web as WordPressIcon,
   Reddit as RedditIcon,
+  Event as EventbriteIcon,
   ExpandLess,
   ExpandMore,
   Public as PublishingIcon,
@@ -70,6 +71,7 @@ const Navigation: React.FC = () => {
     },
     { label: 'WordPress', path: '/wordpress', icon: <WordPressIcon /> },
     { label: 'Reddit', path: '/reddit', icon: <RedditIcon /> },
+    { label: 'Eventbrite', path: '/eventbrite', icon: <EventbriteIcon /> },
     { 
       label: 'Live Streaming', 
       icon: <LiveStreamIcon />,

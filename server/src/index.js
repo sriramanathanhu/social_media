@@ -83,6 +83,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/groups', require('./routes/accountGroups'));
 app.use('/api/wordpress', require('./routes/wordpress'));
 app.use('/api/reddit', require('./routes/reddit'));
+app.use('/api/eventbrite', require('./routes/eventbrite'));
 
 // Serve static files
 if (process.env.NODE_ENV === 'production') {

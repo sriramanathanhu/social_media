@@ -87,6 +87,12 @@ export const authAPI = {
   
   redditCallback: (code: string, state: string) =>
     api.get(`/auth/reddit/callback?code=${code}&state=${state}`),
+  
+  connectEventbrite: () =>
+    api.post('/auth/eventbrite/connect'),
+  
+  eventbriteCallback: (code: string, state: string) =>
+    api.get(`/auth/eventbrite/callback?code=${code}&state=${state}`),
 };
 
 export const accountsAPI = {
@@ -329,6 +335,58 @@ export const redditAPI = {
     scheduledFor?: string;
   }) =>
     api.post('/reddit/post', postData),
+};
+
+export const eventbriteAPI = {
+  // Account Management
+  getAccountEvents: (accountId: string) =>
+    api.get(`/eventbrite/accounts/${accountId}/events`),
+
+  syncAccountEvents: (accountId: string) =>
+    api.post(`/eventbrite/accounts/${accountId}/sync`),
+
+  getEventMeta: (accountId: string) =>
+    api.get(`/eventbrite/accounts/${accountId}/meta`),
+
+  // Event Management
+  createEvent: (eventData: {
+    accountId: number;
+    eventData: {
+      name: string;
+      description?: string;
+      start_datetime: string;
+      end_datetime: string;
+      start_timezone?: string;
+      end_timezone?: string;
+      currency?: string;
+      online_event?: boolean;
+      listed?: boolean;
+      shareable?: boolean;
+      invite_only?: boolean;
+      show_remaining?: boolean;
+      capacity?: number;
+      category_id?: string;
+      format_id?: string;
+    };
+  }) =>
+    api.post('/eventbrite/events', eventData),
+
+  createTicketClass: (ticketData: {
+    eventId: number;
+    ticketData: {
+      name: string;
+      description?: string;
+      is_free: boolean;
+      cost?: string;
+      quantity_total: number;
+      minimum_quantity?: number;
+      maximum_quantity?: number;
+    };
+  }) =>
+    api.post(`/eventbrite/events/${ticketData.eventId}/tickets`, ticketData),
+
+  publishEvent: (eventId: number) =>
+    api.post(`/eventbrite/events/${eventId}/publish`, { eventId }),
 };
 
 export default api;
