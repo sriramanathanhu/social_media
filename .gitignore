@@ -48,3 +48,6 @@ Thumbs.db
 *.temp
 test.html
 simple-server.jswms_panel/
+# Database backups - automatically generated
+database_backups/*.sql.custom
+database_backups/*.sql.gz
